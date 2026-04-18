@@ -492,10 +492,34 @@ tr.sel-row td{background:rgba(255,68,102,.05);}
 .del-confirm-box p{font-size:12.5px;color:var(--tx2);margin-bottom:10px;line-height:1.6;}
 .del-confirm-box strong{color:var(--red);}
 
-/* alerta-bann */
-.alerta-bann{display:none;background:rgba(255,68,102,.09);border-bottom:2px solid rgba(255,68,102,.28);padding:10px 20px;font-size:13px;font-weight:600;color:var(--red);align-items:center;gap:12px;cursor:pointer;flex-shrink:0;}
-.alerta-bann.show{display:flex;}
-.alerta-bann:hover{background:rgba(255,68,102,.15);}
+/* ══ ROTEIRIZAÇÃO ══════════════════════════════════════════════ */
+.rot-wrap{display:grid;grid-template-columns:340px 1fr;gap:16px;height:calc(100vh - 170px);min-height:520px;}
+.rot-panel{background:var(--bg1);border:1px solid var(--br);border-radius:var(--r);display:flex;flex-direction:column;overflow:hidden;}
+.rot-map{background:var(--bg3);border:1px solid var(--br);border-radius:var(--r);overflow:hidden;position:relative;display:flex;flex-direction:column;}
+.rot-ph{display:flex;flex-direction:column;align-items:center;justify-content:center;flex:1;gap:10px;color:var(--tx4);}
+.rot-ph-ic{font-size:48px;opacity:.4;}
+.rot-sec{padding:14px 16px;border-bottom:1px solid var(--br);}
+.rot-sec-title{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.8px;color:var(--tx3);margin-bottom:10px;display:flex;align-items:center;gap:6px;}
+.rot-input-row{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:6px;}
+.rot-list{flex:1;overflow-y:auto;}
+.rot-item{display:flex;align-items:center;gap:10px;padding:10px 14px;border-bottom:1px solid var(--br);transition:background .1s;}
+.rot-item:hover{background:var(--bg3);}
+.rot-item-num{width:26px;height:26px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;flex-shrink:0;background:var(--acc);color:#fff;}
+.rot-item-num.chegada{background:var(--grn);}
+.rot-item-body{flex:1;min-width:0;}
+.rot-item-label{font-size:12.5px;font-weight:600;color:var(--tx);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.rot-item-coord{font-size:10.5px;color:var(--tx4);font-family:monospace;}
+.rot-item-hora{font-size:11px;font-weight:700;color:var(--grn);white-space:nowrap;flex-shrink:0;}
+.rot-item-del{background:none;border:none;color:var(--tx4);cursor:pointer;font-size:15px;padding:2px 5px;border-radius:4px;flex-shrink:0;}
+.rot-item-del:hover{color:var(--red);background:rgba(255,68,102,.1);}
+.rot-footer{padding:12px 14px;border-top:1px solid var(--br);display:flex;flex-direction:column;gap:8px;}
+.rot-resumo{font-size:11px;color:var(--tx3);text-align:center;}
+.rot-map-header{padding:10px 14px;border-bottom:1px solid var(--br);display:flex;align-items:center;justify-content:space-between;background:var(--bg2);flex-shrink:0;}
+.rot-legend{display:flex;gap:12px;font-size:11px;color:var(--tx3);}
+.rot-leg-dot{width:10px;height:10px;border-radius:50%;display:inline-block;margin-right:4px;}
+.rot-map-iframe{flex:1;border:none;}
+.rot-hora-config{display:flex;align-items:center;gap:8px;flex-wrap:wrap;}
+.rot-hora-config label{font-size:12px;color:var(--tx2);}
 </style>
 </head>
 <body>
@@ -545,6 +569,10 @@ tr.sel-row td{background:rgba(255,68,102,.05);}
     <button class="ni admin-only" data-page="financeiro" onclick="go('financeiro')"><span class="ic">💰</span><span class="lbl">Dashboard Financeiro</span></button>
     <button class="ni admin-only" data-page="faturas" onclick="go('faturas')"><span class="ic">🧾</span><span class="lbl">Gerar Fatura</span></button>
 
+
+    <div class="sb-sec">Campo</div>
+    <button class="ni" data-page="roteiro" onclick="go('roteiro')"><span class="ic">🗺️</span><span class="lbl">Roteirização</span></button>
+
   </nav>
   <div class="sb-foot">
     <div id="user-badge-wrap" style="margin-bottom:10px;"></div>
@@ -576,13 +604,6 @@ tr.sel-row td{background:rgba(255,68,102,.05);}
   </div>
 </div>
 
-<div class="alerta-bann" id="alerta-bann" onclick="go('vencendo')">
-  <span style="font-size:18px;">⚠️</span>
-  <span id="alerta-txt"></span>
-  <span style="margin-left:auto;font-size:11px;font-weight:400;opacity:.75;">Clique para ver →</span>
-  <button onclick="event.stopPropagation();document.getElementById('alerta-bann').classList.remove('show')" style="background:none;border:none;color:var(--red);cursor:pointer;font-size:17px;padding:0 6px;">✕</button>
-</div>
-
 <div class="content">
 
 <!-- ═══ DASHBOARD ═══ -->
@@ -596,16 +617,6 @@ tr.sel-row td{background:rgba(255,68,102,.05);}
       <select id="chart-ano" onchange="mudarAno()" style="width:auto;padding:6px 12px;font-size:12px;background:var(--bg2);border:1px solid var(--br);border-radius:var(--rs);color:var(--tx);">
         <option value="">— Selecione —</option>
         <option>2024</option><option>2025</option><option selected>2026</option><option>2027</option>
-      </select>
-      <span style="font-size:11px;color:var(--tx3);">Mês:</span>
-      <select id="chart-mes" onchange="mudarMes()" style="width:auto;padding:6px 12px;font-size:12px;background:var(--bg2);border:1px solid var(--br);border-radius:var(--rs);color:var(--tx);">
-        <option value="">Todos</option>
-        <option value="0">Janeiro</option><option value="1">Fevereiro</option>
-        <option value="2">Março</option><option value="3">Abril</option>
-        <option value="4">Maio</option><option value="5">Junho</option>
-        <option value="6">Julho</option><option value="7">Agosto</option>
-        <option value="8">Setembro</option><option value="9">Outubro</option>
-        <option value="10">Novembro</option><option value="11">Dezembro</option>
       </select>
       <button id="btn-consolidado" onclick="modoConsolidado()" style="
         padding:6px 14px;font-size:12px;font-weight:600;border-radius:var(--rs);
@@ -710,36 +721,6 @@ tr.sel-row td{background:rgba(255,68,102,.05);}
     </div>
   </div>
 
-  <!-- ROW SLA -->
-  <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:16px;margin-bottom:16px;">
-    <div class="card">
-      <div class="card-hd" style="flex-wrap:wrap;gap:6px;"><h3>🚦 SLA — Saúde</h3><span id="sla-pill" style="font-size:11px;font-weight:700;padding:3px 9px;border-radius:20px;background:var(--bg4);color:var(--tx3);">—</span></div>
-      <div style="display:flex;margin:10px 0;">
-        <div style="flex:1;text-align:center;padding:8px;border-right:1px solid var(--br);">
-          <div style="font-size:24px;font-weight:700;" id="sla-pct">—</div>
-          <div style="font-size:10px;color:var(--tx3);">No prazo</div></div>
-        <div style="flex:1;text-align:center;padding:8px;border-right:1px solid var(--br);">
-          <div style="font-size:20px;font-weight:700;color:var(--tx2);" id="sla-med">—</div>
-          <div style="font-size:10px;color:var(--tx3);">Dias médio</div></div>
-        <div style="flex:1;text-align:center;padding:8px;">
-          <div style="font-size:20px;font-weight:700;color:var(--red);" id="sla-atras">0</div>
-          <div style="font-size:10px;color:var(--tx3);">Atrasadas</div></div>
-      </div>
-      <div style="padding-top:8px;border-top:1px solid var(--br);">
-        <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.6px;color:var(--tx3);margin-bottom:6px;">Últimos 3 meses</div>
-        <div id="sla-ev" style="display:flex;gap:6px;"></div>
-      </div>
-    </div>
-    <div class="card">
-      <div class="card-hd"><h3>⏱️ Conclusão por Etapa</h3></div>
-      <div id="sla-etapas" style="display:flex;flex-direction:column;gap:8px;margin-top:6px;"></div>
-    </div>
-    <div class="card">
-      <div class="card-hd"><h3>📅 Previsão de Recebimento</h3></div>
-      <div id="sla-prev" style="margin-top:4px;"></div>
-    </div>
-  </div>
-
   <!-- ROW 4: Heatmap de abertura por dia da semana + Últimas OS adicionadas -->
   <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px;">
 
@@ -789,16 +770,9 @@ tr.sel-row td{background:rgba(255,68,102,.05);}
       <div class="chip" onclick="setChip('lista','G-416',this)">G-416</div>
       <div class="chip" onclick="setChip('lista','G-402',this)">G-402</div>
     </div>
-    <div style="margin-left:auto;display:flex;gap:8px;align-items:center;">
-      <div style="position:relative;" id="xp-wrap">
-        <button class="btn btn-ghost btn-sm" onclick="toggleXpMenu(event)">📥 Exportar ▾</button>
-        <div id="xp-menu" style="display:none;position:absolute;right:0;top:calc(100% + 4px);background:var(--bg2);border:1px solid var(--br2);border-radius:var(--rs);min-width:170px;z-index:200;box-shadow:0 8px 24px rgba(0,0,0,.4);overflow:hidden;">
-          <button onclick="exportarCSV();document.getElementById('xp-menu').style.display='none'" style="display:flex;align-items:center;gap:8px;padding:10px 14px;font-size:12.5px;color:var(--tx2);cursor:pointer;background:none;border:none;width:100%;text-align:left;" onmouseover="this.style.background='var(--bg3)'" onmouseout="this.style.background='none'">📄 Exportar CSV</button>
-          <button onclick="exportarExcel();document.getElementById('xp-menu').style.display='none'" style="display:flex;align-items:center;gap:8px;padding:10px 14px;font-size:12.5px;color:var(--tx2);cursor:pointer;background:none;border:none;width:100%;text-align:left;" onmouseover="this.style.background='var(--bg3)'" onmouseout="this.style.background='none'">📊 Exportar Excel</button>
-        </div>
-      </div>
-      <button class="btn btn-ghost btn-sm admin-only" onclick="toggleModoSelecao()" id="btn-sel-modo">☑️ Selecionar</button>
-      <button class="btn btn-danger btn-sm admin-only" onclick="abrirApagarTudo()">🗑 Apagar tudo</button>
+    <div class="admin-only" style="margin-left:auto;display:flex;gap:8px;">
+      <button class="btn btn-ghost btn-sm" onclick="toggleModoSelecao()" id="btn-sel-modo">☑️ Selecionar</button>
+      <button class="btn btn-danger btn-sm" onclick="abrirApagarTudo()" title="Apagar todas as OS do banco">🗑 Apagar tudo</button>
     </div>
   </div>
 
@@ -1324,6 +1298,87 @@ tr.sel-row td{background:rgba(255,68,102,.05);}
 </div>
 </div>
 
+
+<!-- ═══ ROTEIRIZAÇÃO DE VISTORIAS ═══ -->
+<div class="page" id="page-roteiro">
+
+  <!-- Config rápida -->
+  <div style="display:flex;align-items:center;gap:12px;margin-bottom:14px;flex-wrap:wrap;">
+    <div class="rot-hora-config">
+      <label>Início:</label>
+      <input type="time" id="rot-inicio" value="08:00" style="padding:5px 10px;font-size:12px;background:var(--bg2);border:1px solid var(--br);border-radius:var(--rs);color:var(--tx);">
+      <label>Duração/visita (min):</label>
+      <input type="number" id="rot-duracao" value="30" min="5" max="240" style="width:70px;padding:5px 10px;font-size:12px;background:var(--bg2);border:1px solid var(--br);border-radius:var(--rs);color:var(--tx);">
+      <label>Velocidade média (km/h):</label>
+      <input type="number" id="rot-vel" value="40" min="10" max="120" style="width:70px;padding:5px 10px;font-size:12px;background:var(--bg2);border:1px solid var(--br);border-radius:var(--rs);color:var(--tx);">
+    </div>
+    <button class="btn btn-ghost btn-sm" onclick="limparRoteiro()" style="margin-left:auto;">🗑 Limpar tudo</button>
+    <button class="btn btn-ghost btn-sm" onclick="exportarRoteiro()">📋 Exportar agenda</button>
+  </div>
+
+  <div class="rot-wrap">
+
+    <!-- PAINEL ESQUERDO -->
+    <div class="rot-panel">
+
+      <!-- Inserir ponto -->
+      <div class="rot-sec">
+        <div class="rot-sec-title">📍 Adicionar ponto de vistoria</div>
+        <div class="rot-input-row">
+          <input type="text" id="rot-lat" placeholder="Latitude ex: -20.8312" style="font-size:12px;padding:7px 10px;">
+          <input type="text" id="rot-lng" placeholder="Longitude ex: -49.3814" style="font-size:12px;padding:7px 10px;">
+        </div>
+        <input type="text" id="rot-nome" placeholder="Nome/identificação do ponto (opcional)" style="font-size:12px;padding:7px 10px;width:100%;margin-bottom:6px;">
+        <div style="display:flex;gap:6px;">
+          <button class="btn btn-primary btn-sm" style="flex:1;" onclick="adicionarPontoRoteiro()">+ Adicionar ponto</button>
+          <button class="btn btn-ghost btn-sm" onclick="colarCoordenadas()" title="Colar coordenadas no formato -20.83, -49.38">📋</button>
+        </div>
+        <div style="font-size:10px;color:var(--tx4);margin-top:6px;">💡 Copie do Google Maps: botão direito → clique nos números</div>
+      </div>
+
+      <!-- Lista de pontos -->
+      <div class="rot-list" id="rot-lista">
+        <div class="rot-ph" style="padding:30px;">
+          <div class="rot-ph-ic">📍</div>
+          <div style="font-size:13px;font-weight:600;color:var(--tx2);">Nenhum ponto adicionado</div>
+          <div style="font-size:12px;text-align:center;">Insira as coordenadas dos imóveis que serão vistoriados hoje</div>
+        </div>
+      </div>
+
+      <!-- Ações -->
+      <div class="rot-footer">
+        <button class="btn btn-primary" id="rot-btn-rota" onclick="gerarRota()" disabled style="width:100%;font-size:13px;padding:11px;">
+          🚗 Gerar melhor rota
+        </button>
+        <div class="rot-resumo" id="rot-resumo">Adicione ao menos 2 pontos para gerar a rota</div>
+      </div>
+
+    </div>
+
+    <!-- PAINEL DIREITO — MAPA -->
+    <div class="rot-map">
+      <div class="rot-map-header">
+        <div style="font-size:12.5px;font-weight:700;">Visualização da rota</div>
+        <div class="rot-legend">
+          <span><span class="rot-leg-dot" style="background:#4e7bff;"></span>Pontos</span>
+          <span><span class="rot-leg-dot" style="background:#18d4a0;"></span>Rota otimizada</span>
+          <span id="rot-map-info" style="color:var(--acc);font-weight:600;"></span>
+        </div>
+        <button class="btn btn-ghost btn-xs" onclick="abrirGoogleMaps()" id="rot-btn-gmaps" style="display:none;">🗺️ Abrir no Google Maps</button>
+      </div>
+      <div id="rot-map-container" style="flex:1;position:relative;background:var(--bg3);">
+        <div class="rot-ph" id="rot-map-ph">
+          <div class="rot-ph-ic">🗺️</div>
+          <div style="font-size:13px;font-weight:600;color:var(--tx2);">Mapa aparecerá aqui</div>
+          <div style="font-size:12px;text-align:center;max-width:260px;">Adicione pontos e clique em<br><strong>"Gerar melhor rota"</strong></div>
+        </div>
+        <div id="rot-mapa-svg" style="width:100%;height:100%;display:none;position:relative;overflow:hidden;"></div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
 <!-- TOAST -->
 <div class="toast" id="toast"><span id="toast-ic">✅</span><span id="toast-msg"></span></div>
 
@@ -1349,7 +1404,8 @@ const PAGE_TITLES = {
   dashboard:'Dashboard','lista':'Todas as OS','preenchidas':'OS Preenchidas',
   'vistoriadas':'OS Vistoriadas','sem-ficha':'Fichas de Pesquisa',
   andamento:'Em Andamento','vencendo':'Próximo do vencimento','finalizadas':'Finalizadas',
-  financeiro:'Dashboard Financeiro','faturas':'Gerar Fatura'
+  financeiro:'Dashboard Financeiro','faturas':'Gerar Fatura',
+  roteiro:'Roteirização de Vistorias'
 };
 
 let DB = [];
@@ -1555,8 +1611,8 @@ function go(id) {
   document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
   document.querySelectorAll('.ni').forEach(n=>n.classList.remove('active'));
   document.getElementById('page-'+id).classList.add('active');
-  const btn=document.querySelector('.ni[data-page="'+id+'"]');
-  if(btn) btn.classList.add('active');
+  const _btn=document.querySelector('.ni[data-page="'+id+'"]');
+  if(_btn) _btn.classList.add('active');
   document.getElementById('tb-title').textContent = PAGE_TITLES[id]||id;
   document.getElementById('tb-sub').textContent = `${DB.length} OS cadastradas`;
   renderPage(id);
@@ -1573,6 +1629,7 @@ function renderPage(id) {
   else if(id==='finalizadas') renderSimple('finalizadas');
   else if(id==='financeiro') renderFinanceiro();
   else if(id==='faturas') renderFaturas();
+  else if(id==='roteiro') renderRoteiro();
 }
 
 let _refreshTmr = null;
@@ -1584,8 +1641,6 @@ function refreshAll() {
 }
 function _refreshAll_impl() {
   updateBadges();
-  try{verificarAlertas();}catch(_){}
-  try{renderSLA();}catch(_){}
   const pid = document.querySelector('.page.active')?.id?.replace('page-','');
   if(pid) renderPage(pid);
 }
@@ -1610,8 +1665,6 @@ function mudarAno() {
 function modoConsolidado() {
   dashConsolidado = true;
   dashAno = null;
-  if(typeof dashMes!=='undefined') dashMes=null;
-  const _mel=document.getElementById('chart-mes'); if(_mel) _mel.value='';
   const btn = document.getElementById('btn-consolidado');
   if(btn) { btn.style.background='rgba(78,123,255,.18)'; btn.style.color='var(--acc)'; btn.style.borderColor='rgba(78,123,255,.4)'; }
   const sel = document.getElementById('chart-ano');
@@ -1625,9 +1678,7 @@ function getDadosFiltrados() {
   return DB.filter(os => {
     if(!os.dataAbertura) return false;
     const d = parseDt(os.dataAbertura);
-    if(!d || d.getFullYear() !== dashAno) return false;
-    if(typeof dashMes!=='undefined' && dashMes!==null && d.getMonth()!==dashMes) return false;
-    return true;
+    return d && d.getFullYear() === dashAno;
   });
 }
 
@@ -1665,9 +1716,8 @@ function updateBadges() {
   sv('sv-amanha', dAmanha);
   sv('sv-3dias', d3dias);
 
-  const _MF=['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
   const periodoLabel = dashConsolidado ? 'Consolidado · todos os anos'
-    : dashAno ? ((typeof dashMes!=='undefined'&&dashMes!==null)?_MF[dashMes]+'/'+dashAno:'Ano '+dashAno) : 'Todos os anos';
+    : dashAno ? 'Ano '+dashAno : 'Todos os anos';
   const sub = document.getElementById('sv-total-sub');
   if(sub) sub.textContent = periodoLabel;
   const lblEl = document.getElementById('dash-periodo-lbl');
@@ -4094,150 +4144,437 @@ async function confirmarDelecao() {
 }
 
 
-// ── dashMes (filtro por mês do dashboard) ─────────────────────────────
-let dashMes = null;
-function mudarMes() {
-  const val = document.getElementById('chart-mes')?.value;
-  dashMes = (val !== '' && val !== undefined && val !== null) ? parseInt(val) : null;
-  dashConsolidado = false;
-  updateBadges();
-  renderDash();
+// ══════════════════════════════════════════════════════════════
+// MÓDULO DE ROTEIRIZAÇÃO DE VISTORIAS
+// Independente — não modifica nenhuma funcionalidade existente
+// ══════════════════════════════════════════════════════════════
+
+let _rotPontos = [];          // Array de pontos inseridos
+let _rotOrdemOtima = [];      // Índices na ordem otimizada
+let _rotRoteada = false;      // Se a rota já foi calculada
+
+// ── Adicionar ponto ───────────────────────────────────────────
+function adicionarPontoRoteiro() {
+  const latEl  = document.getElementById('rot-lat');
+  const lngEl  = document.getElementById('rot-lng');
+  const nomeEl = document.getElementById('rot-nome');
+
+  const latRaw = (latEl?.value || '').trim().replace(',', '.');
+  const lngRaw = (lngEl?.value || '').trim().replace(',', '.');
+  const nome   = (nomeEl?.value || '').trim() || ('Ponto ' + (_rotPontos.length + 1));
+
+  const lat = parseFloat(latRaw);
+  const lng = parseFloat(lngRaw);
+
+  if(isNaN(lat) || isNaN(lng)) {
+    toast('Informe latitude e longitude válidas (ex: -20.8312, -49.3814)', 'err');
+    latEl?.focus();
+    return;
+  }
+  if(lat < -90 || lat > 90)  { toast('Latitude deve estar entre -90 e 90', 'err'); return; }
+  if(lng < -180 || lng > 180){ toast('Longitude deve estar entre -180 e 180', 'err'); return; }
+
+  _rotPontos.push({ lat, lng, nome, id: Date.now() });
+  _rotRoteada = false;
+
+  // Limpar campos
+  if(latEl)  latEl.value  = '';
+  if(lngEl)  lngEl.value  = '';
+  if(nomeEl) nomeEl.value = '';
+  latEl?.focus();
+
+  _rotRenderLista();
+  _rotRenderMapa();
+  toast('Ponto adicionado: ' + nome, 'ok');
 }
 
-// ── Export dropdown ───────────────────────────────────────────────────
-function toggleXpMenu(e) {
-  e.stopPropagation();
-  const m = document.getElementById('xp-menu');
-  if(m) m.style.display = m.style.display === 'none' ? 'block' : 'none';
+// ── Colar coordenadas (formato "-20.83, -49.38") ──────────────
+async function colarCoordenadas() {
+  try {
+    const text = await navigator.clipboard.readText();
+    const m = text.match(/(-?\d+\.?\d*)[,\s]+(-?\d+\.?\d*)/);
+    if(m) {
+      const latEl = document.getElementById('rot-lat');
+      const lngEl = document.getElementById('rot-lng');
+      if(latEl) latEl.value = m[1];
+      if(lngEl) lngEl.value = m[2];
+      toast('Coordenadas coladas! Confirme e adicione.', 'ok');
+    } else {
+      toast('Formato não reconhecido. Use: -20.83, -49.38', 'err');
+    }
+  } catch(e) {
+    toast('Clique em Permitir para colar da área de transferência', 'err');
+  }
 }
-document.addEventListener('click', function() {
-  const m = document.getElementById('xp-menu');
-  if(m) m.style.display = 'none';
+
+// ── Remover ponto ─────────────────────────────────────────────
+function removerPontoRoteiro(idx) {
+  _rotPontos.splice(idx, 1);
+  _rotRoteada = false;
+  _rotOrdemOtima = [];
+  _rotRenderLista();
+  _rotRenderMapa();
+}
+
+// ── Limpar tudo ───────────────────────────────────────────────
+function limparRoteiro() {
+  if(_rotPontos.length && !confirm('Remover todos os pontos?')) return;
+  _rotPontos = [];
+  _rotOrdemOtima = [];
+  _rotRoteada = false;
+  _rotRenderLista();
+  _rotRenderMapa();
+  const infoEl = document.getElementById('rot-map-info');
+  if(infoEl) infoEl.textContent = '';
+  const gmBtn = document.getElementById('rot-btn-gmaps');
+  if(gmBtn) gmBtn.style.display = 'none';
+}
+
+// ── Renderizar lista de pontos ────────────────────────────────
+function _rotRenderLista() {
+  const lista = document.getElementById('rot-lista');
+  const btn   = document.getElementById('rot-btn-rota');
+  const res   = document.getElementById('rot-resumo');
+  if(!lista) return;
+
+  if(!_rotPontos.length) {
+    lista.innerHTML = `<div class="rot-ph" style="padding:30px;">
+      <div class="rot-ph-ic">📍</div>
+      <div style="font-size:13px;font-weight:600;color:var(--tx2);">Nenhum ponto adicionado</div>
+      <div style="font-size:12px;text-align:center;">Insira as coordenadas dos imóveis que serão vistoriados hoje</div>
+    </div>`;
+    if(btn) { btn.disabled = true; }
+    if(res) res.textContent = 'Adicione ao menos 2 pontos para gerar a rota';
+    return;
+  }
+
+  if(btn) btn.disabled = _rotPontos.length < 2;
+  if(res) res.textContent = _rotPontos.length === 1
+    ? 'Adicione mais 1 ponto para poder gerar a rota'
+    : `${_rotPontos.length} pontos · clique em "Gerar melhor rota"`;
+
+  // Se já tem rota otimizada, mostra na ordem
+  const ordem = _rotRoteada && _rotOrdemOtima.length
+    ? _rotOrdemOtima
+    : _rotPontos.map((_, i) => i);
+
+  const horaInicio  = document.getElementById('rot-inicio')?.value || '08:00';
+  const durMin      = parseInt(document.getElementById('rot-duracao')?.value || '30');
+  const velKmh      = parseInt(document.getElementById('rot-vel')?.value || '40');
+  const [h0, m0]    = horaInicio.split(':').map(Number);
+  let minCorridos   = h0 * 60 + m0;
+
+  lista.innerHTML = ordem.map((idx, pos) => {
+    const p = _rotPontos[idx];
+    let horaStr = '';
+    let distStr = '';
+
+    if(_rotRoteada) {
+      // Calcular tempo de deslocamento desde ponto anterior
+      if(pos > 0) {
+        const prev = _rotPontos[ordem[pos - 1]];
+        const distKm = _rotDistancia(prev.lat, prev.lng, p.lat, p.lng);
+        const tempoMin = Math.round((distKm / velKmh) * 60);
+        minCorridos += tempoMin + durMin; // desloc + duração visita anterior
+        distStr = distKm.toFixed(1) + ' km';
+      }
+      const hh = Math.floor(minCorridos / 60) % 24;
+      const mm = minCorridos % 60;
+      horaStr = `${String(hh).padStart(2,'0')}:${String(mm).padStart(2,'0')}`;
+    }
+
+    return `<div class="rot-item">
+      <div class="rot-item-num${_rotRoteada ? ' chegada' : ''}">${pos + 1}</div>
+      <div class="rot-item-body">
+        <div class="rot-item-label" title="${p.nome}">${p.nome}</div>
+        <div class="rot-item-coord">${p.lat.toFixed(5)}, ${p.lng.toFixed(5)}${distStr ? ' · ' + distStr : ''}</div>
+      </div>
+      ${horaStr ? `<div class="rot-item-hora">⏰ ${horaStr}</div>` : ''}
+      <button class="rot-item-del" onclick="removerPontoRoteiro(${idx})" title="Remover ponto">×</button>
+    </div>`;
+  }).join('');
+}
+
+// ── Distância Haversine (km) ──────────────────────────────────
+function _rotDistancia(lat1, lng1, lat2, lng2) {
+  const R = 6371;
+  const dLat = (lat2 - lat1) * Math.PI / 180;
+  const dLng = (lng2 - lng1) * Math.PI / 180;
+  const a = Math.sin(dLat/2)**2 +
+            Math.cos(lat1*Math.PI/180) * Math.cos(lat2*Math.PI/180) *
+            Math.sin(dLng/2)**2;
+  return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+}
+
+// ── Algoritmo de otimização: nearest neighbor + 2-opt ────────
+function _rotOtimizar(pontos) {
+  if(pontos.length <= 2) return pontos.map((_,i) => i);
+
+  const n = pontos.length;
+  const dist = (i, j) => _rotDistancia(pontos[i].lat, pontos[i].lng, pontos[j].lat, pontos[j].lng);
+
+  // Nearest neighbor: começa do ponto 0
+  const visitado = new Array(n).fill(false);
+  const rota = [0];
+  visitado[0] = true;
+
+  for(let k = 1; k < n; k++) {
+    const atual = rota[rota.length - 1];
+    let melhor = -1, melhorDist = Infinity;
+    for(let j = 0; j < n; j++) {
+      if(!visitado[j]) {
+        const d = dist(atual, j);
+        if(d < melhorDist) { melhorDist = d; melhor = j; }
+      }
+    }
+    visitado[melhor] = true;
+    rota.push(melhor);
+  }
+
+  // 2-opt: troca pares de arestas para reduzir distância total
+  let melhorou = true;
+  while(melhorou) {
+    melhorou = false;
+    for(let i = 0; i < n - 1; i++) {
+      for(let j = i + 2; j < n; j++) {
+        if(j === n - 1 && i === 0) continue;
+        const antes  = dist(rota[i], rota[i+1]) + dist(rota[j], rota[(j+1) % n]);
+        const depois = dist(rota[i], rota[j])   + dist(rota[i+1], rota[(j+1) % n]);
+        if(depois < antes - 0.001) {
+          // Reverter segmento entre i+1 e j
+          rota.splice(i + 1, j - i, ...rota.slice(i + 1, j + 1).reverse());
+          melhorou = true;
+        }
+      }
+    }
+  }
+  return rota;
+}
+
+// ── Gerar rota ────────────────────────────────────────────────
+function gerarRota() {
+  if(_rotPontos.length < 2) { toast('Adicione ao menos 2 pontos', 'err'); return; }
+
+  const btn = document.getElementById('rot-btn-rota');
+  if(btn) { btn.disabled = true; btn.textContent = '⏳ Calculando...'; }
+
+  setTimeout(() => {
+    _rotOrdemOtima = _rotOtimizar(_rotPontos);
+    _rotRoteada = true;
+
+    // Calcula distância total
+    let distTotal = 0;
+    for(let i = 0; i < _rotOrdemOtima.length - 1; i++) {
+      const a = _rotPontos[_rotOrdemOtima[i]];
+      const b = _rotPontos[_rotOrdemOtima[i+1]];
+      distTotal += _rotDistancia(a.lat, a.lng, b.lat, b.lng);
+    }
+
+    const velKmh  = parseInt(document.getElementById('rot-vel')?.value || '40');
+    const durMin  = parseInt(document.getElementById('rot-duracao')?.value || '30');
+    const tempoDeslocMin = Math.round((distTotal / velKmh) * 60);
+    const tempoTotalMin  = tempoDeslocMin + (_rotPontos.length * durMin);
+    const hh = Math.floor(tempoTotalMin / 60);
+    const mm = tempoTotalMin % 60;
+
+    const infoEl = document.getElementById('rot-map-info');
+    if(infoEl) infoEl.textContent =
+      `${distTotal.toFixed(1)} km · ~${hh > 0 ? hh + 'h ' : ''}${mm}min no total`;
+
+    if(btn) { btn.disabled = false; btn.textContent = '🔄 Recalcular rota'; }
+
+    const gmBtn = document.getElementById('rot-btn-gmaps');
+    if(gmBtn) gmBtn.style.display = 'block';
+
+    _rotRenderLista();
+    _rotRenderMapa();
+    toast('Rota otimizada! ' + _rotPontos.length + ' paradas.', 'ok');
+  }, 300);
+}
+
+// ── Renderizar mapa interno (SVG dinâmico) ────────────────────
+function _rotRenderMapa() {
+  const ph  = document.getElementById('rot-map-ph');
+  const svgContainer = document.getElementById('rot-mapa-svg');
+  if(!ph || !svgContainer) return;
+
+  if(!_rotPontos.length) {
+    ph.style.display = 'flex';
+    svgContainer.style.display = 'none';
+    svgContainer.innerHTML = '';
+    return;
+  }
+
+  ph.style.display = 'none';
+  svgContainer.style.display = 'block';
+
+  const W = svgContainer.offsetWidth  || 600;
+  const H = svgContainer.offsetHeight || 400;
+  const PAD = 50;
+
+  // Calcular bounding box
+  const lats = _rotPontos.map(p => p.lat);
+  const lngs = _rotPontos.map(p => p.lng);
+  const minLat = Math.min(...lats), maxLat = Math.max(...lats);
+  const minLng = Math.min(...lngs), maxLng = Math.max(...lngs);
+  const dLat = maxLat - minLat || 0.01;
+  const dLng = maxLng - minLng || 0.01;
+
+  // Projeção mercator simples
+  const toX = lng => PAD + ((lng - minLng) / dLng) * (W - PAD*2);
+  const toY = lat => H - PAD - ((lat - minLat) / dLat) * (H - PAD*2);
+
+  let svg = `<svg width="${W}" height="${H}" style="width:100%;height:100%;" xmlns="http://www.w3.org/2000/svg">`;
+
+  // Grid suave
+  svg += `<rect width="${W}" height="${H}" fill="#0d1017"/>`;
+  for(let i = 0; i <= 4; i++) {
+    const x = PAD + (W - PAD*2) * i / 4;
+    const y = PAD + (H - PAD*2) * i / 4;
+    svg += `<line x1="${x}" y1="${PAD}" x2="${x}" y2="${H-PAD}" stroke="#1c2235" stroke-width="1"/>`;
+    svg += `<line x1="${PAD}" y1="${y}" x2="${W-PAD}" y2="${y}" stroke="#1c2235" stroke-width="1"/>`;
+  }
+
+  // Ordem a usar
+  const ordem = _rotRoteada && _rotOrdemOtima.length
+    ? _rotOrdemOtima
+    : _rotPontos.map((_,i) => i);
+
+  // Linhas da rota
+  if(_rotRoteada && ordem.length > 1) {
+    for(let i = 0; i < ordem.length - 1; i++) {
+      const a = _rotPontos[ordem[i]];
+      const b = _rotPontos[ordem[i+1]];
+      const x1 = toX(a.lng), y1 = toY(a.lat);
+      const x2 = toX(b.lng), y2 = toY(b.lat);
+      // Linha com gradiente de cor (início azul → fim verde)
+      const pct = i / (ordem.length - 1);
+      const r = Math.round(78 + (24-78)*pct);
+      const g = Math.round(123 + (212-123)*pct);
+      const bl = Math.round(255 + (160-255)*pct);
+      svg += `<line x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}" stroke="rgb(${r},${g},${bl})" stroke-width="2.5" stroke-dasharray="${_rotRoteada?'none':'6 3'}" opacity="0.85"/>`;
+
+      // Seta de direção no meio da linha
+      const mx = (x1+x2)/2, my = (y1+y2)/2;
+      const ang = Math.atan2(y2-y1, x2-x1) * 180/Math.PI;
+      svg += `<polygon points="-6,-4 6,0 -6,4" fill="rgb(${r},${g},${bl})" opacity="0.9" transform="translate(${mx},${my}) rotate(${ang})"/>`;
+    }
+  }
+
+  // Pins dos pontos
+  _rotPontos.forEach((p, i) => {
+    const x = toX(p.lng);
+    const y = toY(p.lat);
+    const posRota = _rotRoteada ? ordem.indexOf(i) : i;
+    const isFinal = _rotRoteada && posRota === ordem.length - 1;
+    const isFirst = _rotRoteada && posRota === 0;
+
+    // Sombra
+    svg += `<circle cx="${x}" cy="${y+2}" r="13" fill="rgba(0,0,0,.4)"/>`;
+    // Círculo principal
+    const cor = isFirst ? '#f0c040' : isFinal ? '#18d4a0' : '#4e7bff';
+    svg += `<circle cx="${x}" cy="${y}" r="13" fill="${cor}" stroke="#0d1017" stroke-width="2"/>`;
+    // Número
+    svg += `<text x="${x}" y="${y+4.5}" text-anchor="middle" font-size="11" font-weight="700" fill="#fff" font-family="system-ui,sans-serif">${posRota + 1}</text>`;
+
+    // Label do ponto (truncado)
+    const label = p.nome.length > 16 ? p.nome.slice(0,14)+'…' : p.nome;
+    // Fundo do label
+    const lx = x + (x > W/2 ? -8 : 8);
+    const anchor = x > W/2 ? 'end' : 'start';
+    svg += `<text x="${lx}" y="${y-18}" text-anchor="${anchor}" font-size="10" fill="#dde2f8" font-family="system-ui,sans-serif" font-weight="600"
+      style="text-shadow:0 1px 4px #0d1017,0 1px 4px #0d1017">${label}</text>`;
+  });
+
+  // Legenda
+  if(_rotRoteada) {
+    svg += `<circle cx="${PAD+10}" cy="${H-22}" r="7" fill="#f0c040" stroke="#0d1017" stroke-width="1.5"/>`;
+    svg += `<text x="${PAD+22}" y="${H-18}" font-size="10" fill="#8892c0" font-family="system-ui,sans-serif">Início</text>`;
+    svg += `<circle cx="${PAD+65}" cy="${H-22}" r="7" fill="#18d4a0" stroke="#0d1017" stroke-width="1.5"/>`;
+    svg += `<text x="${PAD+77}" y="${H-18}" font-size="10" fill="#8892c0" font-family="system-ui,sans-serif">Fim</text>`;
+  }
+
+  svg += '</svg>';
+  svgContainer.innerHTML = svg;
+}
+
+// ── Abrir rota no Google Maps ─────────────────────────────────
+function abrirGoogleMaps() {
+  if(!_rotPontos.length) return;
+  const ordem = _rotRoteada && _rotOrdemOtima.length
+    ? _rotOrdemOtima
+    : _rotPontos.map((_,i) => i);
+
+  const pts = ordem.map(i => _rotPontos[i]);
+  if(pts.length === 1) {
+    window.open(`https://www.google.com/maps?q=${pts[0].lat},${pts[0].lng}`, '_blank');
+    return;
+  }
+
+  const origin      = `${pts[0].lat},${pts[0].lng}`;
+  const destination = `${pts[pts.length-1].lat},${pts[pts.length-1].lng}`;
+  const waypoints   = pts.slice(1,-1).map(p=>`${p.lat},${p.lng}`).join('|');
+
+  let url = `https://www.google.com/maps/dir/?api=1&origin=${origin}&destination=${destination}&travelmode=driving`;
+  if(waypoints) url += `&waypoints=${encodeURIComponent(waypoints)}`;
+  window.open(url, '_blank');
+}
+
+// ── Exportar agenda de vistorias ──────────────────────────────
+function exportarRoteiro() {
+  if(!_rotPontos.length) { toast('Adicione pontos antes de exportar', 'err'); return; }
+
+  const ordem = _rotRoteada && _rotOrdemOtima.length
+    ? _rotOrdemOtima
+    : _rotPontos.map((_,i) => i);
+
+  const horaInicio = document.getElementById('rot-inicio')?.value || '08:00';
+  const durMin     = parseInt(document.getElementById('rot-duracao')?.value || '30');
+  const velKmh     = parseInt(document.getElementById('rot-vel')?.value || '40');
+  const [h0, m0]   = horaInicio.split(':').map(Number);
+  let minCorridos  = h0 * 60 + m0;
+
+  let txt = 'AGENDA DE VISTORIAS — ' + new Date().toLocaleDateString('pt-BR') + '\n';
+  txt += '='.repeat(50) + '\n';
+  txt += `Início: ${horaInicio} | Duração/visita: ${durMin}min | Velocidade: ${velKmh}km/h\n`;
+  txt += '='.repeat(50) + '\n\n';
+
+  ordem.forEach((idx, pos) => {
+    const p = _rotPontos[idx];
+    if(pos > 0) {
+      const prev = _rotPontos[ordem[pos-1]];
+      const distKm = _rotDistancia(prev.lat, prev.lng, p.lat, p.lng);
+      const tempoMin = Math.round((distKm/velKmh)*60);
+      minCorridos += tempoMin + durMin;
+    }
+    const hh = Math.floor(minCorridos/60)%24;
+    const mm = minCorridos%60;
+    const hora = `${String(hh).padStart(2,'0')}:${String(mm).padStart(2,'0')}`;
+    txt += `${pos+1}ª parada — ${hora}\n`;
+    txt += `   ${p.nome}\n`;
+    txt += `   Coord: ${p.lat.toFixed(6)}, ${p.lng.toFixed(6)}\n`;
+    txt += `   Maps: https://maps.google.com?q=${p.lat},${p.lng}\n\n`;
+  });
+
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(new Blob([txt], {type:'text/plain;charset=utf-8'}));
+  a.download = 'agenda_vistorias_'+new Date().toISOString().split('T')[0]+'.txt';
+  document.body.appendChild(a); a.click(); document.body.removeChild(a);
+  toast('Agenda exportada!', 'ok');
+}
+
+// ── Inicializar a página de roteiro ──────────────────────────
+function renderRoteiro() {
+  _rotRenderLista();
+  _rotRenderMapa();
+}
+
+// ── Re-renderizar mapa ao redimensionar ──────────────────────
+window.addEventListener('resize', () => {
+  if(document.getElementById('page-roteiro')?.classList.contains('active')) {
+    _rotRenderMapa();
+  }
 });
-function _getDadosExport() {
-  const q = (document.getElementById('s-lista')?.value || '').toLowerCase();
-  let d = [...DB];
-  if(typeof filtroLista !== 'undefined' && filtroLista !== 'all')
-    d = d.filter(o => o.tipoServico === filtroLista);
-  if(q) d = d.filter(o => [o.empresa,o.numeroOS,o.tipoServico,o.cliente,o.cidade]
-    .some(v=>(v||'').toLowerCase().includes(q)));
-  return d;
-}
-function exportarCSV() {
-  const d = _getDadosExport();
-  const cols=['empresa','tipoServico','numeroOS','cliente','cidade','dataAbertura','prazoFatal','valor','mesRecebimento','vistoria','preenchimento','conferencia','finalizacao','fichas','dataFechamento'];
-  const heads=['Empresa','Tipo','Ref OS','Cliente','Cidade','Abertura','Prazo Fatal','Valor','Mes Recebimento','Vistoria','Preenchimento','Conferencia','Finalizacao','Fichas','Fechamento'];
-  const esc = v => '"'+(v||'').toString().replace(/"/g,'""')+'"';
-  const csv = '\uFEFF'+[heads.join(';'),...d.map(os=>cols.map(k=>esc(os[k])).join(';'))].join('\r\n');
-  const a=document.createElement('a');
-  a.href=URL.createObjectURL(new Blob([csv],{type:'text/csv;charset=utf-8'}));
-  a.download='OS_'+new Date().toISOString().split('T')[0]+'.csv';
-  document.body.appendChild(a);a.click();document.body.removeChild(a);
-  toast(d.length+' OS exportadas (CSV)','ok');
-}
-function exportarExcel() {
-  const d = _getDadosExport();
-  const cols=['empresa','tipoServico','numeroOS','cliente','cidade','dataAbertura','prazoFatal','valor','mesRecebimento','vistoria','preenchimento','conferencia','finalizacao','fichas','dataFechamento'];
-  const heads=['Empresa','Tipo','Ref OS','Cliente','Cidade','Abertura','Prazo Fatal','Valor','Mes Recebimento','Vistoria','Preenchimento','Conferencia','Finalizacao','Fichas','Fechamento'];
-  const esc = v => (v||'').toString().replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
-  let xml='<?xml version="1.0"?><Workbook xmlns="urn:schemas-microsoft-com:office:spreadsheet" xmlns:ss="urn:schemas-microsoft-com:office:spreadsheet"><Worksheet ss:Name="OS"><Table>';
-  xml+='<Row>'+heads.map(h=>'<Cell><Data ss:Type="String">'+h+'</Data></Cell>').join('')+'</Row>';
-  d.forEach(os=>{xml+='<Row>'+cols.map(k=>'<Cell><Data ss:Type="String">'+esc(os[k])+'</Data></Cell>').join('')+'</Row>';});
-  xml+='</Table></Worksheet></Workbook>';
-  const a=document.createElement('a');
-  a.href=URL.createObjectURL(new Blob([xml],{type:'application/vnd.ms-excel'}));
-  a.download='OS_'+new Date().toISOString().split('T')[0]+'.xls';
-  document.body.appendChild(a);a.click();document.body.removeChild(a);
-  toast(d.length+' OS exportadas (Excel)','ok');
-}
-
-// ── Alertas de prazo ─────────────────────────────────────────────────
-function verificarAlertas() {
-  const venc=DB.filter(os=>isAberto(os)&&diasAte(os.prazoFatal)<0).length;
-  const hoje=DB.filter(os=>isAberto(os)&&diasAte(os.prazoFatal)===0).length;
-  const aman=DB.filter(os=>isAberto(os)&&diasAte(os.prazoFatal)===1).length;
-  const bann=document.getElementById('alerta-bann');
-  const txt=document.getElementById('alerta-txt');
-  if(!bann) return;
-  let msg='',show=false;
-  if(venc>0){msg+=venc+' OS VENCIDA'+(venc>1?'S':'')+'! ';show=true;}
-  if(hoje>0){msg+=hoje+' vence hoje! ';show=true;}
-  if(!show&&aman>0){msg=aman+' OS vence'+(aman>1?'m':'')+' amanha';show=true;}
-  bann.classList.toggle('show',show);
-  if(show&&txt) txt.textContent=msg.trim();
-  const total=venc+hoje;
-  document.title=total>0?'('+total+' urgente'+(total>1?'s':'')+') Controle OS':'Controle OS';
-  if(total>0&&!sessionStorage.getItem('_an')&&'Notification' in window){
-    sessionStorage.setItem('_an','1');
-    if(Notification.permission==='granted') new Notification('Controle OS',{body:msg.trim()});
-    else if(Notification.permission!=='denied') Notification.requestPermission().then(p=>{if(p==='granted') new Notification('Controle OS',{body:msg.trim()});});
-  }
-}
-
-// ── SLA / Semaforo de saude ───────────────────────────────────────────
-function renderSLA() {
-  const dados=(typeof getDadosFiltrados==='function')?getDadosFiltrados():DB;
-  const fins=dados.filter(os=>!isAberto(os)&&os.dataAbertura&&os.dataFechamento);
-  const noPr=fins.filter(os=>{const f=parseDt(os.dataFechamento),p=parseDt(os.prazoFatal);return f&&p&&f<=p;});
-  const pct=fins.length?Math.round(noPr.length/fins.length*100):null;
-  const tempos=fins.map(os=>{const a=parseDt(os.dataAbertura),f=parseDt(os.dataFechamento);return a&&f?Math.round((f-a)/86400000):null;}).filter(t=>t!==null&&t>=0);
-  const tMed=tempos.length?Math.round(tempos.reduce((a,b)=>a+b,0)/tempos.length):null;
-  const atras=fins.length-noPr.length;
-  const cor=pct===null?'var(--tx3)':pct>=90?'var(--grn)':pct>=70?'var(--org)':'var(--red)';
-  const sv=(id,v,c2)=>{const el=document.getElementById(id);if(!el)return;el.textContent=v;if(c2)el.style.color=c2;};
-  sv('sla-pct',pct!==null?pct+'%':'--',cor);
-  sv('sla-med',tMed!==null?tMed+'d':'--');
-  sv('sla-atras',atras);
-  const pill=document.getElementById('sla-pill');
-  if(pill){
-    if(pct===null){pill.textContent='--';pill.style.cssText='font-size:11px;font-weight:700;padding:3px 9px;border-radius:20px;background:var(--bg4);color:var(--tx3);';}
-    else if(pct>=90){pill.textContent='Otimo';pill.style.cssText='font-size:11px;font-weight:700;padding:3px 9px;border-radius:20px;background:rgba(24,212,160,.12);color:var(--grn);border:1px solid rgba(24,212,160,.25);';}
-    else if(pct>=70){pill.textContent='Atencao';pill.style.cssText='font-size:11px;font-weight:700;padding:3px 9px;border-radius:20px;background:rgba(255,119,51,.12);color:var(--org);border:1px solid rgba(255,119,51,.25);';}
-    else{pill.textContent='Critico';pill.style.cssText='font-size:11px;font-weight:700;padding:3px 9px;border-radius:20px;background:rgba(255,68,102,.1);color:var(--red);border:1px solid rgba(255,68,102,.2);';}
-  }
-  const MABR=['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'];
-  const evEl=document.getElementById('sla-ev');
-  if(evEl){
-    const agora=new Date();
-    evEl.innerHTML=[2,1,0].map(delta=>{
-      const dt=new Date(agora.getFullYear(),agora.getMonth()-delta,1);
-      const m=dt.getMonth(),a=dt.getFullYear();
-      const fM=fins.filter(os=>{const f=parseDt(os.dataFechamento);return f&&f.getMonth()===m&&f.getFullYear()===a;});
-      const nM=fM.filter(os=>{const f=parseDt(os.dataFechamento),p=parseDt(os.prazoFatal);return f&&p&&f<=p;});
-      const pM=fM.length?Math.round(nM.length/fM.length*100):null;
-      const c2=pM===null?'var(--bg4)':pM>=90?'var(--grn)':pM>=70?'var(--org)':'var(--red)';
-      return '<div style="flex:1;text-align:center;"><div style="font-size:13px;font-weight:700;color:'+c2+';">'+(pM!==null?pM+'%':'--')+'</div><div style="height:4px;background:'+c2+';border-radius:2px;margin:4px 0;opacity:'+(pM!==null?.85:.25)+';"></div><div style="font-size:10px;color:var(--tx4);">'+MABR[m]+'/'+a.toString().slice(2)+'</div></div>';
-    }).join('');
-  }
-  const etEl=document.getElementById('sla-etapas');
-  if(etEl){
-    const tf=fins.length||1;
-    [{n:'Vistoriadas',f:os=>os.vistoria==='Imovel vistoriado'||os.vistoria==='Im\u00f3vel vistoriado'},
-     {n:'Preenchimento',f:os=>['Preenchido','Sem necessidade','Copiar'].includes(os.preenchimento)},
-     {n:'Conferidas',f:os=>os.conferencia==='Conferido'},
-     {n:'Finalizadas',f:os=>os.finalizacao==='Laudo Finalizado'}
-    ].forEach(et=>{
-      const n=fins.filter(et.f).length;const p=Math.round(n/tf*100);
-      const c3=p>=90?'var(--grn)':p>=60?'var(--org)':'var(--red)';
-      etEl.innerHTML+='<div><div style="display:flex;justify-content:space-between;font-size:11.5px;margin-bottom:3px;"><span style="color:var(--tx2);">'+et.n+'</span><span style="font-weight:700;color:'+c3+';">'+p+'%</span></div><div style="height:5px;background:var(--bg4);border-radius:3px;overflow:hidden;"><div style="height:100%;width:'+p+'%;background:'+c3+';border-radius:3px;transition:width .8s;"></div></div></div>';
-    });
-  }
-  const prEl=document.getElementById('sla-prev');
-  if(prEl&&typeof fmtVal==='function'){
-    const agora=new Date();
-    const MF=['Janeiro','Fevereiro','Marco','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
-    const MFull=['Janeiro','Fevereiro','Mar\u00e7o','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
-    const MI={Janeiro:0,Fevereiro:1,'Mar\u00e7o':2,Marco:2,Abril:3,Maio:4,Junho:5,Julho:6,Agosto:7,Setembro:8,Outubro:9,Novembro:10,Dezembro:11};
-    prEl.innerHTML=[0,1].map(delta=>{
-      const dt=new Date(agora.getFullYear(),agora.getMonth()+delta,1);
-      const m=dt.getMonth(),a=dt.getFullYear();
-      const osM=DB.filter(os=>{const mr=os.mesRecebimento||'';if(!mr)return false;const[mN,aS]=mr.split('/');return MI[mN?.trim()]===m&&parseInt(aS)===a;});
-      const tv=osM.reduce((acc,o)=>acc+parsVal(o.valor),0);
-      const fv=osM.filter(o=>!isAberto(o)).reduce((acc,o)=>acc+parsVal(o.valor),0);
-      return '<div style="padding:8px 0;border-bottom:1px solid var(--br);"><div style="font-size:12px;font-weight:700;margin-bottom:5px;">'+MFull[m]+'/'+a+'</div><div style="display:flex;gap:14px;font-size:11.5px;"><span>Total: <strong>'+fmtVal(tv)+'</strong></span><span style="color:var(--grn);">Recebido: <strong>'+fmtVal(fv)+'</strong></span><span style="color:var(--org);">Pendente: <strong>'+fmtVal(tv-fv)+'</strong></span></div></div>';
-    }).join('');
-  }
-}
 
 
 // ══════════════════════════════════════
