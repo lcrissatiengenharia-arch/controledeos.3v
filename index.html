@@ -1869,16 +1869,21 @@ function renderDash() {
 
   // ── MINI FINANCEIRO (admin only) ──
   if(isAdmin()) {
-    // Barras mensais de valor
+    // Barras mensais de valor — agora por MÊS DE RECEBIMENTO
     const valMes = Array(12).fill(0);
-    dados.forEach(os=>{ const d=parseDt(os.dataAbertura); if(d) valMes[d.getMonth()]+=parsVal(os.valor); });
+    const anoAtual = (new Date()).getFullYear();
+    const anoRefMini = dashAno ? parseInt(dashAno) : anoAtual;
+    dados.forEach(os=>{
+      const {mIdx, ano} = getMesRecebimento(os);
+      if(mIdx >= 0 && ano === anoRefMini) valMes[mIdx] += parsVal(os.valor);
+    });
     const vmx=Math.max(...valMes,1);
     const finBars=document.getElementById('fin-mini-bars');
     if(finBars) finBars.innerHTML = MESES_ABR.map((m,i)=>`
       <div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:2px;position:relative;">
         <div style="width:100%;background:linear-gradient(to top,var(--grn),var(--sky));border-radius:3px 3px 0 0;
           height:${Math.max(2,valMes[i]/vmx*72)}px;opacity:${valMes[i]>0?.9:.2};
-          position:absolute;bottom:18px;transition:height .7s ease;" title="${m}: ${fmtVal(valMes[i])}"></div>
+          position:absolute;bottom:18px;transition:height .7s ease;" title="${m}/${anoRefMini}: ${fmtVal(valMes[i])} (recebimento)"></div>
         <div style="position:absolute;bottom:2px;font-size:8px;color:var(--tx3);">${m}</div>
       </div>`).join('');
 
@@ -2257,6 +2262,29 @@ function autoFillValor() {
 
 
 // ── Regra de recebimento: OS recebida em mês X → paga em mês X+1 ──
+// Helper único: retorna {mIdx (0-11), ano} do mês de RECEBIMENTO de uma OS
+// Prioriza os.mesRecebimento; se ausente/inválido, calcula = dataAbertura + 1 mês.
+const _MIDX = {
+  'Janeiro':0,'Fevereiro':1,'Março':2,'Marco':2,'Abril':3,'Maio':4,'Junho':5,
+  'Julho':6,'Agosto':7,'Setembro':8,'Outubro':9,'Novembro':10,'Dezembro':11
+};
+function getMesRecebimento(os) {
+  if(!os) return {mIdx:-1, ano:null};
+  if(os.mesRecebimento && typeof os.mesRecebimento === 'string' && os.mesRecebimento.includes('/')) {
+    const [mNome, aStr] = os.mesRecebimento.split('/');
+    const mIdx = _MIDX[mNome?.trim()];
+    const ano = parseInt(aStr);
+    if(mIdx !== undefined && !isNaN(ano)) return {mIdx, ano};
+  }
+  if(os.dataAbertura) {
+    const d = new Date(os.dataAbertura.length>10?os.dataAbertura:os.dataAbertura+'T12:00:00');
+    if(!isNaN(d)) {
+      const prox = new Date(d.getFullYear(), d.getMonth()+1, 1);
+      return {mIdx: prox.getMonth(), ano: prox.getFullYear()};
+    }
+  }
+  return {mIdx:-1, ano:null};
+}
 function calcMesRecebimento(dataISO) {
   if(!dataISO) return {mes:'', ano:''};
   const d = parseDt(dataISO);
@@ -2947,10 +2975,11 @@ function renderFinanceiro() {
   const ano = document.getElementById('fin-ano')?.value || '';
   const ano2 = document.getElementById('fin-ano2')?.value || '';
 
+  // Filtro por ano usa o ANO DE RECEBIMENTO (não a data de abertura)
   const filtrar = (os) => {
     if(!ano) return true;
-    const d = os.dataAbertura ? new Date(os.dataAbertura.length > 10 ? os.dataAbertura : os.dataAbertura+'T12:00:00') : null;
-    return d && d.getFullYear() === parseInt(ano);
+    const {ano:aRec} = getMesRecebimento(os);
+    return aRec === parseInt(ano);
   };
 
   const dados = DB.filter(filtrar);
@@ -3017,29 +3046,11 @@ function renderFinanceiro() {
       </div>
     </div>`).join('');
 
-  // Mensal — agora baseado em mesRecebimento (recebo no mês seguinte ao da OS)
+  // Mensal — baseado em mesRecebimento (recebo no mês seguinte ao da OS)
   const filtAno = parseInt(ano2||ano||new Date().getFullYear());
   const mensal = Array(12).fill(0);
-  const MESES_IDX = {
-    'Janeiro':0,'Fevereiro':1,'Março':2,'Marco':2,'Abril':3,'Maio':4,'Junho':5,
-    'Julho':6,'Agosto':7,'Setembro':8,'Outubro':9,'Novembro':10,'Dezembro':11
-  };
   dados.forEach(os => {
-    let mIdx = -1, aRec = null;
-    if(os.mesRecebimento && typeof os.mesRecebimento === 'string' && os.mesRecebimento.includes('/')) {
-      const [mNome, aStr] = os.mesRecebimento.split('/');
-      if(mNome in MESES_IDX) mIdx = MESES_IDX[mNome];
-      aRec = parseInt(aStr);
-    }
-    // Fallback: calcula a partir da dataAbertura (regra: abertura + 1 mês)
-    if((mIdx < 0 || !aRec) && os.dataAbertura) {
-      const d2 = new Date(os.dataAbertura.length>10?os.dataAbertura:os.dataAbertura+'T12:00:00');
-      if(!isNaN(d2)) {
-        const prox = new Date(d2.getFullYear(), d2.getMonth()+1, 1);
-        mIdx = prox.getMonth();
-        aRec = prox.getFullYear();
-      }
-    }
+    const {mIdx, ano:aRec} = getMesRecebimento(os);
     if(mIdx >= 0 && aRec === filtAno) mensal[mIdx] += parsVal(os.valor);
   });
   const mmax = Math.max(...mensal, 1);
