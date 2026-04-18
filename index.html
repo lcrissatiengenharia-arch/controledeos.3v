@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Controle OS — Caixa (v3.1)</title>
+<title>Controle OS — Caixa (v3.2)</title>
 <meta name="description" content="Sistema de gestão de Ordens de Serviço para engenharia/avaliações — Caixa Econômica Federal">
 <meta name="robots" content="noindex, nofollow">
 <!--
@@ -845,7 +845,7 @@ tr.sel-row td{background:rgba(255,68,102,.05);}
 
     <!-- Mensal -->
     <div class="card span2">
-      <div class="card-hd"><h3>📅 Evolução Mensal do Faturamento</h3>
+      <div class="card-hd"><h3>📅 Evolução Mensal por Recebimento</h3>
         <select id="fin-ano2" onchange="renderFinanceiro()" style="width:auto;padding:5px 10px;font-size:11.5px;">
           <option value="">Todos os anos</option><option>2025</option><option selected>2026</option><option>2027</option>
         </select>
@@ -3017,13 +3017,30 @@ function renderFinanceiro() {
       </div>
     </div>`).join('');
 
-  // Mensal
+  // Mensal — agora baseado em mesRecebimento (recebo no mês seguinte ao da OS)
   const filtAno = parseInt(ano2||ano||new Date().getFullYear());
   const mensal = Array(12).fill(0);
+  const MESES_IDX = {
+    'Janeiro':0,'Fevereiro':1,'Março':2,'Marco':2,'Abril':3,'Maio':4,'Junho':5,
+    'Julho':6,'Agosto':7,'Setembro':8,'Outubro':9,'Novembro':10,'Dezembro':11
+  };
   dados.forEach(os => {
-    if(!os.dataAbertura) return;
-    const d2 = new Date(os.dataAbertura.length>10?os.dataAbertura:os.dataAbertura+'T12:00:00');
-    if(d2.getFullYear()===filtAno) mensal[d2.getMonth()]+=parsVal(os.valor);
+    let mIdx = -1, aRec = null;
+    if(os.mesRecebimento && typeof os.mesRecebimento === 'string' && os.mesRecebimento.includes('/')) {
+      const [mNome, aStr] = os.mesRecebimento.split('/');
+      if(mNome in MESES_IDX) mIdx = MESES_IDX[mNome];
+      aRec = parseInt(aStr);
+    }
+    // Fallback: calcula a partir da dataAbertura (regra: abertura + 1 mês)
+    if((mIdx < 0 || !aRec) && os.dataAbertura) {
+      const d2 = new Date(os.dataAbertura.length>10?os.dataAbertura:os.dataAbertura+'T12:00:00');
+      if(!isNaN(d2)) {
+        const prox = new Date(d2.getFullYear(), d2.getMonth()+1, 1);
+        mIdx = prox.getMonth();
+        aRec = prox.getFullYear();
+      }
+    }
+    if(mIdx >= 0 && aRec === filtAno) mensal[mIdx] += parsVal(os.valor);
   });
   const mmax = Math.max(...mensal, 1);
   const MABR=['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'];
@@ -3065,12 +3082,18 @@ let fatSelecionadas = new Set();
 let fatOsFiltradas = [];
 
 function renderFaturas() {
-  // Populate empresa dropdown
+  // Populate empresa dropdown — apenas OS válidas (com empresa real)
   const sel = document.getElementById('fat-empresa');
   if(sel) {
-    const empresas = [...new Set(DB.map(o=>o.empresa).filter(Boolean))].sort();
+    const empresas = [...new Set(
+      DB.map(o => o.empresa)
+        .filter(e => e && typeof e === 'string' && e.trim() && e.trim().toLowerCase() !== 'null' && e.trim().toLowerCase() !== 'undefined')
+        .map(e => e.trim())
+    )].sort();
+    const valorAtual = sel.value;
     sel.innerHTML = '<option value="">Todas as empresas</option>' +
       empresas.map(e=>`<option value="${e}">${e}</option>`).join('');
+    if(empresas.includes(valorAtual)) sel.value = valorAtual;
   }
   // Default dates: current month
   const hoje = new Date();
@@ -3099,7 +3122,16 @@ function filtrarFaturas() {
   const tipo    = document.getElementById('fat-tipo')?.value || '';
   const order   = document.getElementById('fat-order')?.value || 'dataAbertura';
 
+  const isValidOS = (os) => {
+    const emp = (os.empresa||'').toString().trim().toLowerCase();
+    const num = (os.numeroOS||'').toString().trim().toLowerCase();
+    if(!emp || emp==='null' || emp==='undefined') return false;
+    if(!num || num==='null' || num==='undefined') return false;
+    return true;
+  };
+
   fatOsFiltradas = DB.filter(os => {
+    if(!isValidOS(os)) return false;
     if(empresa && os.empresa !== empresa) return false;
     if(tipo && os.tipoServico !== tipo) return false;
     if(status === 'finalizado' && isAberto(os)) return false;
