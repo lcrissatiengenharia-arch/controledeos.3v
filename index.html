@@ -1360,18 +1360,26 @@ tr.sel-row td{background:rgba(255,68,102,.05);}
       <div class="rot-map-header">
         <div style="font-size:12.5px;font-weight:700;">Visualização da rota</div>
         <div class="rot-legend">
-          <span><span class="rot-leg-dot" style="background:#4e7bff;"></span>Pontos</span>
-          <span><span class="rot-leg-dot" style="background:#18d4a0;"></span>Rota otimizada</span>
+          <span id="rot-map-status" style="font-size:11px;color:var(--tx3);">Adicione pontos para ver o mapa</span>
           <span id="rot-map-info" style="color:var(--acc);font-weight:600;"></span>
         </div>
-        <button class="btn btn-ghost btn-xs" onclick="abrirGoogleMaps()" id="rot-btn-gmaps" style="display:none;">🗺️ Abrir no Google Maps</button>
+        <button class="btn btn-ghost btn-xs" onclick="abrirGoogleMaps()" id="rot-btn-gmaps" style="display:none;">↗ Abrir rota no Google Maps</button>
       </div>
       <div id="rot-map-container" style="flex:1;position:relative;background:var(--bg3);">
+        <!-- Placeholder quando sem pontos -->
         <div class="rot-ph" id="rot-map-ph">
           <div class="rot-ph-ic">🗺️</div>
           <div style="font-size:13px;font-weight:600;color:var(--tx2);">Mapa aparecerá aqui</div>
-          <div style="font-size:12px;text-align:center;max-width:260px;">Adicione pontos e clique em<br><strong>"Gerar melhor rota"</strong></div>
+          <div style="font-size:12px;text-align:center;max-width:260px;">Adicione o primeiro ponto para<br>ver o mapa do Google Maps</div>
         </div>
+        <!-- iframe do Google Maps — atualizado a cada ponto adicionado -->
+        <iframe id="rot-gmaps-iframe"
+          style="width:100%;height:100%;border:none;display:none;"
+          loading="lazy"
+          referrerpolicy="no-referrer-when-downgrade"
+          allowfullscreen>
+        </iframe>
+        <!-- Overlay de pins/rota SVG sobre o iframe (para numeração visual) -->
         <div id="rot-mapa-svg" style="width:100%;height:100%;display:none;position:relative;overflow:hidden;"></div>
       </div>
     </div>
@@ -4185,6 +4193,7 @@ function adicionarPontoRoteiro() {
 
   _rotRenderLista();
   _rotRenderMapa();
+  _rotAtualizarStatus();
   toast('Ponto adicionado: ' + nome, 'ok');
 }
 
@@ -4226,6 +4235,7 @@ function limparRoteiro() {
   _rotRenderMapa();
   const infoEl = document.getElementById('rot-map-info');
   if(infoEl) infoEl.textContent = '';
+  _rotAtualizarStatus();
   const gmBtn = document.getElementById('rot-btn-gmaps');
   if(gmBtn) gmBtn.style.display = 'none';
 }
@@ -4388,117 +4398,85 @@ function gerarRota() {
 
     _rotRenderLista();
     _rotRenderMapa();
-    toast('Rota otimizada! ' + _rotPontos.length + ' paradas.', 'ok');
+    _rotAtualizarStatus();
+  toast('Rota otimizada! ' + _rotPontos.length + ' paradas.', 'ok');
   }, 300);
 }
 
 // ── Renderizar mapa interno (SVG dinâmico) ────────────────────
 function _rotRenderMapa() {
-  const ph  = document.getElementById('rot-map-ph');
-  const svgContainer = document.getElementById('rot-mapa-svg');
-  if(!ph || !svgContainer) return;
+  const ph     = document.getElementById('rot-map-ph');
+  const iframe = document.getElementById('rot-gmaps-iframe');
+  const svgDiv = document.getElementById('rot-mapa-svg');
+  if(!ph || !iframe) return;
 
   if(!_rotPontos.length) {
-    ph.style.display = 'flex';
-    svgContainer.style.display = 'none';
-    svgContainer.innerHTML = '';
+    ph.style.display     = 'flex';
+    iframe.style.display = 'none';
+    if(svgDiv) svgDiv.style.display = 'none';
     return;
   }
 
   ph.style.display = 'none';
-  svgContainer.style.display = 'block';
+  if(svgDiv) svgDiv.style.display = 'none';
+  iframe.style.display = 'block';
 
-  const W = svgContainer.offsetWidth  || 600;
-  const H = svgContainer.offsetHeight || 400;
-  const PAD = 50;
-
-  // Calcular bounding box
-  const lats = _rotPontos.map(p => p.lat);
-  const lngs = _rotPontos.map(p => p.lng);
-  const minLat = Math.min(...lats), maxLat = Math.max(...lats);
-  const minLng = Math.min(...lngs), maxLng = Math.max(...lngs);
-  const dLat = maxLat - minLat || 0.01;
-  const dLng = maxLng - minLng || 0.01;
-
-  // Projeção mercator simples
-  const toX = lng => PAD + ((lng - minLng) / dLng) * (W - PAD*2);
-  const toY = lat => H - PAD - ((lat - minLat) / dLat) * (H - PAD*2);
-
-  let svg = `<svg width="${W}" height="${H}" style="width:100%;height:100%;" xmlns="http://www.w3.org/2000/svg">`;
-
-  // Grid suave
-  svg += `<rect width="${W}" height="${H}" fill="#0d1017"/>`;
-  for(let i = 0; i <= 4; i++) {
-    const x = PAD + (W - PAD*2) * i / 4;
-    const y = PAD + (H - PAD*2) * i / 4;
-    svg += `<line x1="${x}" y1="${PAD}" x2="${x}" y2="${H-PAD}" stroke="#1c2235" stroke-width="1"/>`;
-    svg += `<line x1="${PAD}" y1="${y}" x2="${W-PAD}" y2="${y}" stroke="#1c2235" stroke-width="1"/>`;
-  }
-
-  // Ordem a usar
   const ordem = _rotRoteada && _rotOrdemOtima.length
     ? _rotOrdemOtima
-    : _rotPontos.map((_,i) => i);
+    : _rotPontos.map((_, i) => i);
 
-  // Linhas da rota
-  if(_rotRoteada && ordem.length > 1) {
-    for(let i = 0; i < ordem.length - 1; i++) {
-      const a = _rotPontos[ordem[i]];
-      const b = _rotPontos[ordem[i+1]];
-      const x1 = toX(a.lng), y1 = toY(a.lat);
-      const x2 = toX(b.lng), y2 = toY(b.lat);
-      // Linha com gradiente de cor (início azul → fim verde)
-      const pct = i / (ordem.length - 1);
-      const r = Math.round(78 + (24-78)*pct);
-      const g = Math.round(123 + (212-123)*pct);
-      const bl = Math.round(255 + (160-255)*pct);
-      svg += `<line x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}" stroke="rgb(${r},${g},${bl})" stroke-width="2.5" stroke-dasharray="${_rotRoteada?'none':'6 3'}" opacity="0.85"/>`;
+  const pts = ordem.map(i => _rotPontos[i]);
 
-      // Seta de direção no meio da linha
-      const mx = (x1+x2)/2, my = (y1+y2)/2;
-      const ang = Math.atan2(y2-y1, x2-x1) * 180/Math.PI;
-      svg += `<polygon points="-6,-4 6,0 -6,4" fill="rgb(${r},${g},${bl})" opacity="0.9" transform="translate(${mx},${my}) rotate(${ang})"/>`;
-    }
+  // ── Gerar URL do Google Maps Embed ──────────────────────────
+  // Com 1 ponto: embed simples centrando no ponto
+  // Com múltiplos: usamos o modo "directions" do embed quando roteado,
+  //                ou "place" com marcadores via search quando ainda não roteado
+  let embedUrl = '';
+
+  if(pts.length === 1) {
+    // Um ponto: centraliza com zoom alto
+    embedUrl = `https://maps.google.com/maps?q=${pts[0].lat},${pts[0].lng}&z=16&output=embed&hl=pt-BR`;
+
+  } else if(_rotRoteada && pts.length >= 2 && pts.length <= 4) {
+    // Rota com até 4 pontos: usa embed de direções (origin + dest + waypoints)
+    // O embed de direções do Google aceita saddr/daddr com via:
+    const origin = `${pts[0].lat},${pts[0].lng}`;
+    const dest   = `${pts[pts.length-1].lat},${pts[pts.length-1].lng}`;
+    const vias   = pts.slice(1, -1).map(p => `${p.lat},${p.lng}`).join('+to:');
+    const daddr  = vias ? `${vias}+to:${dest}` : dest;
+    embedUrl = `https://maps.google.com/maps?saddr=${encodeURIComponent(origin)}&daddr=${encodeURIComponent(daddr)}&output=embed&hl=pt-BR`;
+
+  } else if(_rotRoteada && pts.length > 4) {
+    // Rota com muitos pontos: centraliza no centroide e mostra overview
+    const avgLat = pts.reduce((a,p)=>a+p.lat,0)/pts.length;
+    const avgLng = pts.reduce((a,p)=>a+p.lng,0)/pts.length;
+    // Zoom adaptativo: quanto mais espalhados, menor o zoom
+    const lats = pts.map(p=>p.lat), lngs = pts.map(p=>p.lng);
+    const spanLat = Math.max(...lats)-Math.min(...lats);
+    const spanLng = Math.max(...lngs)-Math.min(...lngs);
+    const span = Math.max(spanLat, spanLng);
+    const zoom = span < 0.01 ? 16 : span < 0.05 ? 14 : span < 0.2 ? 12 : span < 1 ? 11 : 9;
+    embedUrl = `https://maps.google.com/maps?q=${avgLat},${avgLng}&z=${zoom}&output=embed&hl=pt-BR`;
+
+  } else {
+    // Múltiplos pontos sem rota: centraliza no centroide
+    const avgLat = pts.reduce((a,p)=>a+p.lat,0)/pts.length;
+    const avgLng = pts.reduce((a,p)=>a+p.lng,0)/pts.length;
+    const lats = pts.map(p=>p.lat), lngs = pts.map(p=>p.lng);
+    const spanLat = Math.max(...lats)-Math.min(...lats);
+    const spanLng = Math.max(...lngs)-Math.min(...lngs);
+    const span = Math.max(spanLat, spanLng);
+    const zoom = span < 0.01 ? 16 : span < 0.05 ? 14 : span < 0.2 ? 12 : span < 1 ? 11 : 9;
+    embedUrl = `https://maps.google.com/maps?q=${avgLat},${avgLng}&z=${zoom}&output=embed&hl=pt-BR`;
   }
 
-  // Pins dos pontos
-  _rotPontos.forEach((p, i) => {
-    const x = toX(p.lng);
-    const y = toY(p.lat);
-    const posRota = _rotRoteada ? ordem.indexOf(i) : i;
-    const isFinal = _rotRoteada && posRota === ordem.length - 1;
-    const isFirst = _rotRoteada && posRota === 0;
-
-    // Sombra
-    svg += `<circle cx="${x}" cy="${y+2}" r="13" fill="rgba(0,0,0,.4)"/>`;
-    // Círculo principal
-    const cor = isFirst ? '#f0c040' : isFinal ? '#18d4a0' : '#4e7bff';
-    svg += `<circle cx="${x}" cy="${y}" r="13" fill="${cor}" stroke="#0d1017" stroke-width="2"/>`;
-    // Número
-    svg += `<text x="${x}" y="${y+4.5}" text-anchor="middle" font-size="11" font-weight="700" fill="#fff" font-family="system-ui,sans-serif">${posRota + 1}</text>`;
-
-    // Label do ponto (truncado)
-    const label = p.nome.length > 16 ? p.nome.slice(0,14)+'…' : p.nome;
-    // Fundo do label
-    const lx = x + (x > W/2 ? -8 : 8);
-    const anchor = x > W/2 ? 'end' : 'start';
-    svg += `<text x="${lx}" y="${y-18}" text-anchor="${anchor}" font-size="10" fill="#dde2f8" font-family="system-ui,sans-serif" font-weight="600"
-      style="text-shadow:0 1px 4px #0d1017,0 1px 4px #0d1017">${label}</text>`;
-  });
-
-  // Legenda
-  if(_rotRoteada) {
-    svg += `<circle cx="${PAD+10}" cy="${H-22}" r="7" fill="#f0c040" stroke="#0d1017" stroke-width="1.5"/>`;
-    svg += `<text x="${PAD+22}" y="${H-18}" font-size="10" fill="#8892c0" font-family="system-ui,sans-serif">Início</text>`;
-    svg += `<circle cx="${PAD+65}" cy="${H-22}" r="7" fill="#18d4a0" stroke="#0d1017" stroke-width="1.5"/>`;
-    svg += `<text x="${PAD+77}" y="${H-18}" font-size="10" fill="#8892c0" font-family="system-ui,sans-serif">Fim</text>`;
+  // Só recarrega se a URL mudou (evita flash desnecessário)
+  if(iframe.src !== embedUrl) {
+    iframe.src = embedUrl;
   }
-
-  svg += '</svg>';
-  svgContainer.innerHTML = svg;
 }
 
-// ── Abrir rota no Google Maps ─────────────────────────────────
+
 function abrirGoogleMaps() {
   if(!_rotPontos.length) return;
   const ordem = _rotRoteada && _rotOrdemOtima.length
@@ -4564,6 +4542,14 @@ function exportarRoteiro() {
 }
 
 // ── Inicializar a página de roteiro ──────────────────────────
+function _rotAtualizarStatus() {
+  const el = document.getElementById('rot-map-status');
+  if(!el) return;
+  if(!_rotPontos.length) { el.textContent = 'Adicione pontos para ver o mapa'; return; }
+  if(!_rotRoteada) { el.textContent = `${_rotPontos.length} ponto${_rotPontos.length>1?'s':''} no mapa · gere a rota para ver os horários`; return; }
+  el.textContent = `Rota otimizada · ${_rotPontos.length} paradas`;
+}
+
 function renderRoteiro() {
   _rotRenderLista();
   _rotRenderMapa();
