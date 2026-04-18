@@ -1658,7 +1658,22 @@ function fmtDT(iso) {
   const d = new Date(iso);
   return d.toLocaleString('pt-BR');
 }
-function parseDt(iso) { return iso ? (iso.includes('T') ? new Date(iso) : new Date(iso+'T12:00:00')) : null; }
+function parseDt(iso) {
+  if(!iso) return null;
+  // Firebase Timestamp object
+  if(typeof iso === 'object' && iso.seconds) return new Date(iso.seconds * 1000);
+  // Já é Date
+  if(iso instanceof Date) return iso;
+  const s = String(iso).trim();
+  if(!s) return null;
+  // ISO com T: '2026-04-17T...' ou sem T: '2026-04-17'
+  if(s.match(/^\d{4}-\d{2}-\d{2}/)) return new Date(s.includes('T') ? s : s + 'T12:00:00');
+  // dd/mm/yyyy
+  const br = s.match(/^(\d{2})\/(\d{2})\/(\d{4})/);
+  if(br) return new Date(`${br[3]}-${br[2]}-${br[1]}T12:00:00`);
+  // Fallback
+  const d = new Date(s); return isNaN(d.getTime()) ? null : d;
+}
 function diasAte(iso) {
   if(!iso) return null;
   const now = new Date(); now.setHours(12,0,0,0);
@@ -1769,6 +1784,8 @@ function refreshAll() {
 }
 function _refreshAll_impl() {
   updateBadges();
+  try{verificarAlertas();}catch(_){}
+  try{renderSLA();}catch(_){}
   const pid = document.querySelector('.page.active')?.id?.replace('page-','');
   if(pid) renderPage(pid);
 }
@@ -1806,7 +1823,9 @@ function getDadosFiltrados() {
   return DB.filter(os => {
     if(!os.dataAbertura) return false;
     const d = parseDt(os.dataAbertura);
-    return d && d.getFullYear() === dashAno;
+    if(!d || isNaN(d.getTime())) return true; // OS sem data válida: inclui no filtro do ano atual
+    if(typeof dashMes !== 'undefined' && dashMes !== null && d.getMonth() !== dashMes) return false;
+    return d.getFullYear() === dashAno;
   });
 }
 
@@ -2684,7 +2703,16 @@ function abrirDetalhe(id) {
   document.getElementById('ed-fech').value=os.dataFechamento||'';
 
   openOv('ov-det');
+  // Reset tabs para 'Dados' sempre que abre o modal
+  setTimeout(() => {
+    document.querySelectorAll('.det-tab').forEach((t,i)=>t.classList.toggle('on',i===0));
+    document.querySelectorAll('.det-panel').forEach((p,i)=>p.classList.toggle('on',i===0));
+    const _os=DB.find(o=>o.id===id);
+    const _tc=document.getElementById('tc-log');
+    if(_tc) _tc.textContent=(_os?.logs?.length)||'';
+  }, 0);
 }
+
 
 function editarAtual() {
   const os=DB.find(o=>o.id===currentId); if(!os) return;
@@ -5049,28 +5077,7 @@ function renderSLA() {
   }
 }
 
-// ── 9. Hook no abrirDetalhe para reset tabs e badge ──────────
-// Sobrescreve apenas o openOv dentro da chain, não a função abrirDetalhe
-const _origAbrirDetalhe = abrirDetalhe;
-abrirDetalhe = function(id) {
-  _origAbrirDetalhe(id);
-  // Reset tabs para "Dados"
-  setTimeout(() => {
-    document.querySelectorAll('.det-tab').forEach((t,i)=>t.classList.toggle('on',i===0));
-    document.querySelectorAll('.det-panel').forEach((p,i)=>p.classList.toggle('on',i===0));
-    const os=DB.find(o=>o.id===id);
-    const tc=document.getElementById('tc-log');
-    if(tc) tc.textContent=(os?.logs?.length)||'';
-  }, 0);
-};
 
-// ── 10. Hook no _refreshAll_impl ─────────────────────────────
-const _origImpl = _refreshAll_impl;
-function _refreshAll_impl() {
-  _origImpl();
-  try{verificarAlertas();}catch(_){}
-  try{renderSLA();}catch(_){}
-}
 
 
 // ══════════════════════════════════════
@@ -5229,6 +5236,8 @@ dashAno = 2026;
 dashConsolidado = false;
 updateBadges();
 renderDash();
+// Garante que filtro de mês começa nulo
+if(typeof dashMes !== 'undefined') dashMes = null;
 try { verificarPacoteCaixaPendente(); } catch(_) {}
 </script>
 </body>
