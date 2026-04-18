@@ -399,6 +399,61 @@ textarea{resize:vertical;min-height:64px;line-height:1.5;}
 tr.row-vencido{animation:blinkRedSoft 1.6s ease-in-out infinite;}
 .ni .cnt.blink-cnt{animation:blinkRed 1.2s ease-in-out infinite;color:#fff !important;}
 
+/* ─── PAINEL DE ALERTAS CRÍTICOS (GRANDE, MUITO VISÍVEL) ─── */
+@keyframes alertPulse{
+  0%,100%{box-shadow:0 0 0 0 rgba(255,68,102,.55), inset 0 0 0 1px rgba(255,68,102,.6);}
+  50%{box-shadow:0 0 30px 6px rgba(255,68,102,.55), inset 0 0 0 1px rgba(255,68,102,1);}
+}
+@keyframes alertBgFlash{
+  0%,100%{background:linear-gradient(135deg,rgba(255,68,102,.10),rgba(255,119,51,.06));}
+  50%{background:linear-gradient(135deg,rgba(255,68,102,.30),rgba(255,119,51,.18));}
+}
+.alert-panel{
+  border-radius:14px;padding:16px 18px;margin-bottom:16px;
+  border:1px solid rgba(255,68,102,.4);
+  animation:alertBgFlash 1.8s ease-in-out infinite, alertPulse 1.8s ease-in-out infinite;
+  position:relative;overflow:hidden;
+}
+.alert-panel.alert-ok{
+  animation:none;background:linear-gradient(135deg,rgba(24,212,160,.08),rgba(78,123,255,.05));
+  border-color:rgba(24,212,160,.35);box-shadow:none;
+}
+.alert-panel-hd{display:flex;align-items:center;gap:12px;margin-bottom:10px;}
+.alert-panel-ic{font-size:28px;animation:blinkRed 1.1s ease-in-out infinite;
+  display:inline-flex;align-items:center;justify-content:center;
+  width:46px;height:46px;border-radius:50%;color:#fff;font-weight:800;}
+.alert-panel.alert-ok .alert-panel-ic{animation:none;background:rgba(24,212,160,.25);color:var(--grn);}
+.alert-panel-title{font-size:15px;font-weight:800;color:#fff;letter-spacing:.3px;text-transform:uppercase;}
+.alert-panel-sub{font-size:11.5px;color:var(--tx2);margin-top:2px;}
+.alert-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:10px;}
+.alert-item{background:rgba(0,0,0,.28);border:1px solid rgba(255,255,255,.06);border-radius:10px;
+  padding:10px 12px;cursor:pointer;transition:transform .15s,border-color .15s;
+  display:flex;align-items:center;gap:10px;}
+.alert-item:hover{transform:translateY(-2px);border-color:rgba(255,68,102,.6);}
+.alert-item-d{flex-shrink:0;width:46px;height:46px;border-radius:10px;
+  display:flex;flex-direction:column;align-items:center;justify-content:center;
+  font-weight:800;color:#fff;background:var(--red);}
+.alert-item-d.d-hoje{background:var(--red);animation:blinkRed 1s ease-in-out infinite;}
+.alert-item-d.d-amanha{background:var(--org);}
+.alert-item-d.d-prox{background:var(--yel);color:#1a1a1a;}
+.alert-item-d.d-venc{background:#8b0024;animation:blinkRed .9s ease-in-out infinite;}
+.alert-item-d .n{font-size:18px;line-height:1;}
+.alert-item-d .l{font-size:8.5px;letter-spacing:.5px;margin-top:2px;}
+.alert-item-info{flex:1;min-width:0;}
+.alert-item-info .t{font-size:12px;font-weight:700;color:var(--tx);
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.alert-item-info .s{font-size:10.5px;color:var(--tx3);margin-top:2px;
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+
+/* ─── KPIs AUXILIARES (mini-cards) ─── */
+.mini-stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:10px;margin-bottom:16px;}
+.mini-stat{background:var(--bg2);border:1px solid var(--br);border-radius:10px;padding:10px 12px;
+  display:flex;align-items:center;gap:10px;border-left:3px solid var(--sc,var(--acc));}
+.mini-stat .ic{font-size:20px;}
+.mini-stat .info{flex:1;min-width:0;}
+.mini-stat .v{font-size:17px;font-weight:800;color:var(--tx);line-height:1;}
+.mini-stat .l{font-size:10px;color:var(--tx3);text-transform:uppercase;letter-spacing:.4px;margin-top:3px;}
+
 /* ─── UNDO TOAST ─── */
 .toast.undo{cursor:default;border-color:rgba(240,192,64,.4);background:var(--bg3);}
 .toast.undo button{background:var(--acc-g);color:#fff;border:none;padding:5px 12px;
@@ -626,13 +681,20 @@ tr.sel-row td{background:rgba(255,68,102,.05);}
 <div class="page active" id="page-dashboard">
 
   <!-- Filtro de ano global -->
-  <!-- FILTRO DE ANO + BOTÃO CONSOLIDADO -->
+  <!-- FILTRO DE ANO + MÊS + BOTÃO CONSOLIDADO -->
   <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;flex-wrap:wrap;gap:10px;">
     <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
-      <span style="font-size:11px;color:var(--tx3);">Filtrar por ano:</span>
+      <span style="font-size:11px;color:var(--tx3);">Filtrar:</span>
       <select id="chart-ano" onchange="mudarAno()" style="width:auto;padding:6px 12px;font-size:12px;background:var(--bg2);border:1px solid var(--br);border-radius:var(--rs);color:var(--tx);">
-        <option value="">— Selecione —</option>
+        <option value="">— Ano —</option>
         <option>2024</option><option>2025</option><option selected>2026</option><option>2027</option>
+      </select>
+      <select id="chart-mes" onchange="mudarMes()" style="width:auto;padding:6px 12px;font-size:12px;background:var(--bg2);border:1px solid var(--br);border-radius:var(--rs);color:var(--tx);">
+        <option value="">— Todos os meses —</option>
+        <option value="0">Janeiro</option><option value="1">Fevereiro</option><option value="2">Março</option>
+        <option value="3">Abril</option><option value="4">Maio</option><option value="5">Junho</option>
+        <option value="6">Julho</option><option value="7">Agosto</option><option value="8">Setembro</option>
+        <option value="9">Outubro</option><option value="10">Novembro</option><option value="11">Dezembro</option>
       </select>
       <button id="btn-consolidado" onclick="modoConsolidado()" style="
         padding:6px 14px;font-size:12px;font-weight:600;border-radius:var(--rs);
@@ -644,6 +706,19 @@ tr.sel-row td{background:rgba(255,68,102,.05);}
     </div>
   </div>
 
+  <!-- ════ PAINEL DE ALERTAS CRÍTICOS (≤3 dias) ════ -->
+  <div id="alert-panel-critico" class="alert-panel" style="display:none;">
+    <div class="alert-panel-hd">
+      <div class="alert-panel-ic" id="alert-panel-ic">⚠</div>
+      <div style="flex:1;">
+        <div class="alert-panel-title" id="alert-panel-title">Atenção: prazos críticos</div>
+        <div class="alert-panel-sub" id="alert-panel-sub">OS com vencimento em até 3 dias ou já vencidas — clique para abrir</div>
+      </div>
+      <button class="btn btn-ghost btn-sm" onclick="go('vencendo')" style="white-space:nowrap;">Ver todas →</button>
+    </div>
+    <div id="alert-panel-grid" class="alert-grid"></div>
+  </div>
+
   <!-- STATS ROW — respondem ao filtro de ano -->
   <div class="stats" style="grid-template-columns:repeat(5,1fr);">
     <div class="stat" style="--sc:var(--acc)"><div class="stat-ic">📋</div><div class="stat-lbl">Total de OS</div><div class="stat-val" id="sv-total">0</div><div class="stat-sub" id="sv-total-sub">cadastradas</div></div>
@@ -653,10 +728,21 @@ tr.sel-row td{background:rgba(255,68,102,.05);}
     <div class="stat admin-only" style="--sc:var(--yel)"><div class="stat-ic">💰</div><div class="stat-lbl">Valor Total</div><div class="stat-val" id="sv-valor" style="font-size:17px">R$ 0</div><div class="stat-sub" id="sv-valor-sub">previsto</div></div>
   </div>
 
-  <div class="stats" style="grid-template-columns:repeat(3,1fr);margin-top:-4px;">
+  <div class="stats" style="grid-template-columns:repeat(4,1fr);margin-top:-4px;">
     <div class="stat" style="--sc:var(--red)"><div class="stat-lbl">Vence Hoje</div><div class="stat-val" id="sv-hoje">0</div><div class="stat-sub">atenção imediata</div></div>
     <div class="stat" style="--sc:var(--org)"><div class="stat-lbl">Vence Amanhã</div><div class="stat-val" id="sv-amanha">0</div><div class="stat-sub">prioridade alta</div></div>
     <div class="stat" style="--sc:var(--yel)"><div class="stat-lbl">Em até 3 dias</div><div class="stat-val" id="sv-3dias">0</div><div class="stat-sub">acompanhar de perto</div></div>
+    <div class="stat" style="--sc:#8b0024"><div class="stat-lbl">Vencidas</div><div class="stat-val" id="sv-vencidas">0</div><div class="stat-sub">ação urgente</div></div>
+  </div>
+
+  <!-- ════ MINI KPIs (Perito / Engenheiro / Vistoriador) ════ -->
+  <div class="mini-stats">
+    <div class="mini-stat" style="--sc:var(--acc)"><div class="ic">⏱️</div><div class="info"><div class="v" id="kpi-idade-media">—</div><div class="l">Idade média OS aberta</div></div></div>
+    <div class="mini-stat" style="--sc:var(--org)"><div class="ic">🚧</div><div class="info"><div class="v" id="kpi-sem-prazo">0</div><div class="l">OS sem prazo definido</div></div></div>
+    <div class="mini-stat" style="--sc:var(--grn)"><div class="ic">🔍</div><div class="info"><div class="v" id="kpi-vist-pend">0</div><div class="l">Vistorias pendentes</div></div></div>
+    <div class="mini-stat" style="--sc:#7c5cff"><div class="ic">✍️</div><div class="info"><div class="v" id="kpi-laudo-pend">0</div><div class="l">Laudos a emitir</div></div></div>
+    <div class="mini-stat admin-only" style="--sc:var(--yel)"><div class="ic">💵</div><div class="info"><div class="v" id="kpi-ticket">R$ 0</div><div class="l">Ticket médio</div></div></div>
+    <div class="mini-stat" style="--sc:#38bfff"><div class="ic">📅</div><div class="info"><div class="v" id="kpi-7dias">0</div><div class="l">Vencendo em 7 dias</div></div></div>
   </div>
 
   <!-- ROW 1: Mensal + Donut status -->
@@ -1697,6 +1783,7 @@ function _refreshAll_impl() {
 // ══════════════════════════════════════
 // ─── Ano selecionado no dashboard ───────────────────────
 let dashAno = 2026;
+let dashMes = null; // 0-11 ou null
 let dashConsolidado = false;
 
 function mudarAno() {
@@ -1709,23 +1796,45 @@ function mudarAno() {
   renderDash();
 }
 
+function mudarMes() {
+  const val = document.getElementById('chart-mes').value;
+  dashMes = (val === '' || val === null) ? null : parseInt(val);
+  // mês só faz sentido com ano definido — se consolidado, sai do consolidado mantendo ano atual
+  if(dashMes !== null && dashConsolidado){
+    dashConsolidado = false;
+    if(!dashAno) dashAno = new Date().getFullYear();
+    const sel = document.getElementById('chart-ano');
+    if(sel) sel.value = String(dashAno);
+    const btn = document.getElementById('btn-consolidado');
+    if(btn) { btn.style.background='var(--bg3)'; btn.style.color='var(--tx2)'; btn.style.borderColor='var(--br2)'; }
+  }
+  updateBadges();
+  renderDash();
+}
+
 function modoConsolidado() {
   dashConsolidado = true;
   dashAno = null;
+  dashMes = null;
   const btn = document.getElementById('btn-consolidado');
   if(btn) { btn.style.background='rgba(78,123,255,.18)'; btn.style.color='var(--acc)'; btn.style.borderColor='rgba(78,123,255,.4)'; }
   const sel = document.getElementById('chart-ano');
   if(sel) sel.value = '';
+  const selM = document.getElementById('chart-mes');
+  if(selM) selM.value = '';
   updateBadges();
   renderDash();
 }
 
 function getDadosFiltrados() {
-  if(dashConsolidado || dashAno === null) return DB;
+  if(dashConsolidado || (dashAno === null && dashMes === null)) return DB;
   return DB.filter(os => {
     if(!os.dataAbertura) return false;
     const d = parseDt(os.dataAbertura);
-    return d && d.getFullYear() === dashAno;
+    if(!d) return false;
+    if(dashAno !== null && d.getFullYear() !== dashAno) return false;
+    if(dashMes !== null && d.getMonth() !== dashMes) return false;
+    return true;
   });
 }
 
@@ -1769,6 +1878,8 @@ function updateBadges() {
   const dHoje = dados.filter(os=>isAberto(os)&&diasAte(os.prazoFatal)===0).length;
   const dAmanha = dados.filter(os=>isAberto(os)&&diasAte(os.prazoFatal)===1).length;
   const d3dias = dados.filter(os=>isAberto(os)&&diasAte(os.prazoFatal)!==null&&diasAte(os.prazoFatal)>=0&&diasAte(os.prazoFatal)<=3).length;
+  const dVencidas = dados.filter(os=>isAberto(os)&&diasAte(os.prazoFatal)!==null&&diasAte(os.prazoFatal)<0).length;
+  const d7dias = dados.filter(os=>isAberto(os)&&diasAte(os.prazoFatal)!==null&&diasAte(os.prazoFatal)>=0&&diasAte(os.prazoFatal)<=7).length;
   const dValor = dados.reduce((a,os)=>a+parsVal(os.valor),0);
 
   const sv=(id,v)=>{ const el=document.getElementById(id); if(el) el.textContent=v; };
@@ -1779,9 +1890,77 @@ function updateBadges() {
   sv('sv-hoje', dHoje);
   sv('sv-amanha', dAmanha);
   sv('sv-3dias', d3dias);
+  sv('sv-vencidas', dVencidas);
+
+  // ── Mini KPIs ──
+  const dSemPrazo = dAbertos.filter(os=>!os.prazoFatal).length;
+  const dVistPend = dAbertos.filter(os=>os.vistoria!=='Imóvel vistoriado').length;
+  const dLaudoPend = dAbertos.filter(os=>os.finalizacao!=='Laudo Finalizado').length;
+  // idade média (em dias) das OS abertas
+  const hojeMs = new Date(); hojeMs.setHours(0,0,0,0);
+  const idades = dAbertos.map(os=>{
+    const d = parseDt(os.dataAbertura); if(!d) return null;
+    return Math.max(0,Math.round((hojeMs - d)/86400000));
+  }).filter(v=>v!==null);
+  const idadeMedia = idades.length ? Math.round(idades.reduce((a,b)=>a+b,0)/idades.length) : null;
+  const ticket = dados.length ? dValor/dados.length : 0;
+
+  sv('kpi-sem-prazo', dSemPrazo);
+  sv('kpi-vist-pend', dVistPend);
+  sv('kpi-laudo-pend', dLaudoPend);
+  sv('kpi-7dias', d7dias);
+  sv('kpi-idade-media', idadeMedia===null ? '—' : idadeMedia+' d');
+  sv('kpi-ticket', 'R$ '+ticket.toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2}));
+
+  // ── PAINEL DE ALERTAS CRÍTICOS (≤3 dias ou vencidas) ──
+  try{
+    const criticos = dAbertos
+      .map(os=>({...os, _dias: diasAte(os.prazoFatal)}))
+      .filter(os=>os._dias!==null && os._dias<=3)
+      .sort((a,b)=>a._dias-b._dias);
+    const panel = document.getElementById('alert-panel-critico');
+    const grid = document.getElementById('alert-panel-grid');
+    const titleEl = document.getElementById('alert-panel-title');
+    const subEl = document.getElementById('alert-panel-sub');
+    const icEl = document.getElementById('alert-panel-ic');
+    if(panel && grid){
+      if(criticos.length === 0){
+        panel.style.display = 'block';
+        panel.classList.add('alert-ok');
+        if(icEl){ icEl.textContent = '✓'; icEl.style.background='rgba(24,212,160,.25)'; }
+        if(titleEl) titleEl.textContent = 'Nenhum prazo crítico no momento';
+        if(subEl) subEl.textContent = 'Todas as OS abertas estão com mais de 3 dias até o vencimento';
+        grid.innerHTML = '';
+      } else {
+        panel.style.display = 'block';
+        panel.classList.remove('alert-ok');
+        if(icEl){ icEl.textContent = '⚠'; icEl.style.background='var(--red)'; }
+        const nVenc = criticos.filter(o=>o._dias<0).length;
+        const nHoje = criticos.filter(o=>o._dias===0).length;
+        if(titleEl) titleEl.textContent = `${criticos.length} OS em estado crítico` + (nVenc?` · ${nVenc} vencida(s)`:'') + (nHoje?` · ${nHoje} vence(m) hoje`:'');
+        if(subEl) subEl.textContent = 'Clique em uma OS para abrir os detalhes — atualizado em tempo real';
+        grid.innerHTML = criticos.slice(0,12).map(os=>{
+          const d = os._dias;
+          let cls='d-prox', label='dias', n=String(d);
+          if(d<0){ cls='d-venc'; label='VENC'; n='!'+Math.abs(d); }
+          else if(d===0){ cls='d-hoje'; label='HOJE'; n='0'; }
+          else if(d===1){ cls='d-amanha'; label='AMANHÃ'; n='1'; }
+          const tit = (os.empresa||'—');
+          const sub = `${os.tipoServico||''}${os.cliente?' · '+String(os.cliente).split(' ')[0]:''} · ${fmtDate(os.prazoFatal)}`;
+          return `<div class="alert-item" onclick="abrirDetalhe('${os.id}')">
+            <div class="alert-item-d ${cls}"><span class="n">${n}</span><span class="l">${label}</span></div>
+            <div class="alert-item-info"><div class="t">${tit}</div><div class="s">${sub}</div></div>
+          </div>`;
+        }).join('');
+      }
+    }
+  }catch(e){ console.warn('alert-panel:',e); }
 
   const periodoLabel = dashConsolidado ? 'Consolidado · todos os anos'
-    : dashAno ? 'Ano '+dashAno : 'Todos os anos';
+    : (dashAno && dashMes!==null) ? `${MESES_ABR[dashMes]}/${dashAno}`
+    : dashAno ? 'Ano '+dashAno
+    : dashMes!==null ? `${MESES_ABR[dashMes]} · todos os anos`
+    : 'Todos os anos';
   const sub = document.getElementById('sv-total-sub');
   if(sub) sub.textContent = periodoLabel;
   const lblEl = document.getElementById('dash-periodo-lbl');
@@ -1831,7 +2010,10 @@ function drawDonut(canvasId, slices) {
 function renderDash() {
   const dados = getDadosFiltrados();
   const periodoLabel = dashConsolidado ? 'Consolidado · todos os anos'
-    : dashAno ? `Ano ${dashAno}` : 'Todos os anos';
+    : (dashAno && dashMes!==null) ? `${MESES_ABR[dashMes]}/${dashAno}`
+    : dashAno ? `Ano ${dashAno}`
+    : dashMes!==null ? `${MESES_ABR[dashMes]} · todos os anos`
+    : 'Todos os anos';
   const lbl = document.getElementById('dash-ano-lbl');
   if(lbl) lbl.textContent = periodoLabel;
   const total = dados.length || 1;
@@ -4632,6 +4814,7 @@ if(!verificarSessao()) {
 }
 // Init dashboard with default year 2026
 dashAno = 2026;
+dashMes = null;
 dashConsolidado = false;
 updateBadges();
 renderDash();
@@ -4775,6 +4958,7 @@ if(!verificarSessao()) {
 }
 // Init dashboard with default year 2026
 dashAno = 2026;
+dashMes = null;
 dashConsolidado = false;
 
 // ══════════════════════════════════════
