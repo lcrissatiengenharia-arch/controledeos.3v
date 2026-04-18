@@ -521,6 +521,8 @@ tr.sel-row td{background:rgba(255,68,102,.05);}
 .rot-hora-config{display:flex;align-items:center;gap:8px;flex-wrap:wrap;}
 .rot-hora-config label{font-size:12px;color:var(--tx2);}
 </style>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css"/>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
 </head>
 <body>
 
@@ -1367,20 +1369,13 @@ tr.sel-row td{background:rgba(255,68,102,.05);}
       </div>
       <div id="rot-map-container" style="flex:1;position:relative;background:var(--bg3);">
         <!-- Placeholder quando sem pontos -->
-        <div class="rot-ph" id="rot-map-ph">
+        <div class="rot-ph" id="rot-map-ph" style="position:absolute;inset:0;z-index:10;pointer-events:none;">
           <div class="rot-ph-ic">🗺️</div>
           <div style="font-size:13px;font-weight:600;color:var(--tx2);">Mapa aparecerá aqui</div>
-          <div style="font-size:12px;text-align:center;max-width:260px;">Adicione o primeiro ponto para<br>ver o mapa do Google Maps</div>
+          <div style="font-size:12px;text-align:center;max-width:260px;">Adicione o primeiro ponto para<br>ver o mapa com satélite</div>
         </div>
-        <!-- iframe do Google Maps — atualizado a cada ponto adicionado -->
-        <iframe id="rot-gmaps-iframe"
-          style="width:100%;height:100%;border:none;display:none;"
-          loading="lazy"
-          referrerpolicy="no-referrer-when-downgrade"
-          allowfullscreen>
-        </iframe>
-        <!-- Overlay de pins/rota SVG sobre o iframe (para numeração visual) -->
-        <div id="rot-mapa-svg" style="width:100%;height:100%;display:none;position:relative;overflow:hidden;"></div>
+        <!-- Mapa Leaflet — renderiza tiles reais de satélite/rua -->
+        <div id="rot-leaflet-map" style="width:100%;height:100%;"></div>
       </div>
     </div>
 
@@ -4403,79 +4398,170 @@ function gerarRota() {
   }, 300);
 }
 
-// ── Renderizar mapa interno (SVG dinâmico) ────────────────────
+// ── Mapa Leaflet com tiles reais ─────────────────────────────
+let _rotMap = null;          // instância do mapa Leaflet
+let _rotMarkersLayer = null; // layer group dos pins
+let _rotRotaLayer = null;    // polyline da rota
+
+function _rotInitMapa() {
+  if(_rotMap) return; // já inicializado
+  const container = document.getElementById('rot-leaflet-map');
+  if(!container) return;
+
+  // Inicializa o mapa centrado no Brasil
+  _rotMap = L.map('rot-leaflet-map', {
+    center: [-20.83, -49.38],
+    zoom: 13,
+    zoomControl: true,
+    attributionControl: true
+  });
+
+  // Layer de satélite (Esri World Imagery — alta qualidade, sem API key)
+  const satellite = L.tileLayer(
+    'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
+    { attribution: 'Tiles © Esri — Esri, DeLorme, NAVTEQ', maxZoom: 20 }
+  );
+
+  // Layer de ruas (OpenStreetMap — fallback)
+  const streets = L.tileLayer(
+    'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
+    { attribution: '© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>', maxZoom: 19 }
+  );
+
+  // Controle para trocar entre satélite e ruas
+  L.control.layers(
+    { '🛰️ Satélite': satellite, '🗺️ Mapa': streets },
+    {},
+    { position: 'topright', collapsed: false }
+  ).addTo(_rotMap);
+
+  satellite.addTo(_rotMap); // Começa no satélite
+
+  _rotMarkersLayer = L.layerGroup().addTo(_rotMap);
+  _rotRotaLayer    = L.layerGroup().addTo(_rotMap);
+}
+
 function _rotRenderMapa() {
-  const ph     = document.getElementById('rot-map-ph');
-  const iframe = document.getElementById('rot-gmaps-iframe');
-  const svgDiv = document.getElementById('rot-mapa-svg');
-  if(!ph || !iframe) return;
+  const ph = document.getElementById('rot-map-ph');
 
   if(!_rotPontos.length) {
-    ph.style.display     = 'flex';
-    iframe.style.display = 'none';
-    if(svgDiv) svgDiv.style.display = 'none';
+    if(ph) { ph.style.display='flex'; ph.style.pointerEvents='none'; }
     return;
   }
 
-  ph.style.display = 'none';
-  if(svgDiv) svgDiv.style.display = 'none';
-  iframe.style.display = 'block';
+  // Esconder placeholder
+  if(ph) ph.style.display = 'none';
+
+  // Inicializa o mapa se ainda não foi
+  _rotInitMapa();
+  if(!_rotMap) return;
+
+  // Limpar layers anteriores
+  _rotMarkersLayer.clearLayers();
+  _rotRotaLayer.clearLayers();
 
   const ordem = _rotRoteada && _rotOrdemOtima.length
     ? _rotOrdemOtima
     : _rotPontos.map((_, i) => i);
 
-  const pts = ordem.map(i => _rotPontos[i]);
+  const CORES = ['#f0c040','#4e7bff','#7c5cff','#38bfff','#ff8533','#ff4466','#18d4a0','#a78bfa','#fb923c','#34d399'];
 
-  // ── Gerar URL do Google Maps Embed ──────────────────────────
-  // Com 1 ponto: embed simples centrando no ponto
-  // Com múltiplos: usamos o modo "directions" do embed quando roteado,
-  //                ou "place" com marcadores via search quando ainda não roteado
-  let embedUrl = '';
+  // Adicionar pins numerados
+  _rotPontos.forEach((p, i) => {
+    const posRota  = _rotRoteada ? ordem.indexOf(i) : i;
+    const isFirst  = _rotRoteada && posRota === 0;
+    const isLast   = _rotRoteada && posRota === ordem.length - 1;
+    const cor      = isFirst ? '#f0c040' : isLast ? '#18d4a0' : '#4e7bff';
+    const numero   = posRota + 1;
 
-  if(pts.length === 1) {
-    // Um ponto: centraliza com zoom alto
-    embedUrl = `https://maps.google.com/maps?q=${pts[0].lat},${pts[0].lng}&z=16&output=embed&hl=pt-BR`;
+    // Ícone personalizado com número
+    const icon = L.divIcon({
+      className: '',
+      html: `<div style="
+        width:32px;height:32px;border-radius:50%;
+        background:${cor};border:3px solid #fff;
+        display:flex;align-items:center;justify-content:center;
+        font-size:13px;font-weight:700;color:#fff;
+        box-shadow:0 3px 10px rgba(0,0,0,.5);
+        font-family:system-ui,sans-serif;
+        cursor:pointer;
+      ">${numero}</div>`,
+      iconSize: [32, 32],
+      iconAnchor: [16, 16],
+      popupAnchor: [0, -20]
+    });
 
-  } else if(_rotRoteada && pts.length >= 2 && pts.length <= 4) {
-    // Rota com até 4 pontos: usa embed de direções (origin + dest + waypoints)
-    // O embed de direções do Google aceita saddr/daddr com via:
-    const origin = `${pts[0].lat},${pts[0].lng}`;
-    const dest   = `${pts[pts.length-1].lat},${pts[pts.length-1].lng}`;
-    const vias   = pts.slice(1, -1).map(p => `${p.lat},${p.lng}`).join('+to:');
-    const daddr  = vias ? `${vias}+to:${dest}` : dest;
-    embedUrl = `https://maps.google.com/maps?saddr=${encodeURIComponent(origin)}&daddr=${encodeURIComponent(daddr)}&output=embed&hl=pt-BR`;
+    // Calcular hora estimada para o popup
+    let horaStr = '';
+    if(_rotRoteada) {
+      const horaInicio = document.getElementById('rot-inicio')?.value || '08:00';
+      const durMin     = parseInt(document.getElementById('rot-duracao')?.value || '30');
+      const velKmh     = parseInt(document.getElementById('rot-vel')?.value || '40');
+      const [h0, m0]   = horaInicio.split(':').map(Number);
+      let minCorridos  = h0 * 60 + m0;
+      for(let k = 0; k < posRota; k++) {
+        const prev = _rotPontos[ordem[k]];
+        const curr = _rotPontos[ordem[k+1]];
+        const distKm = _rotDistancia(prev.lat, prev.lng, curr.lat, curr.lng);
+        minCorridos += Math.round((distKm / velKmh) * 60) + durMin;
+      }
+      const hh = Math.floor(minCorridos / 60) % 24;
+      const mm = minCorridos % 60;
+      horaStr = `<br><strong>⏰ Chegada estimada: ${String(hh).padStart(2,'0')}:${String(mm).padStart(2,'0')}</strong>`;
+    }
 
-  } else if(_rotRoteada && pts.length > 4) {
-    // Rota com muitos pontos: centraliza no centroide e mostra overview
-    const avgLat = pts.reduce((a,p)=>a+p.lat,0)/pts.length;
-    const avgLng = pts.reduce((a,p)=>a+p.lng,0)/pts.length;
-    // Zoom adaptativo: quanto mais espalhados, menor o zoom
-    const lats = pts.map(p=>p.lat), lngs = pts.map(p=>p.lng);
-    const spanLat = Math.max(...lats)-Math.min(...lats);
-    const spanLng = Math.max(...lngs)-Math.min(...lngs);
-    const span = Math.max(spanLat, spanLng);
-    const zoom = span < 0.01 ? 16 : span < 0.05 ? 14 : span < 0.2 ? 12 : span < 1 ? 11 : 9;
-    embedUrl = `https://maps.google.com/maps?q=${avgLat},${avgLng}&z=${zoom}&output=embed&hl=pt-BR`;
+    const marker = L.marker([p.lat, p.lng], { icon }).addTo(_rotMarkersLayer);
+    marker.bindPopup(`
+      <div style="font-family:system-ui,sans-serif;min-width:160px;">
+        <div style="font-size:13px;font-weight:700;margin-bottom:4px;">📍 ${p.nome}</div>
+        <div style="font-size:11px;color:#666;font-family:monospace;">${p.lat.toFixed(6)}, ${p.lng.toFixed(6)}</div>
+        <div style="font-size:12px;margin-top:4px;color:#333;">Parada nº ${numero}${horaStr}</div>
+        <a href="https://maps.google.com?q=${p.lat},${p.lng}" target="_blank"
+           style="font-size:11px;color:#4e7bff;text-decoration:none;display:block;margin-top:6px;">
+          ↗ Ver no Google Maps
+        </a>
+      </div>
+    `, { maxWidth: 220 });
+  });
 
-  } else {
-    // Múltiplos pontos sem rota: centraliza no centroide
-    const avgLat = pts.reduce((a,p)=>a+p.lat,0)/pts.length;
-    const avgLng = pts.reduce((a,p)=>a+p.lng,0)/pts.length;
-    const lats = pts.map(p=>p.lat), lngs = pts.map(p=>p.lng);
-    const spanLat = Math.max(...lats)-Math.min(...lats);
-    const spanLng = Math.max(...lngs)-Math.min(...lngs);
-    const span = Math.max(spanLat, spanLng);
-    const zoom = span < 0.01 ? 16 : span < 0.05 ? 14 : span < 0.2 ? 12 : span < 1 ? 11 : 9;
-    embedUrl = `https://maps.google.com/maps?q=${avgLat},${avgLng}&z=${zoom}&output=embed&hl=pt-BR`;
+  // Desenhar linha da rota com setas de direção
+  if(_rotRoteada && ordem.length > 1) {
+    const latLngs = ordem.map(i => [_rotPontos[i].lat, _rotPontos[i].lng]);
+
+    // Linha principal da rota
+    L.polyline(latLngs, {
+      color: '#4e7bff',
+      weight: 4,
+      opacity: 0.85,
+      dashArray: null,
+      lineJoin: 'round',
+      lineCap: 'round'
+    }).addTo(_rotRotaLayer);
+
+    // Setas de direção nos segmentos
+    latLngs.forEach((pt, idx) => {
+      if(idx === 0) return;
+      const prev = latLngs[idx-1];
+      const mx = (prev[0]+pt[0])/2;
+      const my = (prev[1]+pt[1])/2;
+      const ang = Math.atan2(pt[0]-prev[0], pt[1]-prev[1]) * 180/Math.PI;
+      const arrowIcon = L.divIcon({
+        className: '',
+        html: `<div style="transform:rotate(${ang}deg);font-size:14px;color:#4e7bff;font-weight:700;line-height:1;">➤</div>`,
+        iconSize: [14, 14],
+        iconAnchor: [7, 7]
+      });
+      L.marker([mx, my], { icon: arrowIcon, interactive: false }).addTo(_rotRotaLayer);
+    });
   }
 
-  // Só recarrega se a URL mudou (evita flash desnecessário)
-  if(iframe.src !== embedUrl) {
-    iframe.src = embedUrl;
-  }
+  // Ajustar zoom para mostrar todos os pins
+  const bounds = L.latLngBounds(_rotPontos.map(p => [p.lat, p.lng]));
+  _rotMap.fitBounds(bounds, { padding: [40, 40], maxZoom: 16 });
+
+  // Forçar resize (necessário quando o mapa estava escondido)
+  setTimeout(() => { if(_rotMap) _rotMap.invalidateSize(); }, 100);
 }
-
 
 function abrirGoogleMaps() {
   if(!_rotPontos.length) return;
@@ -4553,6 +4639,8 @@ function _rotAtualizarStatus() {
 function renderRoteiro() {
   _rotRenderLista();
   _rotRenderMapa();
+  // Garante que o Leaflet calcula o tamanho correto ao abrir a aba
+  setTimeout(() => { if(typeof _rotMap !== 'undefined' && _rotMap) _rotMap.invalidateSize(); }, 200);
 }
 
 // ── Re-renderizar mapa ao redimensionar ──────────────────────
