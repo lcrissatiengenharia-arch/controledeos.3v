@@ -31,6 +31,8 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
 import { getFirestore, collection, onSnapshot, setDoc, deleteDoc, doc, serverTimestamp }
   from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+import { getStorage, ref as storageRef, uploadBytes, getDownloadURL, deleteObject }
+  from "https://www.gstatic.com/firebasejs/10.12.0/firebase-storage.js";
 
 const firebaseConfig = {
   apiKey: "AIzaSyBQFQcoeTIUyosiFqRea6u03Co5S6NuH1s",
@@ -42,6 +44,7 @@ const firebaseConfig = {
 };
 
 const app = initializeApp(firebaseConfig);
+const storage = getStorage(app);
 const db  = getFirestore(app);
 const col = collection(db, "ordens_servico");
 
@@ -82,6 +85,17 @@ window._fbRestore = async (id, data) => {
   clean.updatedAt = serverTimestamp();
   await setDoc(doc(db, "ordens_servico", id), clean);
   await deleteDoc(doc(db, "ordens_servico_lixeira", id));
+};
+window._fbUploadFoto = async (osId, file) => {
+  const ext = file.name.split('.').pop().toLowerCase();
+  const path = `fotos/${osId}/${Date.now()}_${Math.random().toString(36).slice(2)}.${ext}`;
+  const r = storageRef(storage, path);
+  await uploadBytes(r, file);
+  const url = await getDownloadURL(r);
+  return { url, path };
+};
+window._fbDeleteFoto = async (path) => {
+  try { await deleteObject(storageRef(storage, path)); } catch(e) { console.warn(e); }
 };
 window._fbDelete = async (id) => { await deleteDoc(doc(db, "ordens_servico", id)); };
 window._fbListen = () => {
@@ -491,6 +505,62 @@ tr.sel-row td{background:rgba(255,68,102,.05);}
 .del-confirm-box{background:rgba(255,68,102,.08);border:1px solid rgba(255,68,102,.25);border-radius:var(--rs);padding:14px;margin-top:12px;}
 .del-confirm-box p{font-size:12.5px;color:var(--tx2);margin-bottom:10px;line-height:1.6;}
 .del-confirm-box strong{color:var(--red);}
+
+/* ─── TABS do modal de detalhe ─── */
+.det-tabs{display:flex;gap:0;margin:-26px -26px 20px;padding:0 26px;border-bottom:2px solid var(--br);background:var(--bg2);}
+.det-tab{padding:12px 16px;font-size:12.5px;font-weight:600;color:var(--tx3);cursor:pointer;border-bottom:3px solid transparent;margin-bottom:-2px;transition:all .15s;white-space:nowrap;}
+.det-tab.on{color:var(--acc);border-color:var(--acc);}
+.det-tab:hover:not(.on){color:var(--tx2);}
+.det-panel{display:none;}.det-panel.on{display:block;}
+.tab-cnt{font-size:10px;background:var(--bg4);color:var(--tx3);padding:1px 6px;border-radius:10px;margin-left:4px;}
+/* ─── Log / Anotações ─── */
+.log-feed{max-height:280px;overflow-y:auto;border:1px solid var(--br);border-radius:var(--rs);margin-bottom:10px;}
+.log-item{padding:10px 14px;border-bottom:1px solid var(--br);}
+.log-item:last-child{border:none;}
+.log-meta{font-size:10.5px;color:var(--tx3);margin-bottom:4px;display:flex;gap:8px;}
+.log-user{font-weight:700;color:var(--tx2);}
+.log-text{font-size:13px;color:var(--tx);line-height:1.5;white-space:pre-wrap;word-break:break-word;}
+.log-empty{padding:24px;text-align:center;font-size:12px;color:var(--tx4);}
+/* ─── Fotos ─── */
+.foto-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(90px,1fr));gap:8px;margin-top:8px;}
+.foto-thumb{position:relative;aspect-ratio:1;border-radius:var(--rs);overflow:hidden;cursor:pointer;background:var(--bg4);}
+.foto-thumb img{width:100%;height:100%;object-fit:cover;transition:opacity .2s;}
+.foto-thumb:hover img{opacity:.75;}
+.foto-del-btn{position:absolute;top:4px;right:4px;background:rgba(0,0,0,.65);border:none;border-radius:4px;color:#fff;width:22px;height:22px;font-size:11px;cursor:pointer;display:none;align-items:center;justify-content:center;line-height:1;}
+.foto-thumb:hover .foto-del-btn{display:flex;}
+.foto-add-btn{aspect-ratio:1;border-radius:var(--rs);border:2px dashed var(--br2);display:flex;flex-direction:column;align-items:center;justify-content:center;cursor:pointer;color:var(--tx4);font-size:11px;gap:4px;transition:all .15s;background:transparent;}
+.foto-add-btn:hover{border-color:var(--acc);color:var(--acc);background:rgba(78,123,255,.06);}
+/* ─── Pagamento ─── */
+.pag-status-row{display:flex;gap:10px;margin-bottom:14px;}
+.pag-opt{flex:1;display:flex;align-items:center;gap:8px;padding:10px 12px;border-radius:var(--rs);border:1.5px solid var(--br);cursor:pointer;font-size:13px;transition:all .15s;}
+.pag-opt.sel-pend{border-color:var(--org);background:rgba(255,119,51,.08);}
+.pag-opt.sel-pago{border-color:var(--grn);background:rgba(24,212,160,.08);}
+.pago-badge{display:inline-flex;align-items:center;gap:4px;padding:2px 9px;border-radius:20px;font-size:11px;font-weight:600;}
+.pago-sim{background:rgba(24,212,160,.12);color:var(--grn);border:1px solid rgba(24,212,160,.25);}
+.pago-nao{background:rgba(255,119,51,.1);color:var(--org);border:1px solid rgba(255,119,51,.2);}
+/* ─── Busca Global ─── */
+.busca-ov{position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:3000;display:none;align-items:flex-start;justify-content:center;padding-top:70px;}
+.busca-ov.open{display:flex;}
+.busca-box{background:var(--bg2);border:1px solid var(--br2);border-radius:14px;width:580px;max-width:96vw;overflow:hidden;box-shadow:0 24px 64px rgba(0,0,0,.6);}
+.busca-inp-row{display:flex;align-items:center;gap:10px;padding:13px 16px;border-bottom:1px solid var(--br);}
+.busca-inp-row input{flex:1;background:none;border:none;font-size:15px;color:var(--tx);outline:none;}
+.busca-results{max-height:380px;overflow-y:auto;}
+.busca-row{display:flex;align-items:center;gap:10px;padding:10px 16px;cursor:pointer;border-bottom:1px solid var(--br);transition:background .1s;}
+.busca-row:hover,.busca-row.hi{background:var(--bg3);}
+.busca-row:last-child{border:none;}
+.busca-empty{padding:28px;text-align:center;font-size:12px;color:var(--tx4);}
+.busca-footer{padding:8px 16px;font-size:11px;color:var(--tx4);display:flex;justify-content:space-between;border-top:1px solid var(--br);}
+/* ─── Alerta banner ─── */
+.alerta-bann{display:none;background:rgba(255,68,102,.09);border-bottom:2px solid rgba(255,68,102,.3);padding:9px 20px;font-size:12.5px;font-weight:600;color:var(--red);align-items:center;gap:10px;cursor:pointer;}
+.alerta-bann.show{display:flex;}
+.alerta-bann:hover{background:rgba(255,68,102,.14);}
+/* ─── Meta / SLA ─── */
+.meta-bar-bg{height:7px;background:var(--bg4);border-radius:4px;overflow:hidden;margin:7px 0 4px;}
+.meta-bar-fill{height:100%;border-radius:4px;background:linear-gradient(to right,var(--acc),var(--grn));transition:width .8s ease;}
+/* ─── Export / sel buttons ─── */
+.sel-bar{display:none;align-items:center;gap:10px;padding:9px 14px;background:rgba(255,68,102,.07);border:1px solid rgba(255,68,102,.2);border-radius:var(--rs);margin-bottom:10px;flex-wrap:wrap;}
+.sel-bar.show{display:flex;}
+tr.sel-row td{background:rgba(255,68,102,.04);}
 </style>
 </head>
 <body>
@@ -563,15 +633,27 @@ tr.sel-row td{background:rgba(255,68,102,.05);}
   <div class="topbar-right">
     <span class="saving-ind" id="saving-ind"><span class="dot"></span><span id="saving-ind-msg">salvando…</span></span>
     <button class="btn btn-ghost btn-sm" onclick="openOv('ov-caixa')" title="Integração com extensão da CAIXA">🏦 Importar da CAIXA</button>
+    <button class="btn btn-ghost btn-sm" onclick="abrirBusca()" title="Busca global Ctrl+K">🔍 Buscar</button>
     <label class="btn btn-ghost btn-sm" style="cursor:pointer" title="Importar PDF">
       📄 Importar PDF
       <input type="file" id="pdf-top" accept=".pdf" multiple style="display:none" onchange="importarPDFs(this)">
     </label>
+    <button class="btn btn-ghost btn-sm" onclick="exportarCSV()" title="Exportar CSV">📥 CSV</button>
+    <button class="btn btn-ghost btn-sm" onclick="exportarExcel()" title="Exportar Excel">📊 Excel</button>
+    <button class="btn btn-ghost btn-sm admin-only" onclick="toggleSelecao()" id="btn-sel">☑️ Selecionar</button>
+    <button class="btn btn-danger btn-sm admin-only" onclick="abrirApagarTudo()" title="Apagar tudo">🗑 Apagar tudo</button>
     <button class="btn btn-primary btn-sm" onclick="abrirNova()">+ Nova OS</button>
   </div>
 </div>
 
 <div class="content">
+
+<div class="alerta-bann" id="alerta-bann" onclick="go('vencendo')">
+  <span style="font-size:17px;">⚠️</span>
+  <span id="alerta-msg">OS com prazo crítico!</span>
+  <span style="margin-left:auto;font-size:11px;font-weight:400;opacity:.75;">Clique para ver →</span>
+  <button onclick="event.stopPropagation();document.getElementById('alerta-bann').classList.remove('show')" style="background:none;border:none;color:var(--red);cursor:pointer;font-size:16px;padding:0 4px;margin-left:4px;">✕</button>
+</div>
 
 <!-- ═══ DASHBOARD ═══ -->
 <div class="page active" id="page-dashboard">
@@ -608,6 +690,33 @@ tr.sel-row td{background:rgba(255,68,102,.05);}
     <div class="stat" style="--sc:var(--red)"><div class="stat-lbl">Vence Hoje</div><div class="stat-val" id="sv-hoje">0</div><div class="stat-sub">atenção imediata</div></div>
     <div class="stat" style="--sc:var(--org)"><div class="stat-lbl">Vence Amanhã</div><div class="stat-val" id="sv-amanha">0</div><div class="stat-sub">prioridade alta</div></div>
     <div class="stat" style="--sc:var(--yel)"><div class="stat-lbl">Em até 3 dias</div><div class="stat-val" id="sv-3dias">0</div><div class="stat-sub">acompanhar de perto</div></div>
+  </div>
+
+  <!-- META + SLA -->
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:16px;" class="admin-only">
+    <div class="card" style="padding:14px 18px;">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;">
+        <div style="font-size:12px;font-weight:700;">🎯 Meta do Mês</div>
+        <div style="display:flex;align-items:center;gap:6px;">
+          <input type="number" id="meta-inp" min="1" max="999" style="width:60px;padding:3px 7px;font-size:12px;" placeholder="Meta" oninput="salvarMeta(this.value)">
+          <span style="font-size:11px;color:var(--tx3);">OS/mês</span>
+        </div>
+      </div>
+      <div style="display:flex;justify-content:space-between;font-size:12px;color:var(--tx2);">
+        <span id="meta-label">0 finalizadas este mês</span>
+        <span id="meta-pct" style="font-weight:700;color:var(--acc);"></span>
+      </div>
+      <div class="meta-bar-bg"><div class="meta-bar-fill" id="meta-fill" style="width:0%"></div></div>
+      <div id="meta-proj" style="font-size:11px;color:var(--tx4);"></div>
+    </div>
+    <div class="card" style="padding:14px 18px;">
+      <div style="font-size:12px;font-weight:700;margin-bottom:10px;">📊 SLA — Cumprimento de Prazo</div>
+      <div style="display:flex;gap:8px;text-align:center;">
+        <div style="flex:1;"><div id="sla-pct" style="font-size:22px;font-weight:700;color:var(--grn);">—</div><div style="font-size:10px;color:var(--tx4);">No prazo</div></div>
+        <div style="flex:1;"><div id="sla-med" style="font-size:18px;font-weight:700;color:var(--tx2);">—</div><div style="font-size:10px;color:var(--tx4);">Dias médio</div></div>
+        <div style="flex:1;"><div id="sla-atras" style="font-size:18px;font-weight:700;color:var(--red);">0</div><div style="font-size:10px;color:var(--tx4);">Atrasadas</div></div>
+      </div>
+    </div>
   </div>
 
   <!-- ROW 1: Mensal + Donut status -->
@@ -753,9 +862,17 @@ tr.sel-row td{background:rgba(255,68,102,.05);}
     <button class="btn btn-danger btn-sm" onclick="abrirApagarSelecionadas()">🗑 Apagar selecionadas (<span id="sel-cnt-btn">0</span>)</button>
   </div>
 
+  <div class="sel-bar" id="sel-bar">
+    <span id="sel-cnt" style="font-size:13px;font-weight:700;color:var(--red);">0 selecionadas</span>
+    <button class="btn btn-ghost btn-xs" onclick="selTodas()">Sel. todas visíveis</button>
+    <button class="btn btn-ghost btn-xs" onclick="limparSel()">Limpar</button>
+    <div style="flex:1"></div>
+    <button class="btn btn-danger btn-sm" onclick="abrirApagarSel()">🗑 Apagar selecionadas (<span id="sel-cnt-n">0</span>)</button>
+  </div>
   <div class="tw"><table>
     <thead><tr>
       <th class="admin-only" id="th-check" style="width:36px;"><input type="checkbox" id="chk-all" onchange="toggleCheckAll(this)" style="accent-color:var(--red);width:15px;height:15px;cursor:pointer;"></th>
+      <th class="admin-only" style="width:36px;padding:0 8px;"><input type="checkbox" id="chk-all" onchange="toggleChkAll(this)" style="accent-color:var(--red);"></th>
       <th onclick="srt('empresa')">Empresa</th>
       <th onclick="srt('tipoServico')">Tipo</th>
       <th onclick="srt('assunto')">Assunto/Ativ.</th>
@@ -807,6 +924,7 @@ tr.sel-row td{background:rgba(255,68,102,.05);}
       <th onclick="srtSub('fin','dataAbertura')">Abertura</th>
       <th onclick="srtSub('fin','dataFechamento')" class="sort-desc">Fechamento ↕</th>
       <th onclick="srtSub('fin','mesRecebimento')">📅 Mês Recebimento</th>
+      <th class="admin-only">Pagamento</th>
       <th></th>
     </tr></thead>
     <tbody id="tb-fin"></tbody>
@@ -1139,8 +1257,16 @@ tr.sel-row td{background:rgba(255,68,102,.05);}
       <button class="cbtn" onclick="closeOv('ov-det')">✕</button>
     </div>
   </div>
-  <div class="mb">
+  <div class="mb" style="padding-top:0;">
+    <div class="det-tabs">
+      <div class="det-tab on" onclick="setTab('dados',this)">📋 Dados</div>
+      <div class="det-tab" onclick="setTab('logs',this)">💬 Anotações<span class="tab-cnt" id="tc-logs"></span></div>
+      <div class="det-tab" onclick="setTab('fotos',this)">📷 Fotos<span class="tab-cnt" id="tc-fotos"></span></div>
+      <div class="det-tab admin-only" onclick="setTab('pag',this)">💰 Pagamento</div>
+    </div>
 
+    <!-- PANEL DADOS -->
+    <div class="det-panel on" id="dp-dados">
     <!-- Seção OS -->
     <div class="det-section">
       <div class="det-section-title">📋 Dados da Ordem de Serviço</div>
@@ -1207,10 +1333,53 @@ tr.sel-row td{background:rgba(255,68,102,.05);}
         <button class="btn btn-ghost btn-xs" onclick="document.getElementById('ed-fech').value=new Date().toISOString().split('T')[0]">Hoje</button>
       </div>
     </div>
+    </div><!-- /dp-dados -->
+
+    <!-- PANEL ANOTAÇÕES -->
+    <div class="det-panel" id="dp-logs">
+      <div style="font-size:11px;color:var(--tx3);margin-bottom:8px;">Registre contatos, problemas e observações. Salvo com data, hora e usuário.</div>
+      <div class="log-feed" id="log-feed"><div class="log-empty">Nenhuma anotação ainda.</div></div>
+      <div style="display:flex;gap:8px;padding-top:10px;border-top:1px solid var(--br);">
+        <textarea id="log-inp" placeholder="Digite uma anotação... (Ctrl+Enter para salvar)" style="flex:1;min-height:54px;resize:none;font-size:13px;" onkeydown="if((event.ctrlKey||event.metaKey)&&event.key==='Enter'){event.preventDefault();addLog();}"></textarea>
+        <button class="btn btn-primary btn-sm" onclick="addLog()" style="align-self:flex-end;">Registrar</button>
+      </div>
+    </div>
+
+    <!-- PANEL FOTOS -->
+    <div class="det-panel" id="dp-fotos">
+      <div style="font-size:11px;color:var(--tx3);margin-bottom:8px;">Fotos do imóvel tiradas durante a vistoria.</div>
+      <div class="foto-grid" id="foto-grid"></div>
+      <div id="foto-status" style="font-size:11px;color:var(--tx3);margin-top:6px;"></div>
+    </div>
+
+    <!-- PANEL PAGAMENTO -->
+    <div class="det-panel admin-only" id="dp-pag">
+      <div class="det-section">
+        <div class="det-section-title">💰 Controle de Recebimento</div>
+        <div class="pag-status-row">
+          <label class="pag-opt" id="lbl-pend" onclick="setPagStatus('pendente')">
+            <input type="radio" name="pag-st" value="pendente" id="pag-pend" style="accent-color:var(--org);"> <span style="color:var(--org);">⏳ Pendente</span>
+          </label>
+          <label class="pag-opt" id="lbl-pago" onclick="setPagStatus('pago')">
+            <input type="radio" name="pag-st" value="pago" id="pag-pago" style="accent-color:var(--grn);"> <span style="color:var(--grn);">✅ Pago</span>
+          </label>
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:12px;">
+          <div><div style="font-size:10px;color:var(--tx3);font-weight:700;text-transform:uppercase;margin-bottom:5px;">Data do pagamento</div>
+            <input type="date" id="pag-data" style="width:100%;padding:7px 10px;font-size:12.5px;"></div>
+          <div><div style="font-size:10px;color:var(--tx3);font-weight:700;text-transform:uppercase;margin-bottom:5px;">Valor confirmado (R$)</div>
+            <input type="text" id="pag-val" placeholder="ex: 466,00" style="width:100%;padding:7px 10px;font-size:12.5px;"></div>
+        </div>
+        <div><div style="font-size:10px;color:var(--tx3);font-weight:700;text-transform:uppercase;margin-bottom:5px;">Observação financeira</div>
+          <textarea id="pag-obs" placeholder="NF emitida, boleto enviado, data prevista..." style="width:100%;min-height:48px;font-size:12.5px;resize:vertical;"></textarea></div>
+        <button class="btn btn-primary" style="width:100%;margin-top:12px;" onclick="salvarPag()">💾 Salvar pagamento</button>
+      </div>
+    </div>
 
   </div>
   <div class="mf">
     <button class="btn btn-danger btn-sm" onclick="excluir()">🗑 Excluir OS</button>
+    <button class="btn btn-ghost btn-sm" onclick="duplicarOS()" title="Duplicar dados do imóvel">📋 Duplicar</button>
     <div style="flex:1"></div>
     <button class="btn btn-ghost" onclick="closeOv('ov-det')">Fechar</button>
     <button class="btn btn-primary" onclick="salvarStatus()">💾 Salvar alterações</button>
@@ -1261,6 +1430,40 @@ tr.sel-row td{background:rgba(255,68,102,.05);}
   <div class="mf">
     <button class="btn btn-ghost" onclick="closeOv('ov-del')">Cancelar</button>
     <button class="btn btn-danger" id="del-confirm-btn" onclick="confirmarDelecao()">🗑 Confirmar exclusão</button>
+  </div>
+</div>
+</div>
+
+<!-- BUSCA GLOBAL -->
+<div class="busca-ov" id="busca-ov" onclick="if(event.target===this)fecharBusca()">
+<div class="busca-box">
+  <div class="busca-inp-row">
+    <span style="font-size:16px;color:var(--tx3);">🔍</span>
+    <input type="text" id="busca-inp" placeholder="Buscar OS por empresa, cliente, referência, cidade..." oninput="renderBusca(this.value)" onkeydown="navBusca(event)">
+    <kbd style="font-size:10px;color:var(--tx4);background:var(--bg3);border:1px solid var(--br);border-radius:4px;padding:2px 6px;">Esc</kbd>
+  </div>
+  <div class="busca-results" id="busca-results"><div class="busca-empty">Digite para buscar em todas as OS</div></div>
+  <div class="busca-footer"><span>↑↓ navegar · Enter abrir · Esc fechar</span><span style="color:var(--acc);font-weight:600;">Ctrl+K</span></div>
+</div>
+</div>
+
+<!-- MODAL APAGAR -->
+<div class="ov" id="ov-del">
+<div class="modal" style="width:480px;">
+  <div class="mh"><div><h3 id="del-title">🗑 Confirmar exclusão</h3><p id="del-sub" style="font-size:11px;color:var(--red);"></p></div><button class="cbtn" onclick="closeOv('ov-del')">✕</button></div>
+  <div class="mb">
+    <div id="del-msg" style="font-size:13px;color:var(--tx2);line-height:1.6;padding:12px 14px;background:rgba(255,68,102,.07);border:1px solid rgba(255,68,102,.2);border-radius:var(--rs);margin-bottom:14px;"></div>
+    <div style="font-size:12px;color:var(--tx2);margin-bottom:6px;font-weight:600;">Digite sua senha de administrador para confirmar:</div>
+    <input type="password" id="del-senha" placeholder="Senha..." style="margin-bottom:8px;" onkeydown="if(event.key==='Enter')confirmarDel()">
+    <div id="del-err" style="display:none;font-size:12px;color:var(--red);font-weight:600;">❌ Senha incorreta.</div>
+    <div id="del-prog" style="display:none;margin-top:10px;">
+      <div style="font-size:12px;color:var(--tx2);margin-bottom:5px;" id="del-prog-txt">Excluindo...</div>
+      <div style="height:5px;background:var(--bg4);border-radius:3px;overflow:hidden;"><div id="del-prog-fill" style="height:100%;background:var(--red);border-radius:3px;width:0%;transition:width .3s;"></div></div>
+    </div>
+  </div>
+  <div class="mf">
+    <button class="btn btn-ghost" onclick="closeOv('ov-del')">Cancelar</button>
+    <button class="btn btn-danger" id="del-btn" onclick="confirmarDel()">🗑 Confirmar exclusão</button>
   </div>
 </div>
 </div>
@@ -1526,6 +1729,8 @@ function refreshAll() {
 }
 function _refreshAll_impl() {
   updateBadges();
+  try { verificarAlertas(); } catch(_) {}
+  try { renderMeta(); } catch(_) {}
   const pid = document.querySelector('.page.active')?.id?.replace('page-','');
   if(pid) renderPage(pid);
 }
@@ -2440,6 +2645,13 @@ function abrirDetalhe(id) {
   document.getElementById('ed-fichas').value=os.fichas||'Não iniciada';
   document.getElementById('ed-fech').value=os.dataFechamento||'';
 
+  // Reset tabs
+  document.querySelectorAll('.det-tab').forEach((t,i)=>t.classList.toggle('on',i===0));
+  document.querySelectorAll('.det-panel').forEach((p,i)=>p.classList.toggle('on',i===0));
+  // Contadores de tabs
+  const os2=DB.find(o=>o.id===id);
+  const tcL=document.getElementById('tc-logs'); if(tcL) tcL.textContent=(os2?.logs?.length)||'';
+  const tcF=document.getElementById('tc-fotos'); if(tcF) tcF.textContent=(os2?.fotos?.length)||'';
   openOv('ov-det');
 }
 
@@ -3470,10 +3682,14 @@ function aplicarPerfil() {
 
   try {
     // Inicia Firebase listener se ainda não iniciou
-    if(typeof window._fbListen === 'function' && !window._fbStarted) {
-      window._fbStarted = true;
-      window._fbUnsub = window._fbListen();
-    }
+    requestAnimationFrame(() => {
+      try {
+        if(typeof window._fbListen === 'function' && !window._fbStarted) {
+          window._fbStarted = true;
+          window._fbUnsub = window._fbListen();
+        } else if(typeof refreshAll === 'function') refreshAll();
+      } catch(e) { console.error('Firebase init:', e); }
+    });
     if(typeof refreshAll === 'function') refreshAll();
   } catch(err) {
     console.error('Erro ao abrir sistema após login:', err);
@@ -4028,20 +4244,6 @@ async function confirmarDelecao() {
   atualizarBarraSel();
 }
 
-// ══════════════════════════════════════
-// INIT
-// ══════════════════════════════════════
-// Verifica sessão salva; se não houver, mostra tela de login
-if(!verificarSessao()) {
-  // Firebase só inicia após login — não carrega dados antes
-  document.getElementById("login-screen").classList.remove("hidden");
-}
-// Init dashboard with default year 2026
-dashAno = 2026;
-dashConsolidado = false;
-updateBadges();
-renderDash();
-
 
 const CAIXA_IMPORT_KEY = 'controle_os_caixa_payload';
 
@@ -4171,19 +4373,415 @@ window.addEventListener('message', async (event) => {
   }
 });
 
+
+// ══════════════════════════════════════
+// BUSCA GLOBAL
+// ══════════════════════════════════════
+let _buscaIdx = -1;
+function abrirBusca() {
+  document.getElementById('busca-ov').classList.add('open');
+  const inp = document.getElementById('busca-inp');
+  inp.value = ''; _buscaIdx = -1;
+  document.getElementById('busca-results').innerHTML = '<div class="busca-empty">Digite para buscar em todas as OS</div>';
+  setTimeout(() => inp.focus(), 80);
+}
+function fecharBusca() { document.getElementById('busca-ov').classList.remove('open'); }
+function renderBusca(q) {
+  q = (q||'').toLowerCase().trim();
+  const res = document.getElementById('busca-results');
+  if(!q) { res.innerHTML='<div class="busca-empty">Digite para buscar em todas as OS</div>'; _buscaIdx=-1; return; }
+  const hits = DB.filter(o=>[o.empresa,o.numeroOS,o.tipoServico,o.cliente,o.cidade,o.contatoNome].some(v=>(v||'').toLowerCase().includes(q))).slice(0,12);
+  if(!hits.length) { res.innerHTML='<div class="busca-empty">Nenhuma OS encontrada</div>'; _buscaIdx=-1; return; }
+  _buscaIdx = 0;
+  res.innerHTML = hits.map((os,i)=>{
+    const [bc,bl] = statusBadge(os);
+    return `<div class="busca-row${i===0?' hi':''}" onclick="fecharBusca();abrirDetalhe('${os.id}')" data-idx="${i}">
+      <span class="badge bg-blue" style="font-size:10px;flex-shrink:0;">${os.tipoServico}</span>
+      <div style="flex:1;min-width:0;"><div style="font-size:13px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${os.empresa}</div>
+      <div style="font-size:11px;color:var(--tx3);">${os.numeroOS} · ${os.cliente||os.cidade||'—'}</div></div>
+      <span class="badge ${bc}" style="font-size:10px;">${bl}</span>
+    </div>`;
+  }).join('');
+}
+function navBusca(e) {
+  const rows = [...document.querySelectorAll('#busca-results .busca-row')];
+  if(e.key==='Escape') { fecharBusca(); return; }
+  if(!rows.length) return;
+  if(e.key==='ArrowDown') { e.preventDefault(); _buscaIdx=Math.min(_buscaIdx+1,rows.length-1); }
+  else if(e.key==='ArrowUp') { e.preventDefault(); _buscaIdx=Math.max(_buscaIdx-1,0); }
+  else if(e.key==='Enter') { e.preventDefault(); rows[_buscaIdx]?.click(); return; }
+  else return;
+  rows.forEach((r,i)=>r.classList.toggle('hi',i===_buscaIdx));
+  rows[_buscaIdx]?.scrollIntoView({block:'nearest'});
+}
+document.addEventListener('keydown', e => {
+  if((e.ctrlKey||e.metaKey)&&e.key==='k') { e.preventDefault(); abrirBusca(); return; }
+  if(e.key==='Escape'&&document.getElementById('busca-ov').classList.contains('open')) { fecharBusca(); return; }
+  const tags = ['INPUT','TEXTAREA','SELECT'];
+  if(tags.includes(document.activeElement?.tagName)) return;
+  if(!e.ctrlKey&&!e.metaKey&&!e.altKey) {
+    if(e.key==='n') abrirNova();
+    const pages=['dashboard','lista','andamento','sem-ficha','vencendo','finalizadas','financeiro'];
+    if(['1','2','3','4','5','6','7'].includes(e.key)) go(pages[parseInt(e.key)-1]);
+  }
+});
+
+// ══════════════════════════════════════
+// ALERTAS DE PRAZO
+// ══════════════════════════════════════
+function verificarAlertas() {
+  const venc = DB.filter(os=>isAberto(os)&&diasAte(os.prazoFatal)<0).length;
+  const hoje = DB.filter(os=>isAberto(os)&&diasAte(os.prazoFatal)===0).length;
+  const aman = DB.filter(os=>isAberto(os)&&diasAte(os.prazoFatal)===1).length;
+  const bann = document.getElementById('alerta-bann');
+  if(!bann) return;
+  let txt='', show=false;
+  if(venc>0) { txt=`${venc} OS VENCIDA${venc>1?'S':''}! `; show=true; }
+  if(hoje>0) { txt+=`${hoje} vence hoje! `; show=true; }
+  if(!show&&aman>0) { txt=`${aman} OS vence amanhã`; show=true; }
+  bann.classList.toggle('show', show);
+  if(show) document.getElementById('alerta-msg').textContent=txt.trim();
+  const total=venc+hoje;
+  document.title = total>0 ? `(${total} urgente${total>1?'s':''}) Controle OS` : 'Controle OS';
+  if(total>0&&!sessionStorage.getItem('_notif')&&'Notification' in window) {
+    sessionStorage.setItem('_notif','1');
+    if(Notification.permission==='granted') new Notification('Controle OS',{body:txt.trim()});
+    else if(Notification.permission!=='denied') Notification.requestPermission().then(p=>{ if(p==='granted') new Notification('Controle OS',{body:txt.trim()}); });
+  }
+}
+
+// ══════════════════════════════════════
+// TABS DO MODAL
+// ══════════════════════════════════════
+function setTab(id, el) {
+  document.querySelectorAll('.det-tab').forEach(t=>t.classList.remove('on'));
+  document.querySelectorAll('.det-panel').forEach(p=>p.classList.remove('on'));
+  el.classList.add('on');
+  const panel = document.getElementById('dp-'+id);
+  if(panel) panel.classList.add('on');
+  if(id==='logs') renderLogs();
+  if(id==='fotos') renderFotosPanel();
+  if(id==='pag') renderPag();
+}
+
+// ══════════════════════════════════════
+// ANOTAÇÕES / LOG
+// ══════════════════════════════════════
+function renderLogs() {
+  const os=DB.find(o=>o.id===currentId); if(!os) return;
+  const logs=(os.logs||[]).slice().reverse();
+  const tc=document.getElementById('tc-logs'); if(tc) tc.textContent=logs.length||'';
+  const feed=document.getElementById('log-feed'); if(!feed) return;
+  if(!logs.length) { feed.innerHTML='<div class="log-empty">Nenhuma anotação. Registre contatos, problemas ou observações.</div>'; return; }
+  feed.innerHTML=logs.map(l=>`<div class="log-item">
+    <div class="log-meta"><span class="log-user">${l.usuario||'Sistema'}</span><span>${fmtDT(l.dt)}</span></div>
+    <div class="log-text">${(l.texto||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')}</div>
+  </div>`).join('');
+}
+async function addLog() {
+  const os=DB.find(o=>o.id===currentId); if(!os) return;
+  const inp=document.getElementById('log-inp'); if(!inp) return;
+  const txt=inp.value.trim(); if(!txt) { toast('Digite uma anotação','err'); return; }
+  if(!os.logs) os.logs=[];
+  os.logs.push({dt:new Date().toISOString(), usuario:USUARIO_ATUAL?.nome||'Sistema', texto:txt});
+  inp.value='';
+  await fbSave(os);
+  renderLogs();
+  const tc=document.getElementById('tc-logs'); if(tc) tc.textContent=os.logs.length;
+  toast('Anotação salva!','ok');
+}
+
+// ══════════════════════════════════════
+// FOTOS
+// ══════════════════════════════════════
+function renderFotosPanel() {
+  const os=DB.find(o=>o.id===currentId); if(!os) return;
+  const fotos=os.fotos||[];
+  const tc=document.getElementById('tc-fotos'); if(tc) tc.textContent=fotos.length||'';
+  const grid=document.getElementById('foto-grid'); if(!grid) return;
+  grid.innerHTML = fotos.map((f,i)=>`
+    <div class="foto-thumb" onclick="fullscreenFoto('${f.url}')">
+      <img src="${f.url}" alt="Foto ${i+1}" loading="lazy">
+      <button class="foto-del-btn" onclick="event.stopPropagation();excluirFoto(${i})" title="Remover">✕</button>
+    </div>`).join('') +
+    `<label class="foto-add-btn"><span style="font-size:20px;">📷</span><span>Adicionar</span>
+      <input type="file" accept="image/*" multiple style="display:none" onchange="uploadFotos(this)"></label>`;
+}
+function fullscreenFoto(url) {
+  const ov=document.createElement('div');
+  ov.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.92);z-index:9999;display:flex;align-items:center;justify-content:center;cursor:zoom-out;';
+  ov.onclick=()=>document.body.removeChild(ov);
+  const img=document.createElement('img');
+  img.src=url; img.style.cssText='max-width:95vw;max-height:95vh;border-radius:8px;object-fit:contain;';
+  ov.appendChild(img); document.body.appendChild(ov);
+}
+async function uploadFotos(input) {
+  const os=DB.find(o=>o.id===currentId); if(!os) return;
+  const files=[...input.files]; if(!files.length) return;
+  input.value='';
+  const st=document.getElementById('foto-status');
+  if(!os.fotos) os.fotos=[];
+  let ok=0;
+  for(const file of files) {
+    if(st) st.textContent=`Enviando ${ok+1}/${files.length}...`;
+    try {
+      const {url,path}=await window._fbUploadFoto(os.id,file);
+      os.fotos.push({url,path,dt:new Date().toISOString()});
+      ok++;
+    } catch(e) { console.error(e); toast('Erro ao enviar foto','err'); }
+  }
+  await fbSave(os);
+  renderFotosPanel();
+  if(st) { st.textContent=`${ok} foto(s) salva(s)!`; setTimeout(()=>st.textContent='',3000); }
+  toast(`${ok} foto(s) adicionada(s)!`,'ok');
+}
+async function excluirFoto(idx) {
+  if(!confirm('Remover esta foto?')) return;
+  const os=DB.find(o=>o.id===currentId); if(!os||!os.fotos) return;
+  const foto=os.fotos[idx];
+  if(foto?.path) await (window._fbDeleteFoto||Promise.resolve)(foto.path).catch(()=>{});
+  os.fotos.splice(idx,1);
+  await fbSave(os); renderFotosPanel();
+  toast('Foto removida','ok');
+}
+
+// ══════════════════════════════════════
+// PAGAMENTO
+// ══════════════════════════════════════
+function renderPag() {
+  const os=DB.find(o=>o.id===currentId); if(!os) return;
+  const p=os.pagamento||{};
+  document.getElementById('pag-pend').checked = p.status!=='pago';
+  document.getElementById('pag-pago').checked = p.status==='pago';
+  setPagStatus(p.status||'pendente');
+  document.getElementById('pag-data').value = p.data||'';
+  document.getElementById('pag-val').value  = p.valorConf||os.valor||'';
+  document.getElementById('pag-obs').value  = p.obs||'';
+}
+function setPagStatus(v) {
+  document.getElementById('pag-pend').checked = v!=='pago';
+  document.getElementById('pag-pago').checked = v==='pago';
+  const lp=document.getElementById('lbl-pend'); const lg=document.getElementById('lbl-pago');
+  if(lp) lp.className='pag-opt'+(v!=='pago'?' sel-pend':'');
+  if(lg) lg.className='pag-opt'+(v==='pago'?' sel-pago':'');
+}
+async function salvarPag() {
+  const os=DB.find(o=>o.id===currentId); if(!os) return;
+  os.pagamento={
+    status: document.getElementById('pag-pago').checked?'pago':'pendente',
+    data:   document.getElementById('pag-data').value,
+    valorConf: document.getElementById('pag-val').value.trim(),
+    obs:    document.getElementById('pag-obs').value.trim(),
+    em:     new Date().toISOString(),
+    por:    USUARIO_ATUAL?.nome||''
+  };
+  await fbSave(os);
+  toast('Pagamento salvo!','ok');
+}
+
+// ══════════════════════════════════════
+// META MENSAL + SLA
+// ══════════════════════════════════════
+function salvarMeta(v) {
+  if(!v||isNaN(v)) return;
+  try { localStorage.setItem('meta_os', v); } catch(_) {}
+  renderMeta();
+}
+function renderMeta() {
+  const meta=parseInt(localStorage.getItem('meta_os')||'0');
+  const inp=document.getElementById('meta-inp'); if(inp&&!inp.value) { if(meta>0) inp.value=meta; }
+  const agora=new Date();
+  const mesN=DB.filter(os=>{
+    if(isAberto(os)) return false;
+    const d=parseDt(os.dataFechamento);
+    return d&&d.getMonth()===agora.getMonth()&&d.getFullYear()===agora.getFullYear();
+  }).length;
+  const el=document.getElementById('meta-label'); if(el) el.textContent=`${mesN} finalizada${mesN!==1?'s':''} em ${MESES[agora.getMonth()]}`;
+  const pct=meta>0?Math.min(Math.round(mesN/meta*100),100):0;
+  const pEl=document.getElementById('meta-pct'); if(pEl) pEl.textContent=meta>0?pct+'%':'—';
+  const fEl=document.getElementById('meta-fill'); if(fEl) fEl.style.width=pct+'%';
+  const dia=agora.getDate(); const dimMes=new Date(agora.getFullYear(),agora.getMonth()+1,0).getDate();
+  const prEl=document.getElementById('meta-proj');
+  if(prEl&&meta>0) { const proj=dia>0?Math.round(mesN/dia*dimMes):0; prEl.textContent=`Projeção: ~${proj} OS · Faltam ${Math.max(0,meta-mesN)} para meta`; }
+  // SLA
+  const fins=DB.filter(os=>!isAberto(os)&&os.dataAbertura&&os.dataFechamento&&os.prazoFatal);
+  const noPrazo=fins.filter(os=>{ const f=parseDt(os.dataFechamento),p=parseDt(os.prazoFatal); return f&&p&&f<=p; });
+  const pctSla=fins.length?Math.round(noPrazo.length/fins.length*100):null;
+  const sEl=document.getElementById('sla-pct'); if(sEl) { sEl.textContent=pctSla!==null?pctSla+'%':'—'; sEl.style.color=pctSla===null?'var(--grn)':pctSla>=90?'var(--grn)':pctSla>=70?'var(--org)':'var(--red)'; }
+  const tMed=fins.length?Math.round(fins.reduce((a,os)=>{ const ab=parseDt(os.dataAbertura),fc=parseDt(os.dataFechamento); return a+(ab&&fc?(fc-ab)/86400000:0); },0)/fins.length):null;
+  const mEl=document.getElementById('sla-med'); if(mEl) mEl.textContent=tMed!==null?tMed+'d':'—';
+  const atEl=document.getElementById('sla-atras'); if(atEl) atEl.textContent=fins.length-noPrazo.length;
+}
+
+// ══════════════════════════════════════
+// EXPORTAR CSV / EXCEL
+// ══════════════════════════════════════
+function getListaFiltrada() {
+  const q=(document.getElementById('s-lista')?.value||'').toLowerCase();
+  let d=[...DB];
+  if(typeof filtroLista!=='undefined'&&filtroLista!=='all') d=d.filter(o=>o.tipoServico===filtroLista);
+  if(q) d=d.filter(o=>[o.empresa,o.numeroOS,o.tipoServico,o.cliente,o.cidade].some(v=>(v||'').toLowerCase().includes(q)));
+  return d;
+}
+function exportarCSV() {
+  const d=getListaFiltrada();
+  const cols=['empresa','tipoServico','numeroOS','cliente','cidade','dataAbertura','prazoFatal','valor','mesRecebimento','vistoria','preenchimento','finalizacao','dataFechamento'];
+  const hdr=['Empresa','Tipo','Referência OS','Cliente','Cidade','Data Abertura','Prazo Fatal','Valor','Mês Recebimento','Vistoria','Preenchimento','Finalização','Fechamento'];
+  const rows=d.map(os=>cols.map(k=>`"${(os[k]||'').toString().replace(/"/g,'""')}"`).join(';'));
+  const csv='\uFEFF'+[hdr.join(';'),...rows].join('\r\n');
+  const a=document.createElement('a');
+  a.href=URL.createObjectURL(new Blob([csv],{type:'text/csv;charset=utf-8'}));
+  a.download=`OS_${new Date().toISOString().split('T')[0]}.csv`;
+  document.body.appendChild(a); a.click(); document.body.removeChild(a);
+  toast(`${d.length} OS exportadas (CSV)`,'ok');
+}
+function exportarExcel() {
+  const d=getListaFiltrada();
+  const cols=['empresa','tipoServico','numeroOS','cliente','cidade','dataAbertura','prazoFatal','valor','mesRecebimento','vistoria','preenchimento','finalizacao','dataFechamento'];
+  const hdr=['Empresa','Tipo','Referência OS','Cliente','Cidade','Data Abertura','Prazo Fatal','Valor','Mês Recebimento','Vistoria','Preenchimento','Finalização','Fechamento'];
+  let xml='<?xml version="1.0"?><Workbook xmlns="urn:schemas-microsoft-com:office:spreadsheet" xmlns:ss="urn:schemas-microsoft-com:office:spreadsheet"><Worksheet ss:Name="OS"><Table>';
+  xml+=`<Row>${hdr.map(h=>`<Cell><Data ss:Type="String">${h}</Data></Cell>`).join('')}</Row>`;
+  d.forEach(os=>{ xml+=`<Row>${cols.map(k=>`<Cell><Data ss:Type="String">${(os[k]||'').toString().replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')}</Data></Cell>`).join('')}</Row>`; });
+  xml+='</Table></Worksheet></Workbook>';
+  const a=document.createElement('a');
+  a.href=URL.createObjectURL(new Blob([xml],{type:'application/vnd.ms-excel'}));
+  a.download=`OS_${new Date().toISOString().split('T')[0]}.xls`;
+  document.body.appendChild(a); a.click(); document.body.removeChild(a);
+  toast(`${d.length} OS exportadas (Excel)`,'ok');
+}
+
+// ══════════════════════════════════════
+// SELEÇÃO EM LOTE
+// ══════════════════════════════════════
+let selIds = new Set();
+let modoSel = false;
+let _delModo = ''; let _delIds = [];
+
+function toggleSelecao() {
+  modoSel=!modoSel;
+  if(!modoSel) limparSel();
+  const btn=document.getElementById('btn-sel');
+  if(btn) { btn.textContent=modoSel?'✕ Cancelar':'☑️ Selecionar'; btn.className=modoSel?'btn btn-danger btn-sm admin-only':'btn btn-ghost btn-sm admin-only'; }
+  renderLista();
+}
+function toggleSelOS(id, chk) {
+  if(chk.checked) selIds.add(id); else selIds.delete(id);
+  atualizarSelBar();
+  const row=chk.closest('tr'); if(row) row.classList.toggle('sel-row',chk.checked);
+}
+function toggleChkAll(chk) {
+  document.querySelectorAll('#tb-lista input[type=checkbox]').forEach(cb=>{
+    cb.checked=chk.checked;
+    const m=cb.getAttribute('onchange')?.match(/'([^']+)'/);
+    if(m) { if(chk.checked) selIds.add(m[1]); else selIds.delete(m[1]); }
+    const row=cb.closest('tr'); if(row) row.classList.toggle('sel-row',chk.checked);
+  });
+  atualizarSelBar();
+}
+function selTodas() {
+  document.querySelectorAll('#tb-lista input[type=checkbox]').forEach(cb=>{
+    cb.checked=true;
+    const m=cb.getAttribute('onchange')?.match(/'([^']+)'/);
+    if(m) selIds.add(m[1]);
+    const row=cb.closest('tr'); if(row) row.classList.add('sel-row');
+  });
+  const ca=document.getElementById('chk-all'); if(ca) ca.checked=true;
+  atualizarSelBar();
+}
+function limparSel() {
+  selIds.clear();
+  document.querySelectorAll('#tb-lista input[type=checkbox]').forEach(cb=>{ cb.checked=false; const row=cb.closest('tr'); if(row) row.classList.remove('sel-row'); });
+  const ca=document.getElementById('chk-all'); if(ca) ca.checked=false;
+  atualizarSelBar();
+}
+function atualizarSelBar() {
+  const n=selIds.size;
+  const bar=document.getElementById('sel-bar'); if(bar) bar.classList.toggle('show',n>0);
+  const cnt=document.getElementById('sel-cnt'); if(cnt) cnt.textContent=`${n} OS selecionada${n!==1?'s':''}`;
+  const cntN=document.getElementById('sel-cnt-n'); if(cntN) cntN.textContent=n;
+}
+function abrirApagarSel() {
+  if(!isAdmin()) { toast('Apenas administradores podem excluir','err'); return; }
+  if(!selIds.size) { toast('Selecione ao menos uma OS','err'); return; }
+  _delModo='sel'; _delIds=[...selIds];
+  const n=_delIds.length;
+  document.getElementById('del-title').textContent=`🗑 Apagar ${n} OS selecionada${n!==1?'s':''}`;
+  document.getElementById('del-sub').textContent='Esta operação não pode ser desfeita';
+  document.getElementById('del-msg').innerHTML=`Você está prestes a excluir permanentemente <strong style="color:var(--red)">${n} ordem${n!==1?'ns':''} de serviço</strong>. Esta ação é <strong>irreversível</strong>.`;
+  document.getElementById('del-senha').value=''; document.getElementById('del-err').style.display='none';
+  document.getElementById('del-prog').style.display='none'; document.getElementById('del-btn').disabled=false;
+  openOv('ov-del'); setTimeout(()=>document.getElementById('del-senha').focus(),200);
+}
+function abrirApagarTudo() {
+  if(!isAdmin()) { toast('Apenas administradores podem excluir','err'); return; }
+  _delModo='tudo'; _delIds=DB.map(o=>o.id);
+  const n=_delIds.length;
+  document.getElementById('del-title').textContent='⚠️ Apagar TODAS as OS';
+  document.getElementById('del-sub').textContent='Todos os dados serão apagados permanentemente';
+  document.getElementById('del-msg').innerHTML=`Você está prestes a excluir <strong style="color:var(--red)">TODAS as ${n} ordens de serviço</strong>.<br><br>⚠️ <strong>Esta ação é completamente irreversível.</strong>`;
+  document.getElementById('del-senha').value=''; document.getElementById('del-err').style.display='none';
+  document.getElementById('del-prog').style.display='none'; document.getElementById('del-btn').disabled=false;
+  openOv('ov-del'); setTimeout(()=>document.getElementById('del-senha').focus(),200);
+}
+async function confirmarDel() {
+  if(!isAdmin()) return;
+  const senha=document.getElementById('del-senha').value;
+  const dadosU=USUARIOS[USUARIO_ATUAL?.user];
+  if(!dadosU||dadosU.senha!==senha) {
+    document.getElementById('del-err').style.display='block';
+    document.getElementById('del-senha').value=''; document.getElementById('del-senha').focus();
+    setTimeout(()=>document.getElementById('del-err').style.display='none',2500); return;
+  }
+  document.getElementById('del-btn').disabled=true;
+  document.getElementById('del-prog').style.display='block';
+  const fill=document.getElementById('del-prog-fill'); const txt=document.getElementById('del-prog-txt');
+  let ok=0; const total=_delIds.length; const BATCH=5;
+  for(let i=0;i<total;i+=BATCH) {
+    const lote=_delIds.slice(i,i+BATCH);
+    await Promise.all(lote.map(id=>fbDel(id).catch(()=>{})));
+    ok+=lote.length;
+    const pct=Math.round(ok/total*100);
+    if(fill) fill.style.width=pct+'%';
+    if(txt) txt.textContent=`Excluindo... ${ok}/${total} (${pct}%)`;
+    await new Promise(r=>setTimeout(r,60));
+  }
+  closeOv('ov-del'); selIds.clear(); _delIds=[]; limparSel();
+  toast(`${ok} OS excluída${ok!==1?'s':''}!`,'ok');
+}
+
+// ══════════════════════════════════════
+// DUPLICAR OS
+// ══════════════════════════════════════
+function duplicarOS() {
+  const os=DB.find(o=>o.id===currentId); if(!os) return;
+  closeOv('ov-det'); abrirNova();
+  setTimeout(()=>{
+    const fm=(id,v)=>{const el=document.getElementById(id);if(el&&v!==undefined)el.value=v||'';};
+    const sel=document.getElementById('f-empresa');
+    if(typeof EMPRESAS_LIST!=='undefined'&&EMPRESAS_LIST.includes(os.empresa)) { sel.value=os.empresa; document.getElementById('f-outra-wr').style.display='none'; }
+    else if(sel) { sel.value='__outra__'; const ow=document.getElementById('f-outra-wr'); if(ow){ow.style.display='flex';document.getElementById('f-outra').value=os.empresa;} }
+    fm('f-tipo',os.tipoServico); fm('f-cliente',os.cliente); fm('f-ident',os.identificacao);
+    fm('f-tipo-imovel',os.tipoImovel); fm('f-end-rua',os.endRua); fm('f-end-num',os.endNum);
+    fm('f-end-comp',os.endComp); fm('f-bairro',os.bairro); fm('f-cep',os.cep); fm('f-cidade',os.cidade);
+    fm('f-contato-nome',os.contatoNome); fm('f-contato-tel',os.contatoTel);
+    const mt=document.getElementById('m-title'); if(mt) mt.textContent='Nova OS (duplicada)';
+    toast('Dados do imóvel copiados. Complete os novos dados da OS.','ok');
+  },250);
+}
+
 // ══════════════════════════════════════
 // INIT
 // ══════════════════════════════════════
-// Verifica sessão salva; se não houver, mostra tela de login
-if(!verificarSessao()) {
-  // Firebase só inicia após login — não carrega dados antes
-  document.getElementById("login-screen").classList.remove("hidden");
-}
-// Init dashboard with default year 2026
 dashAno = 2026;
 dashConsolidado = false;
-updateBadges();
-renderDash();
+// Garante login screen visível por padrão
+try { document.getElementById('login-screen').classList.remove('hidden'); } catch(_) {}
+// Verifica sessão salva (esconde login e inicia Firebase se válida)
+try {
+  if(verificarSessao()) { /* sessão ok — aplicarPerfil() ocultará o login */ }
+} catch(e) { console.warn('verificarSessao:', e); }
+// Carrega meta do localStorage
+try { const _m=localStorage.getItem('meta_os'); const _el=document.getElementById('meta-inp'); if(_m&&_el) _el.value=_m; } catch(_){}
 try { verificarPacoteCaixaPendente(); } catch(_) {}
 </script>
 </body>
