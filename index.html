@@ -4213,7 +4213,8 @@ function atualizarMapaEmbed(osComCoord) {
 // salvarCoordenadas replaced by adicionarPontoMapa() and vincularOSCoord()
 
 function verNoMaps(lat, lng, label) {
-  window.open(`https://www.google.com/maps?q=${lat},${lng}&z=17`, '_blank');
+  // loc: + ll= mantém o pino na coordenada EXATA, sem "snap" para POI próximo
+  window.open(`https://www.google.com/maps?q=loc:${lat},${lng}&ll=${lat},${lng}&z=18`, '_blank');
 }
 
 function abrirPinsGoogleMaps() {
@@ -4835,24 +4836,20 @@ function _rotRenderMapa() {
   let embedUrl = '';
 
   if(pts.length === 1) {
-    embedUrl = `https://maps.google.com/maps?q=${pts[0].lat},${pts[0].lng}&z=16&output=embed&hl=pt-BR`;
-
-  } else if(_rotRoteada && pts.length >= 2 && pts.length <= 4) {
-    const origin = `${pts[0].lat},${pts[0].lng}`;
-    const dest   = `${pts[pts.length-1].lat},${pts[pts.length-1].lng}`;
-    const vias   = pts.slice(1, -1).map(p => `${p.lat},${p.lng}`).join('+to:');
-    const daddr  = vias ? `${vias}+to:${dest}` : dest;
-    embedUrl = `https://maps.google.com/maps?saddr=${encodeURIComponent(origin)}&daddr=${encodeURIComponent(daddr)}&output=embed&hl=pt-BR`;
+    const p = pts[0];
+    // ll= força o centro exato; q= com !4d evita snap a POI próximo
+    embedUrl = `https://maps.google.com/maps?q=loc:${p.lat},${p.lng}&ll=${p.lat},${p.lng}&z=18&output=embed&hl=pt-BR`;
 
   } else {
-    const avgLat = pts.reduce((a,p)=>a+p.lat,0)/pts.length;
-    const avgLng = pts.reduce((a,p)=>a+p.lng,0)/pts.length;
-    const lats = pts.map(p=>p.lat), lngs = pts.map(p=>p.lng);
-    const spanLat = Math.max(...lats)-Math.min(...lats);
-    const spanLng = Math.max(...lngs)-Math.min(...lngs);
-    const span = Math.max(spanLat, spanLng);
-    const zoom = span < 0.01 ? 16 : span < 0.05 ? 14 : span < 0.2 ? 12 : span < 1 ? 11 : 9;
-    embedUrl = `https://maps.google.com/maps?q=${avgLat},${avgLng}&z=${zoom}&output=embed&hl=pt-BR`;
+    // Sempre rota de carro (dirflg=d). Embed clássico aceita até ~24 paradas via "+to:".
+    // Aumentamos o limite para 20 paradas; acima disso o embed pode truncar.
+    const MAX_EMBED = 20;
+    const ptsEmbed = pts.length > MAX_EMBED ? pts.slice(0, MAX_EMBED) : pts;
+    const origin = `${ptsEmbed[0].lat},${ptsEmbed[0].lng}`;
+    const dest   = `${ptsEmbed[ptsEmbed.length-1].lat},${ptsEmbed[ptsEmbed.length-1].lng}`;
+    const vias   = ptsEmbed.slice(1, -1).map(p => `${p.lat},${p.lng}`).join('+to:');
+    const daddr  = vias ? `${vias}+to:${dest}` : dest;
+    embedUrl = `https://maps.google.com/maps?saddr=${encodeURIComponent(origin)}&daddr=${encodeURIComponent(daddr)}&dirflg=d&output=embed&hl=pt-BR`;
   }
 
   if(iframe.src !== embedUrl) {
@@ -4870,16 +4867,36 @@ function abrirGoogleMaps() {
 
   const pts = ordem.map(i => pontos[i]);
   if(pts.length === 1) {
-    window.open(`https://www.google.com/maps?q=${pts[0].lat},${pts[0].lng}`, '_blank');
+    const p = pts[0];
+    // loc: + ll= mantém o pino na coordenada exata, sem "snap" para POIs próximos
+    window.open(`https://www.google.com/maps?q=loc:${p.lat},${p.lng}&ll=${p.lat},${p.lng}&z=18`, '_blank');
     return;
   }
 
-  const origin      = `${pts[0].lat},${pts[0].lng}`;
-  const destination = `${pts[pts.length-1].lat},${pts[pts.length-1].lng}`;
-  const waypoints   = pts.slice(1,-1).map(p=>`${p.lat},${p.lng}`).join('|');
+  // Suporte a até 20 paradas (limite prático do Google Maps Web).
+  // - api=1 com travelmode=driving: até 9 waypoints (origem + destino + 9 = 11 paradas).
+  // - Acima disso, formato path-style /maps/dir/A/B/.../Z/ que aceita ~25 paradas
+  //   e força carro com data=!4m2!4m1!3e0 (3e0 = driving).
+  const MAX_PARADAS = 20;
+  if(pts.length > MAX_PARADAS) {
+    toast(`Limite de ${MAX_PARADAS} paradas no Google Maps. Mostrando as primeiras ${MAX_PARADAS}.`, 'err');
+  }
+  const ptsLim      = pts.slice(0, MAX_PARADAS);
+  const origin      = `${ptsLim[0].lat},${ptsLim[0].lng}`;
+  const destination = `${ptsLim[ptsLim.length-1].lat},${ptsLim[ptsLim.length-1].lng}`;
+  const meio        = ptsLim.slice(1, -1);
 
-  let url = `https://www.google.com/maps/dir/?api=1&origin=${origin}&destination=${destination}&travelmode=driving`;
-  if(waypoints) url += `&waypoints=${encodeURIComponent(waypoints)}`;
+  let url;
+  if(meio.length <= 9) {
+    // Modo preferencial: api=1 com travelmode=driving — sempre rota de carro
+    const waypoints = meio.map(p => `${p.lat},${p.lng}`).join('|');
+    url = `https://www.google.com/maps/dir/?api=1&origin=${origin}&destination=${destination}&travelmode=driving`;
+    if(waypoints) url += `&waypoints=${encodeURIComponent(waypoints)}`;
+  } else {
+    // Muitas paradas: formato path-style /maps/dir/A/B/.../Z/data=!4m2!4m1!3e0 (3e0 = driving)
+    const todos = ptsLim.map(p => `${p.lat},${p.lng}`).join('/');
+    url = `https://www.google.com/maps/dir/${todos}/data=!4m2!4m1!3e0`;
+  }
   window.open(url, '_blank');
 }
 
