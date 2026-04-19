@@ -576,6 +576,16 @@ tr.sel-row td{background:rgba(255,68,102,.05);}
 .rot-item:hover{background:var(--bg3);}
 .rot-item-num{width:26px;height:26px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;flex-shrink:0;background:var(--acc);color:#fff;}
 .rot-item-num.chegada{background:var(--grn);}
+.rot-item-num.partida{background:#22c55e;color:#fff;}
+.rot-item-num.destino{background:#ef4444;color:#fff;}
+.rot-anchor{background:rgba(34,197,94,.06);border:1px dashed rgba(34,197,94,.35);border-radius:var(--rs);padding:8px 10px;margin-bottom:8px;}
+.rot-anchor.destino{background:rgba(239,68,68,.06);border-color:rgba(239,68,68,.35);}
+.rot-anchor-title{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.6px;color:var(--tx3);margin-bottom:4px;display:flex;align-items:center;gap:5px;justify-content:space-between;}
+.rot-anchor-val{font-size:11.5px;font-weight:600;color:var(--tx);font-family:monospace;line-height:1.4;word-break:break-all;}
+.rot-anchor-empty{font-size:11px;color:var(--tx4);font-style:italic;}
+.rot-anchor-actions{display:flex;gap:4px;}
+.rot-anchor-actions button{background:none;border:none;color:var(--tx3);cursor:pointer;font-size:12px;padding:1px 4px;border-radius:3px;}
+.rot-anchor-actions button:hover{color:var(--tx);background:var(--bg3);}
 .rot-item-body{flex:1;min-width:0;}
 .rot-item-label{font-size:12.5px;font-weight:600;color:var(--tx);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
 .rot-item-coord{font-size:10.5px;color:var(--tx4);font-family:monospace;}
@@ -1442,6 +1452,35 @@ tr.sel-row td{background:rgba(255,68,102,.05);}
 
     <!-- PAINEL ESQUERDO -->
     <div class="rot-panel">
+
+      <!-- Pontos de partida e chegada -->
+      <div class="rot-sec">
+        <div class="rot-sec-title">🚦 Partida e chegada da rota</div>
+
+        <div class="rot-anchor" id="rot-anchor-partida">
+          <div class="rot-anchor-title">
+            <span>🟢 Ponto de partida</span>
+            <div class="rot-anchor-actions">
+              <button onclick="usarLocalizacaoAtual('partida')" title="Usar minha localização atual">📍</button>
+              <button onclick="definirAnchor('partida')" title="Definir manualmente">✎</button>
+              <button onclick="limparAnchor('partida')" title="Remover">×</button>
+            </div>
+          </div>
+          <div id="rot-anchor-partida-val" class="rot-anchor-empty">Não definido — usará o 1º ponto da lista</div>
+        </div>
+
+        <div class="rot-anchor destino" id="rot-anchor-chegada">
+          <div class="rot-anchor-title">
+            <span>🔴 Ponto de chegada</span>
+            <div class="rot-anchor-actions">
+              <button onclick="copiarDePartida()" title="Igual à partida (rota fechada)">↺</button>
+              <button onclick="definirAnchor('chegada')" title="Definir manualmente">✎</button>
+              <button onclick="limparAnchor('chegada')" title="Remover">×</button>
+            </div>
+          </div>
+          <div id="rot-anchor-chegada-val" class="rot-anchor-empty">Não definido — usará o último ponto otimizado</div>
+        </div>
+      </div>
 
       <!-- Inserir ponto -->
       <div class="rot-sec">
@@ -4401,6 +4440,72 @@ async function confirmarDelecao() {
 let _rotPontos = [];          // Array de pontos inseridos
 let _rotOrdemOtima = [];      // Índices na ordem otimizada
 let _rotRoteada = false;      // Se a rota já foi calculada
+let _rotPartida = null;       // {lat,lng,nome} ponto fixo de partida (opcional)
+let _rotChegada = null;       // {lat,lng,nome} ponto fixo de chegada (opcional)
+
+// ── Definir/limpar partida e chegada ──────────────────────────
+function definirAnchor(tipo) {
+  const label = tipo === 'partida' ? 'PARTIDA' : 'CHEGADA';
+  const txt = prompt(`Informe coordenadas do ponto de ${label}\n(formato: -20.8312, -49.3814)\nOu deixe em branco para cancelar:`);
+  if(!txt) return;
+  const m = txt.match(/(-?\d+\.?\d*)[,\s]+(-?\d+\.?\d*)/);
+  if(!m) { toast('Formato inválido. Use: -20.83, -49.38', 'err'); return; }
+  const lat = parseFloat(m[1]), lng = parseFloat(m[2]);
+  if(isNaN(lat)||isNaN(lng)||lat<-90||lat>90||lng<-180||lng>180){
+    toast('Coordenadas fora dos limites válidos','err'); return;
+  }
+  const nome = prompt('Nome/endereço (opcional):', tipo==='partida'?'Saída':'Retorno') || (tipo==='partida'?'Partida':'Chegada');
+  if(tipo==='partida') _rotPartida = {lat,lng,nome};
+  else _rotChegada = {lat,lng,nome};
+  _rotRoteada = false; _rotOrdemOtima = [];
+  _rotRenderAnchors(); _rotRenderLista(); _rotRenderMapa(); _rotAtualizarStatus();
+  toast(label + ' definido', 'ok');
+}
+
+function limparAnchor(tipo){
+  if(tipo==='partida') _rotPartida = null; else _rotChegada = null;
+  _rotRoteada = false; _rotOrdemOtima = [];
+  _rotRenderAnchors(); _rotRenderLista(); _rotRenderMapa(); _rotAtualizarStatus();
+}
+
+function copiarDePartida(){
+  if(!_rotPartida){ toast('Defina a partida primeiro','err'); return; }
+  _rotChegada = {..._rotPartida, nome: (_rotPartida.nome||'Partida') + ' (retorno)'};
+  _rotRoteada = false; _rotOrdemOtima = [];
+  _rotRenderAnchors(); _rotRenderLista(); _rotRenderMapa(); _rotAtualizarStatus();
+  toast('Rota fechada: chegada = partida','ok');
+}
+
+function usarLocalizacaoAtual(tipo){
+  if(!navigator.geolocation){ toast('Geolocalização não suportada','err'); return; }
+  toast('Obtendo sua localização...','ok');
+  navigator.geolocation.getCurrentPosition(
+    pos => {
+      const obj = {lat: pos.coords.latitude, lng: pos.coords.longitude, nome: tipo==='partida'?'Minha localização (partida)':'Minha localização (chegada)'};
+      if(tipo==='partida') _rotPartida = obj; else _rotChegada = obj;
+      _rotRoteada = false; _rotOrdemOtima = [];
+      _rotRenderAnchors(); _rotRenderLista(); _rotRenderMapa(); _rotAtualizarStatus();
+      toast('Localização capturada','ok');
+    },
+    err => toast('Não foi possível obter localização: '+err.message, 'err'),
+    {enableHighAccuracy:true, timeout:10000}
+  );
+}
+
+function _rotRenderAnchors(){
+  const pv = document.getElementById('rot-anchor-partida-val');
+  const cv = document.getElementById('rot-anchor-chegada-val');
+  if(pv){
+    if(_rotPartida) pv.innerHTML = `<div style="color:var(--tx);font-weight:600;font-size:12px;">${_rotPartida.nome||'Partida'}</div><div style="font-family:monospace;font-size:10.5px;color:var(--tx3);">${_rotPartida.lat.toFixed(5)}, ${_rotPartida.lng.toFixed(5)}</div>`;
+    else { pv.className='rot-anchor-empty'; pv.textContent='Não definido — usará o 1º ponto da lista'; }
+    pv.className = _rotPartida ? 'rot-anchor-val' : 'rot-anchor-empty';
+  }
+  if(cv){
+    if(_rotChegada) cv.innerHTML = `<div style="color:var(--tx);font-weight:600;font-size:12px;">${_rotChegada.nome||'Chegada'}</div><div style="font-family:monospace;font-size:10.5px;color:var(--tx3);">${_rotChegada.lat.toFixed(5)}, ${_rotChegada.lng.toFixed(5)}</div>`;
+    else { cv.className='rot-anchor-empty'; cv.textContent='Não definido — usará o último ponto otimizado'; }
+    cv.className = _rotChegada ? 'rot-anchor-val' : 'rot-anchor-empty';
+  }
+}
 
 // ── Adicionar ponto ───────────────────────────────────────────
 function adicionarPontoRoteiro() {
@@ -4468,10 +4573,13 @@ function removerPontoRoteiro(idx) {
 
 // ── Limpar tudo ───────────────────────────────────────────────
 function limparRoteiro() {
-  if(_rotPontos.length && !confirm('Remover todos os pontos?')) return;
+  if((_rotPontos.length || _rotPartida || _rotChegada) && !confirm('Remover todos os pontos (incluindo partida e chegada)?')) return;
   _rotPontos = [];
   _rotOrdemOtima = [];
   _rotRoteada = false;
+  _rotPartida = null;
+  _rotChegada = null;
+  _rotRenderAnchors();
   _rotRenderLista();
   _rotRenderMapa();
   const infoEl = document.getElementById('rot-map-info');
@@ -4481,6 +4589,17 @@ function limparRoteiro() {
   if(gmBtn) gmBtn.style.display = 'none';
 }
 
+// ── Lista combinada com âncoras (partida + visitas + chegada) ─
+// Retorna {pontos, idxVisitaOriginal} — pontos[] inclui flags fixoInicio/fixoFim
+function _rotPontosCompletos() {
+  const arr = [];
+  const mapaOrig = []; // mapeia idx em arr -> idx original em _rotPontos (-1 = âncora)
+  if(_rotPartida) { arr.push({..._rotPartida, fixoInicio:true, _tipo:'partida'}); mapaOrig.push(-1); }
+  _rotPontos.forEach((p,i) => { arr.push({...p, _tipo:'visita'}); mapaOrig.push(i); });
+  if(_rotChegada) { arr.push({..._rotChegada, fixoFim:true, _tipo:'chegada'}); mapaOrig.push(-2); }
+  return { pontos: arr, mapaOrig };
+}
+
 // ── Renderizar lista de pontos ────────────────────────────────
 function _rotRenderLista() {
   const lista = document.getElementById('rot-lista');
@@ -4488,7 +4607,11 @@ function _rotRenderLista() {
   const res   = document.getElementById('rot-resumo');
   if(!lista) return;
 
-  if(!_rotPontos.length) {
+  const { pontos, mapaOrig } = _rotPontosCompletos();
+  const totalCombinado = pontos.length;
+  const numVisitas     = _rotPontos.length;
+
+  if(!totalCombinado) {
     lista.innerHTML = `<div class="rot-ph" style="padding:30px;">
       <div class="rot-ph-ic">📍</div>
       <div style="font-size:13px;font-weight:600;color:var(--tx2);">Nenhum ponto adicionado</div>
@@ -4499,15 +4622,22 @@ function _rotRenderLista() {
     return;
   }
 
-  if(btn) btn.disabled = _rotPontos.length < 2;
-  if(res) res.textContent = _rotPontos.length === 1
-    ? 'Adicione mais 1 ponto para poder gerar a rota'
-    : `${_rotPontos.length} pontos · clique em "Gerar melhor rota"`;
+  if(btn) btn.disabled = totalCombinado < 2;
+  if(res) {
+    if(totalCombinado < 2) res.textContent = 'Adicione mais pontos para gerar a rota';
+    else {
+      const partes = [];
+      if(_rotPartida) partes.push('partida');
+      partes.push(`${numVisitas} vistoria${numVisitas!==1?'s':''}`);
+      if(_rotChegada) partes.push('chegada');
+      res.textContent = partes.join(' · ') + ' · clique em "Gerar melhor rota"';
+    }
+  }
 
-  // Se já tem rota otimizada, mostra na ordem
-  const ordem = _rotRoteada && _rotOrdemOtima.length
+  // Ordem (índices em pontos[]): se roteado, _rotOrdemOtima; caso contrário sequencial
+  const ordem = _rotRoteada && _rotOrdemOtima.length === totalCombinado
     ? _rotOrdemOtima
-    : _rotPontos.map((_, i) => i);
+    : pontos.map((_, i) => i);
 
   const horaInicio  = document.getElementById('rot-inicio')?.value || '08:00';
   const durMin      = parseInt(document.getElementById('rot-duracao')?.value || '30');
@@ -4516,32 +4646,49 @@ function _rotRenderLista() {
   let minCorridos   = h0 * 60 + m0;
 
   lista.innerHTML = ordem.map((idx, pos) => {
-    const p = _rotPontos[idx];
+    const p = pontos[idx];
+    const tipo = p._tipo;
     let horaStr = '';
     let distStr = '';
 
+    if(_rotRoteada && pos > 0) {
+      const prev = pontos[ordem[pos - 1]];
+      const distKm = _rotDistancia(prev.lat, prev.lng, p.lat, p.lng);
+      const tempoMin = Math.round((distKm / velKmh) * 60);
+      // só conta tempo de visita do ponto anterior se não for âncora
+      const visitaPrev = (prev._tipo === 'visita') ? durMin : 0;
+      minCorridos += tempoMin + visitaPrev;
+      distStr = distKm.toFixed(1) + ' km';
+    }
     if(_rotRoteada) {
-      // Calcular tempo de deslocamento desde ponto anterior
-      if(pos > 0) {
-        const prev = _rotPontos[ordem[pos - 1]];
-        const distKm = _rotDistancia(prev.lat, prev.lng, p.lat, p.lng);
-        const tempoMin = Math.round((distKm / velKmh) * 60);
-        minCorridos += tempoMin + durMin; // desloc + duração visita anterior
-        distStr = distKm.toFixed(1) + ' km';
-      }
       const hh = Math.floor(minCorridos / 60) % 24;
       const mm = minCorridos % 60;
       horaStr = `${String(hh).padStart(2,'0')}:${String(mm).padStart(2,'0')}`;
     }
 
+    let numClass = '';
+    let numLabel = pos + 1;
+    if(tipo === 'partida') { numClass = ' partida'; numLabel = '🟢'; }
+    else if(tipo === 'chegada') { numClass = ' destino'; numLabel = '🏁'; }
+    else if(_rotRoteada) numClass = ' chegada';
+
+    const tipoTag = tipo === 'partida' ? '<span style="font-size:9px;background:#22c55e;color:#fff;padding:1px 5px;border-radius:3px;font-weight:700;margin-right:4px;">PARTIDA</span>'
+                  : tipo === 'chegada' ? '<span style="font-size:9px;background:#ef4444;color:#fff;padding:1px 5px;border-radius:3px;font-weight:700;margin-right:4px;">CHEGADA</span>'
+                  : '';
+
+    const origIdx = mapaOrig[idx];
+    const delBtn = (tipo === 'visita')
+      ? `<button class="rot-item-del" onclick="removerPontoRoteiro(${origIdx})" title="Remover ponto">×</button>`
+      : '';
+
     return `<div class="rot-item">
-      <div class="rot-item-num${_rotRoteada ? ' chegada' : ''}">${pos + 1}</div>
+      <div class="rot-item-num${numClass}">${numLabel}</div>
       <div class="rot-item-body">
-        <div class="rot-item-label" title="${p.nome}">${p.nome}</div>
+        <div class="rot-item-label" title="${p.nome}">${tipoTag}${p.nome}</div>
         <div class="rot-item-coord">${p.lat.toFixed(5)}, ${p.lng.toFixed(5)}${distStr ? ' · ' + distStr : ''}</div>
       </div>
       ${horaStr ? `<div class="rot-item-hora">⏰ ${horaStr}</div>` : ''}
-      <button class="rot-item-del" onclick="removerPontoRoteiro(${idx})" title="Remover ponto">×</button>
+      ${delBtn}
     </div>`;
   }).join('');
 }
@@ -4558,18 +4705,26 @@ function _rotDistancia(lat1, lng1, lat2, lng2) {
 }
 
 // ── Algoritmo de otimização: nearest neighbor + 2-opt ────────
+// Aceita pontos com flag .fixoInicio / .fixoFim para travar posições
 function _rotOtimizar(pontos) {
-  if(pontos.length <= 2) return pontos.map((_,i) => i);
-
   const n = pontos.length;
+  if(n <= 2) return pontos.map((_,i) => i);
+
   const dist = (i, j) => _rotDistancia(pontos[i].lat, pontos[i].lng, pontos[j].lat, pontos[j].lng);
 
-  // Nearest neighbor: começa do ponto 0
-  const visitado = new Array(n).fill(false);
-  const rota = [0];
-  visitado[0] = true;
+  // Identifica âncoras (índices fixos) e pontos livres
+  const idxInicio = pontos.findIndex(p => p.fixoInicio);
+  const idxFim    = pontos.findIndex(p => p.fixoFim);
+  const startIdx  = idxInicio >= 0 ? idxInicio : 0;
+  const endIdx    = idxFim >= 0 ? idxFim : -1;
 
-  for(let k = 1; k < n; k++) {
+  // Nearest neighbor a partir do início
+  const visitado = new Array(n).fill(false);
+  const rota = [startIdx];
+  visitado[startIdx] = true;
+  if(endIdx >= 0 && endIdx !== startIdx) visitado[endIdx] = true; // reservamos o fim
+
+  for(let k = visitado.filter(v=>v).length; k < n - (endIdx>=0 && endIdx!==startIdx ? 1 : 0); k++) {
     const atual = rota[rota.length - 1];
     let melhor = -1, melhorDist = Infinity;
     for(let j = 0; j < n; j++) {
@@ -4578,22 +4733,28 @@ function _rotOtimizar(pontos) {
         if(d < melhorDist) { melhorDist = d; melhor = j; }
       }
     }
+    if(melhor < 0) break;
     visitado[melhor] = true;
     rota.push(melhor);
   }
+  if(endIdx >= 0 && endIdx !== startIdx) rota.push(endIdx);
 
-  // 2-opt: troca pares de arestas para reduzir distância total
+  // 2-opt — preserva primeira e última posição se houver âncoras
+  const lockStart = true; // sempre fixo (start anchor ou primeiro ponto)
+  const lockEnd   = endIdx >= 0;
   let melhorou = true;
   while(melhorou) {
     melhorou = false;
-    for(let i = 0; i < n - 1; i++) {
-      for(let j = i + 2; j < n; j++) {
-        if(j === n - 1 && i === 0) continue;
-        const antes  = dist(rota[i], rota[i+1]) + dist(rota[j], rota[(j+1) % n]);
-        const depois = dist(rota[i], rota[j])   + dist(rota[i+1], rota[(j+1) % n]);
+    const iMin = lockStart ? 1 : 0;
+    const jMax = lockEnd ? rota.length - 2 : rota.length - 1;
+    for(let i = iMin; i < jMax; i++) {
+      for(let j = i + 1; j <= jMax; j++) {
+        if(j - i < 1) continue;
+        const a = rota[i-1], b = rota[i], c = rota[j], d = (j+1 <= rota.length-1) ? rota[j+1] : null;
+        const antes  = dist(a,b) + (d!==null ? dist(c,d) : 0);
+        const depois = dist(a,c) + (d!==null ? dist(b,d) : 0);
         if(depois < antes - 0.001) {
-          // Reverter segmento entre i+1 e j
-          rota.splice(i + 1, j - i, ...rota.slice(i + 1, j + 1).reverse());
+          rota.splice(i, j - i + 1, ...rota.slice(i, j + 1).reverse());
           melhorou = true;
         }
       }
@@ -4604,26 +4765,28 @@ function _rotOtimizar(pontos) {
 
 // ── Gerar rota ────────────────────────────────────────────────
 function gerarRota() {
-  if(_rotPontos.length < 2) { toast('Adicione ao menos 2 pontos', 'err'); return; }
+  const { pontos } = _rotPontosCompletos();
+  if(pontos.length < 2) { toast('Adicione ao menos 2 pontos', 'err'); return; }
 
   const btn = document.getElementById('rot-btn-rota');
   if(btn) { btn.disabled = true; btn.textContent = '⏳ Calculando...'; }
 
   setTimeout(() => {
-    _rotOrdemOtima = _rotOtimizar(_rotPontos);
+    _rotOrdemOtima = _rotOtimizar(pontos);
     _rotRoteada = true;
 
-    // Calcula distância total
+    // Distância total (sobre lista combinada)
     let distTotal = 0;
     for(let i = 0; i < _rotOrdemOtima.length - 1; i++) {
-      const a = _rotPontos[_rotOrdemOtima[i]];
-      const b = _rotPontos[_rotOrdemOtima[i+1]];
+      const a = pontos[_rotOrdemOtima[i]];
+      const b = pontos[_rotOrdemOtima[i+1]];
       distTotal += _rotDistancia(a.lat, a.lng, b.lat, b.lng);
     }
 
     const velKmh  = parseInt(document.getElementById('rot-vel')?.value || '40');
     const durMin  = parseInt(document.getElementById('rot-duracao')?.value || '30');
     const tempoDeslocMin = Math.round((distTotal / velKmh) * 60);
+    // Apenas visitas contam tempo de visita (não as âncoras partida/chegada)
     const tempoTotalMin  = tempoDeslocMin + (_rotPontos.length * durMin);
     const hh = Math.floor(tempoTotalMin / 60);
     const mm = tempoTotalMin % 60;
@@ -4640,18 +4803,20 @@ function gerarRota() {
     _rotRenderLista();
     _rotRenderMapa();
     _rotAtualizarStatus();
-  toast('Rota otimizada! ' + _rotPontos.length + ' paradas.', 'ok');
+    toast('Rota otimizada! ' + pontos.length + ' paradas (' + _rotPontos.length + ' vistorias).', 'ok');
   }, 300);
 }
 
-// ── Renderizar mapa interno (SVG dinâmico) ────────────────────
+// ── Renderizar mapa interno (Google Maps Embed) ──────────────
 function _rotRenderMapa() {
   const ph     = document.getElementById('rot-map-ph');
   const iframe = document.getElementById('rot-gmaps-iframe');
   const svgDiv = document.getElementById('rot-mapa-svg');
   if(!ph || !iframe) return;
 
-  if(!_rotPontos.length) {
+  const { pontos } = _rotPontosCompletos();
+
+  if(!pontos.length) {
     ph.style.display     = 'flex';
     iframe.style.display = 'none';
     if(svgDiv) svgDiv.style.display = 'none';
@@ -4662,45 +4827,24 @@ function _rotRenderMapa() {
   if(svgDiv) svgDiv.style.display = 'none';
   iframe.style.display = 'block';
 
-  const ordem = _rotRoteada && _rotOrdemOtima.length
+  const ordem = _rotRoteada && _rotOrdemOtima.length === pontos.length
     ? _rotOrdemOtima
-    : _rotPontos.map((_, i) => i);
+    : pontos.map((_, i) => i);
 
-  const pts = ordem.map(i => _rotPontos[i]);
-
-  // ── Gerar URL do Google Maps Embed ──────────────────────────
-  // Com 1 ponto: embed simples centrando no ponto
-  // Com múltiplos: usamos o modo "directions" do embed quando roteado,
-  //                ou "place" com marcadores via search quando ainda não roteado
+  const pts = ordem.map(i => pontos[i]);
   let embedUrl = '';
 
   if(pts.length === 1) {
-    // Um ponto: centraliza com zoom alto
     embedUrl = `https://maps.google.com/maps?q=${pts[0].lat},${pts[0].lng}&z=16&output=embed&hl=pt-BR`;
 
   } else if(_rotRoteada && pts.length >= 2 && pts.length <= 4) {
-    // Rota com até 4 pontos: usa embed de direções (origin + dest + waypoints)
-    // O embed de direções do Google aceita saddr/daddr com via:
     const origin = `${pts[0].lat},${pts[0].lng}`;
     const dest   = `${pts[pts.length-1].lat},${pts[pts.length-1].lng}`;
     const vias   = pts.slice(1, -1).map(p => `${p.lat},${p.lng}`).join('+to:');
     const daddr  = vias ? `${vias}+to:${dest}` : dest;
     embedUrl = `https://maps.google.com/maps?saddr=${encodeURIComponent(origin)}&daddr=${encodeURIComponent(daddr)}&output=embed&hl=pt-BR`;
 
-  } else if(_rotRoteada && pts.length > 4) {
-    // Rota com muitos pontos: centraliza no centroide e mostra overview
-    const avgLat = pts.reduce((a,p)=>a+p.lat,0)/pts.length;
-    const avgLng = pts.reduce((a,p)=>a+p.lng,0)/pts.length;
-    // Zoom adaptativo: quanto mais espalhados, menor o zoom
-    const lats = pts.map(p=>p.lat), lngs = pts.map(p=>p.lng);
-    const spanLat = Math.max(...lats)-Math.min(...lats);
-    const spanLng = Math.max(...lngs)-Math.min(...lngs);
-    const span = Math.max(spanLat, spanLng);
-    const zoom = span < 0.01 ? 16 : span < 0.05 ? 14 : span < 0.2 ? 12 : span < 1 ? 11 : 9;
-    embedUrl = `https://maps.google.com/maps?q=${avgLat},${avgLng}&z=${zoom}&output=embed&hl=pt-BR`;
-
   } else {
-    // Múltiplos pontos sem rota: centraliza no centroide
     const avgLat = pts.reduce((a,p)=>a+p.lat,0)/pts.length;
     const avgLng = pts.reduce((a,p)=>a+p.lng,0)/pts.length;
     const lats = pts.map(p=>p.lat), lngs = pts.map(p=>p.lng);
@@ -4711,7 +4855,6 @@ function _rotRenderMapa() {
     embedUrl = `https://maps.google.com/maps?q=${avgLat},${avgLng}&z=${zoom}&output=embed&hl=pt-BR`;
   }
 
-  // Só recarrega se a URL mudou (evita flash desnecessário)
   if(iframe.src !== embedUrl) {
     iframe.src = embedUrl;
   }
@@ -4719,12 +4862,13 @@ function _rotRenderMapa() {
 
 
 function abrirGoogleMaps() {
-  if(!_rotPontos.length) return;
-  const ordem = _rotRoteada && _rotOrdemOtima.length
+  const { pontos } = _rotPontosCompletos();
+  if(!pontos.length) return;
+  const ordem = _rotRoteada && _rotOrdemOtima.length === pontos.length
     ? _rotOrdemOtima
-    : _rotPontos.map((_,i) => i);
+    : pontos.map((_,i) => i);
 
-  const pts = ordem.map(i => _rotPontos[i]);
+  const pts = ordem.map(i => pontos[i]);
   if(pts.length === 1) {
     window.open(`https://www.google.com/maps?q=${pts[0].lat},${pts[0].lng}`, '_blank');
     return;
@@ -4741,11 +4885,12 @@ function abrirGoogleMaps() {
 
 // ── Exportar agenda de vistorias ──────────────────────────────
 function exportarRoteiro() {
-  if(!_rotPontos.length) { toast('Adicione pontos antes de exportar', 'err'); return; }
+  const { pontos } = _rotPontosCompletos();
+  if(!pontos.length) { toast('Adicione pontos antes de exportar', 'err'); return; }
 
-  const ordem = _rotRoteada && _rotOrdemOtima.length
+  const ordem = _rotRoteada && _rotOrdemOtima.length === pontos.length
     ? _rotOrdemOtima
-    : _rotPontos.map((_,i) => i);
+    : pontos.map((_,i) => i);
 
   const horaInicio = document.getElementById('rot-inicio')?.value || '08:00';
   const durMin     = parseInt(document.getElementById('rot-duracao')?.value || '30');
@@ -4756,20 +4901,26 @@ function exportarRoteiro() {
   let txt = 'AGENDA DE VISTORIAS — ' + new Date().toLocaleDateString('pt-BR') + '\n';
   txt += '='.repeat(50) + '\n';
   txt += `Início: ${horaInicio} | Duração/visita: ${durMin}min | Velocidade: ${velKmh}km/h\n`;
+  if(_rotPartida) txt += `Partida: ${_rotPartida.nome} (${_rotPartida.lat.toFixed(5)}, ${_rotPartida.lng.toFixed(5)})\n`;
+  if(_rotChegada) txt += `Chegada: ${_rotChegada.nome} (${_rotChegada.lat.toFixed(5)}, ${_rotChegada.lng.toFixed(5)})\n`;
   txt += '='.repeat(50) + '\n\n';
 
   ordem.forEach((idx, pos) => {
-    const p = _rotPontos[idx];
+    const p = pontos[idx];
     if(pos > 0) {
-      const prev = _rotPontos[ordem[pos-1]];
+      const prev = pontos[ordem[pos-1]];
       const distKm = _rotDistancia(prev.lat, prev.lng, p.lat, p.lng);
       const tempoMin = Math.round((distKm/velKmh)*60);
-      minCorridos += tempoMin + durMin;
+      const visitaPrev = (prev._tipo === 'visita') ? durMin : 0;
+      minCorridos += tempoMin + visitaPrev;
     }
     const hh = Math.floor(minCorridos/60)%24;
     const mm = minCorridos%60;
     const hora = `${String(hh).padStart(2,'0')}:${String(mm).padStart(2,'0')}`;
-    txt += `${pos+1}ª parada — ${hora}\n`;
+    const tag = p._tipo === 'partida' ? '[PARTIDA] '
+              : p._tipo === 'chegada' ? '[CHEGADA] '
+              : `${pos}ª vistoria — `;
+    txt += `${pos+1}. ${tag}${hora}\n`;
     txt += `   ${p.nome}\n`;
     txt += `   Coord: ${p.lat.toFixed(6)}, ${p.lng.toFixed(6)}\n`;
     txt += `   Maps: https://maps.google.com?q=${p.lat},${p.lng}\n\n`;
@@ -4786,12 +4937,18 @@ function exportarRoteiro() {
 function _rotAtualizarStatus() {
   const el = document.getElementById('rot-map-status');
   if(!el) return;
-  if(!_rotPontos.length) { el.textContent = 'Adicione pontos para ver o mapa'; return; }
-  if(!_rotRoteada) { el.textContent = `${_rotPontos.length} ponto${_rotPontos.length>1?'s':''} no mapa · gere a rota para ver os horários`; return; }
-  el.textContent = `Rota otimizada · ${_rotPontos.length} paradas`;
+  const total = _rotPontos.length + (_rotPartida?1:0) + (_rotChegada?1:0);
+  if(!total) { el.textContent = 'Adicione pontos para ver o mapa'; return; }
+  if(!_rotRoteada) { el.textContent = `${total} ponto${total>1?'s':''} no mapa · gere a rota para ver os horários`; return; }
+  const partes = [];
+  if(_rotPartida) partes.push('partida');
+  partes.push(`${_rotPontos.length} vistoria${_rotPontos.length!==1?'s':''}`);
+  if(_rotChegada) partes.push('chegada');
+  el.textContent = `Rota otimizada · ${partes.join(' → ')}`;
 }
 
 function renderRoteiro() {
+  _rotRenderAnchors();
   _rotRenderLista();
   _rotRenderMapa();
 }
