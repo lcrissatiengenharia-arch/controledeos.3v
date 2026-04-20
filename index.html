@@ -2877,9 +2877,7 @@ async function salvarStatus() {
     os.logs.push({
       dt: new Date().toISOString(),
       usuario: USUARIO_ATUAL?.nome || 'Sistema',
-      texto: '📝 [Automático] Etapas atualizadas:
-' + alteracoes.join('
-'),
+      texto: '\u{1F4DD} [Automático] Etapas atualizadas: ' + alteracoes.join(' | '),
       tipo: 'historico'
     });
   }
@@ -5347,58 +5345,59 @@ function verificarLembreteBackup() {
 let _inlineMenu = null;
 
 function abrirInlineStatus(osId, btn) {
-  // Fecha menu anterior se existir
   if(_inlineMenu) { _inlineMenu.remove(); _inlineMenu = null; }
-
   const os = DB.find(o => o.id === osId);
   if(!os) return;
 
-  const status = statusOS(os);
   const opcoes = [
-    { label: '📌 Aguardando vistoria', campo: 'vistoria', valor: 'Aguardando vistoria' },
-    { label: '✅ Imóvel vistoriado',   campo: 'vistoria', valor: 'Imóvel vistoriado' },
-    { label: '✍️ Em preenchimento',    campo: 'preenchimento', valor: 'Em preenchimento' },
-    { label: '📋 Preenchido',          campo: 'preenchimento', valor: 'Preenchido' },
-    { label: '🔍 Conferido',           campo: 'conferencia', valor: 'Conferido' },
-    { label: '📄 Laudo Finalizado',    campo: 'finalizacao', valor: 'Laudo Finalizado' },
+    { label: 'Aguardando vistoria', campo: 'vistoria',      valor: 'Aguardando vistoria' },
+    { label: 'Im\u00f3vel vistoriado',  campo: 'vistoria',      valor: 'Im\u00f3vel vistoriado' },
+    { label: 'Em preenchimento',    campo: 'preenchimento', valor: 'Em preenchimento' },
+    { label: 'Preenchido',          campo: 'preenchimento', valor: 'Preenchido' },
+    { label: 'Conferido',           campo: 'conferencia',   valor: 'Conferido' },
+    { label: 'Laudo Finalizado',    campo: 'finalizacao',   valor: 'Laudo Finalizado' },
   ];
 
   const menu = document.createElement('div');
-  menu.style.cssText = (
-    'position:fixed;z-index:3000;background:var(--bg2);border:1px solid var(--br2);'
-    'border-radius:var(--r);box-shadow:0 8px 24px rgba(0,0,0,.5);min-width:200px;overflow:hidden;'
-  );
-
-  // Posicionar abaixo do botão
+  menu.style.cssText = 'position:fixed;z-index:3000;background:var(--bg2);border:1px solid var(--br2);border-radius:var(--r);box-shadow:0 8px 24px rgba(0,0,0,.5);min-width:210px;overflow:hidden;';
   const rect = btn.getBoundingClientRect();
   menu.style.top  = (rect.bottom + 4) + 'px';
   menu.style.left = rect.left + 'px';
 
-  menu.innerHTML = (
-    '<div style="padding:8px 12px;font-size:10px;font-weight:700;text-transform:uppercase;'
-    'letter-spacing:.7px;color:var(--tx4);border-bottom:1px solid var(--br);">Atualizar etapa</div>'
-    + opcoes.map(op => {
-      const ativo = os[op.campo] === op.valor;
-      return `<div onclick="aplicarInlineStatus('${osId}','${op.campo}','${op.valor}')" style="
-        padding:9px 14px;font-size:12.5px;cursor:pointer;color:${ativo?'var(--acc)':'var(--tx2)'};
-        background:${ativo?'rgba(78,123,255,.1)':'transparent'};display:flex;align-items:center;gap:8px;
-        border-left:${ativo?'2px solid var(--acc)':'2px solid transparent'};
-        transition:background .1s;"
-        onmouseover="this.style.background='var(--bg3)'"
-        onmouseout="this.style.background='${ativo?'rgba(78,123,255,.1)':'transparent'}'"
-      >${op.label}${ativo?' ✓':''}</div>`;
-    }).join('')
-    + '<div onclick="abrirDetalhe(\''+osId+'\')" style="padding:8px 14px;font-size:11.5px;'
-    'color:var(--tx3);cursor:pointer;border-top:1px solid var(--br);" '
-    'onmouseover="this.style.background=\'var(--bg3)\'" onmouseout="this.style.background=\'transparent\'">'
-    '↗ Abrir detalhes completos</div>'
-  );
+  const itens = opcoes.map(function(op) {
+    const ativo = os[op.campo] === op.valor;
+    const bgOn  = 'rgba(78,123,255,.1)';
+    const bgOff = 'transparent';
+    const cor   = ativo ? 'var(--acc)' : 'var(--tx2)';
+    const borda = ativo ? '2px solid var(--acc)' : '2px solid transparent';
+    const check = ativo ? ' \u2713' : '';
+    const el = document.createElement('div');
+    el.style.cssText = 'padding:9px 14px;font-size:12.5px;cursor:pointer;color:' + cor + ';background:' + (ativo ? bgOn : bgOff) + ';display:flex;align-items:center;gap:8px;border-left:' + borda + ';';
+    el.textContent = op.label + check;
+    el.onmouseover = function() { this.style.background = 'var(--bg3)'; };
+    el.onmouseout  = function() { this.style.background = ativo ? bgOn : bgOff; };
+    el.onclick = function() { aplicarInlineStatus(osId, op.campo, op.valor); };
+    return el;
+  });
 
+  const titulo = document.createElement('div');
+  titulo.style.cssText = 'padding:8px 12px;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.7px;color:var(--tx4);border-bottom:1px solid var(--br);';
+  titulo.textContent = 'Atualizar etapa';
+
+  const detalhes = document.createElement('div');
+  detalhes.style.cssText = 'padding:8px 14px;font-size:11.5px;color:var(--tx3);cursor:pointer;border-top:1px solid var(--br);';
+  detalhes.textContent = '\u2197 Abrir detalhes completos';
+  detalhes.onmouseover = function() { this.style.background = 'var(--bg3)'; };
+  detalhes.onmouseout  = function() { this.style.background = 'transparent'; };
+  detalhes.onclick = function() { abrirDetalhe(osId); };
+
+  menu.appendChild(titulo);
+  itens.forEach(function(el) { menu.appendChild(el); });
+  menu.appendChild(detalhes);
   document.body.appendChild(menu);
   _inlineMenu = menu;
 
-  // Fechar ao clicar fora
-  setTimeout(() => {
+  setTimeout(function() {
     document.addEventListener('click', function _close(e) {
       if(!menu.contains(e.target) && e.target !== btn) {
         menu.remove(); _inlineMenu = null;
@@ -5407,6 +5406,7 @@ function abrirInlineStatus(osId, btn) {
     });
   }, 10);
 }
+
 
 async function aplicarInlineStatus(osId, campo, valor) {
   if(_inlineMenu) { _inlineMenu.remove(); _inlineMenu = null; }
