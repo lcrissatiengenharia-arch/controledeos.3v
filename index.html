@@ -600,29 +600,7 @@ tr.sel-row td{background:rgba(255,68,102,.05);}
 .rot-map-iframe{flex:1;border:none;}
 .rot-hora-config{display:flex;align-items:center;gap:8px;flex-wrap:wrap;}
 .rot-hora-config label{font-size:12px;color:var(--tx2);}
-
-/* ── Compartilhar rota ── */
-.rot-share-box{background:var(--bg2);border:1px solid var(--br2);border-radius:var(--rs);padding:14px;margin-top:8px;display:none;}
-.rot-share-box.show{display:block;}
-.rot-share-url{display:flex;gap:6px;margin-top:8px;}
-.rot-share-url input{flex:1;font-size:11.5px;padding:7px 10px;background:var(--bg3);border:1px solid var(--br);border-radius:var(--rs);color:var(--tx);font-family:monospace;}
-.rot-share-chips{display:flex;gap:6px;flex-wrap:wrap;margin-top:10px;}
-.rot-share-chip{display:flex;align-items:center;gap:6px;padding:7px 12px;background:var(--bg3);border:1px solid var(--br2);border-radius:20px;font-size:12px;cursor:pointer;color:var(--tx2);transition:all .15s;}
-.rot-share-chip:hover{border-color:var(--acc);color:var(--acc);}
-.rot-share-chip.whats{border-color:rgba(37,211,102,.4);color:#25d366;}
-.rot-share-chip.whats:hover{background:rgba(37,211,102,.08);}
-/* ── Timeline da rota ── */
-.rot-timeline{margin-top:6px;}
-.rot-tl-item{display:flex;gap:10px;padding:6px 0;position:relative;}
-.rot-tl-item:not(:last-child)::before{content:'';position:absolute;left:12px;top:26px;width:1px;height:calc(100% - 10px);background:var(--br2);}
-.rot-tl-dot{width:24px;height:24px;border-radius:50%;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;color:#fff;z-index:1;}
-.rot-tl-body{flex:1;min-width:0;padding-top:2px;}
-.rot-tl-hora{font-size:11px;font-weight:700;color:var(--grn);}
-.rot-tl-nome{font-size:12.5px;font-weight:600;color:var(--tx);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
-.rot-tl-detalhe{font-size:10.5px;color:var(--tx4);font-family:monospace;}
 </style>
-<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css"/>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
 </head>
 <body>
 
@@ -698,7 +676,6 @@ tr.sel-row td{background:rgba(255,68,102,.05);}
   </div>
   <div class="topbar-right">
     <span class="saving-ind" id="saving-ind"><span class="dot"></span><span id="saving-ind-msg">salvando…</span></span>
-    <button class="btn btn-ghost btn-sm admin-only" onclick="fazerBackup()" title="Exportar todos os dados em JSON">💾 Backup</button>
     <button class="btn btn-ghost btn-sm" onclick="openOv('ov-caixa')" title="Integração com extensão da CAIXA">🏦 Importar da CAIXA</button>
     <label class="btn btn-ghost btn-sm" style="cursor:pointer" title="Importar PDF">
       📄 Importar PDF
@@ -947,7 +924,7 @@ tr.sel-row td{background:rgba(255,68,102,.05);}
 <div class="page" id="page-preenchidas"><div class="tw"><table><thead><tr><th onclick="srtSub('preen','empresa')">Empresa</th><th onclick="srtSub('preen','tipoServico')">Tipo</th><th onclick="srtSub('preen','numeroOS')">Referência OS</th><th onclick="srtSub('preen','cliente')">Cliente</th><th onclick="srtSub('preen','cidade')">Cidade</th><th onclick="srtSub('preen','vistoria')">Vistoria</th><th onclick="srtSub('preen','preenchimento')">Preenchimento</th><th onclick="srtSub('preen','avaliacao')">Avaliação</th><th onclick="srtSub('preen','conferencia')">Conferência</th><th onclick="srtSub('preen','prazoFatal')" class="sort-asc">Prazo Fatal ↕</th><th onclick="srtSub('preen','dias')">Dias</th><th></th></tr></thead><tbody id="tb-preenchidas"></tbody></table></div></div>
 <div class="page" id="page-vistoriadas"><div class="tw"><table><thead><tr><th onclick="srtSub('vist','empresa')">Empresa</th><th onclick="srtSub('vist','tipoServico')">Tipo</th><th onclick="srtSub('vist','numeroOS')">Referência OS</th><th onclick="srtSub('vist','cliente')">Cliente</th><th onclick="srtSub('vist','cidade')">Cidade</th><th onclick="srtSub('vist','vistoria')">Vistoria</th><th onclick="srtSub('vist','dataAbertura')">Abertura</th><th onclick="srtSub('vist','prazoFatal')" class="sort-asc">Prazo Fatal ↕</th><th onclick="srtSub('vist','dias')">Dias</th><th>Próxima etapa</th><th></th></tr></thead><tbody id="tb-vistoriadas"></tbody></table></div></div>
 <div class="page" id="page-sem-ficha"><div class="tw"><table><thead><tr><th onclick="srtSub('ficha','empresa')">Empresa</th><th onclick="srtSub('ficha','tipoServico')">Tipo</th><th onclick="srtSub('ficha','numeroOS')">Referência OS</th><th onclick="srtSub('ficha','cliente')">Cliente</th><th onclick="srtSub('ficha','cidade')">Cidade</th><th onclick="srtSub('ficha','finalizacao')">Finalização</th><th onclick="srtSub('ficha','fichas')">Ficha Pesquisa</th><th onclick="srtSub('ficha','prazoFatal')" class="sort-asc">Prazo Fatal ↕</th><th onclick="srtSub('ficha','dias')">Dias</th><th></th></tr></thead><tbody id="tb-sem-ficha"></tbody></table></div></div>
-<div class="page" id="page-andamento"><div class="toolbar"><div class="srch"><span style="color:var(--tx3)">🔍</span><input type="text" id="s-and" placeholder="Buscar..." oninput="renderSimple('andamento')"></div><div class="chips" id="chips-and"><div class="chip on" onclick="setChipAnd('all',this)">Todas</div><div class="chip" onclick="setChipAnd('vistoria',this)">Ag. vistoria</div><div class="chip" onclick="setChipAnd('estagiario',this)">Com estagiário</div><div class="chip" onclick="setChipAnd('conferencia',this)">Ag. conferência</div></div></div><div class="tw"><table><thead><tr><th onclick="srtSub('and','empresa')">Empresa</th><th onclick="srtSub('and','tipoServico')">Tipo</th><th onclick="srtSub('and','numeroOS')">Referência OS</th><th onclick="srtSub('and','cliente')">Cliente</th><th onclick="srtSub('and','cidade')">Cidade</th><th onclick="srtSub('and','prazoFatal')" class="sort-asc">Prazo Fatal ↕</th><th onclick="srtSub('and','dias')">Dias Rest.</th><th onclick="srtSub('and','proxAcao')" style="cursor:pointer;">Próxima ação ↕</th><th onclick="srtSub('and','valor')" class="admin-only valor-col">Valor</th><th></th></tr></thead><tbody id="tb-and"></tbody></table></div></div>
+<div class="page" id="page-andamento"><div class="toolbar"><div class="srch"><span style="color:var(--tx3)">🔍</span><input type="text" id="s-and" placeholder="Buscar..." oninput="renderSimple('andamento')"></div><div class="chips" id="chips-and"><div class="chip on" onclick="setChipAnd('all',this)">Todas</div><div class="chip" onclick="setChipAnd('vistoria',this)">Ag. vistoria</div><div class="chip" onclick="setChipAnd('estagiario',this)">Com estagiário</div><div class="chip" onclick="setChipAnd('conferencia',this)">Ag. conferência</div></div></div><div class="tw"><table><thead><tr><th onclick="srtSub('and','empresa')">Empresa</th><th onclick="srtSub('and','tipoServico')">Tipo</th><th onclick="srtSub('and','numeroOS')">Referência OS</th><th onclick="srtSub('and','cliente')">Cliente</th><th onclick="srtSub('and','cidade')">Cidade</th><th onclick="srtSub('and','prazoFatal')" class="sort-asc">Prazo Fatal ↕</th><th onclick="srtSub('and','dias')">Dias Rest.</th><th>Próxima ação</th><th onclick="srtSub('and','valor')" class="admin-only valor-col">Valor</th><th></th></tr></thead><tbody id="tb-and"></tbody></table></div></div>
 <div class="page" id="page-vencendo"><div class="tw"><table><thead><tr><th onclick="srtSub('venc','empresa')">Empresa</th><th onclick="srtSub('venc','tipoServico')">Tipo</th><th onclick="srtSub('venc','numeroOS')">Referência OS</th><th onclick="srtSub('venc','cliente')">Cliente</th><th onclick="srtSub('venc','cidade')">Cidade</th><th onclick="srtSub('venc','prazoFatal')" class="sort-asc">Prazo Fatal ↕</th><th onclick="srtSub('venc','dias')">Dias</th><th>Status</th><th></th></tr></thead><tbody id="tb-venc"></tbody></table></div></div>
 <div class="page" id="page-finalizadas">
   <div class="toolbar" style="flex-wrap:wrap;gap:10px;margin-bottom:14px;">
@@ -1062,11 +1039,11 @@ tr.sel-row td{background:rgba(255,68,102,.05);}
           </select>
         </div>
         <div class="fld">
-          <span class="flabel">Recebimento de</span>
+          <span class="flabel">Data início</span>
           <input type="date" id="fat-de" onchange="filtrarFaturas()">
         </div>
         <div class="fld">
-          <span class="flabel">Recebimento até</span>
+          <span class="flabel">Data fim</span>
           <input type="date" id="fat-ate" onchange="filtrarFaturas()">
         </div>
         <div class="fld">
@@ -1080,7 +1057,7 @@ tr.sel-row td{background:rgba(255,68,102,.05);}
         <div class="fld">
           <span class="flabel">Ordenar por</span>
           <select id="fat-order" onchange="filtrarFaturas()">
-            <option value="mesRecebimento">Mês de recebimento</option>
+            <option value="dataAbertura">Data de abertura</option>
             <option value="prazoFatal">Prazo fatal</option>
             <option value="empresa">Empresa</option>
             <option value="valor">Valor</option>
@@ -1517,8 +1494,7 @@ tr.sel-row td{background:rgba(255,68,102,.05);}
           <button class="btn btn-primary btn-sm" style="flex:1;" onclick="adicionarPontoRoteiro()">+ Adicionar ponto</button>
           <button class="btn btn-ghost btn-sm" onclick="colarCoordenadas()" title="Colar coordenadas no formato -20.83, -49.38">📋</button>
         </div>
-        <div style="font-size:10px;color:var(--tx4);margin-top:6px;">💡 Google Maps: botão direito no local → copie os números</div>
-        <div style="font-size:10px;color:var(--tx4);margin-top:2px;">💡 Clique no mapa para adicionar ponto diretamente</div>
+        <div style="font-size:10px;color:var(--tx4);margin-top:6px;">💡 Copie do Google Maps: botão direito → clique nos números</div>
       </div>
 
       <!-- Lista de pontos -->
@@ -1536,24 +1512,6 @@ tr.sel-row td{background:rgba(255,68,102,.05);}
           🚗 Gerar melhor rota
         </button>
         <div class="rot-resumo" id="rot-resumo">Adicione ao menos 2 pontos para gerar a rota</div>
-
-        <!-- Caixa de compartilhamento (aparece após gerar rota) -->
-        <div class="rot-share-box" id="rot-share-box">
-          <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.6px;color:var(--tx3);margin-bottom:2px;">🔗 Link da rota</div>
-          <div style="font-size:11px;color:var(--tx4);margin-bottom:6px;">Compartilhe com o vistoriador ou abra no celular</div>
-          <div class="rot-share-url">
-            <input type="text" id="rot-share-input" readonly>
-            <button class="btn btn-ghost btn-xs" onclick="copiarLinkRota()" title="Copiar link">📋</button>
-          </div>
-          <div class="rot-share-chips">
-            <div class="rot-share-chip whats" onclick="compartilharWhatsApp()">
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413Z"/></svg>
-              WhatsApp
-            </div>
-            <div class="rot-share-chip" onclick="abrirGoogleMaps()">🗺️ Google Maps</div>
-            <div class="rot-share-chip" onclick="exportarRoteiro()">📄 Exportar .txt</div>
-          </div>
-        </div>
       </div>
 
     </div>
@@ -1566,20 +1524,24 @@ tr.sel-row td{background:rgba(255,68,102,.05);}
           <span id="rot-map-status" style="font-size:11px;color:var(--tx3);">Adicione pontos para ver o mapa</span>
           <span id="rot-map-info" style="color:var(--acc);font-weight:600;"></span>
         </div>
-        <div style="display:flex;gap:6px;align-items:center;">
-          <button class="btn btn-ghost btn-xs" onclick="abrirGoogleMaps()" id="rot-btn-gmaps" style="display:none;">↗ Google Maps</button>
-          <button class="btn btn-primary btn-xs" onclick="compartilharRota()" id="rot-btn-share" style="display:none;">🔗 Compartilhar</button>
-        </div>
+        <button class="btn btn-ghost btn-xs" onclick="abrirGoogleMaps()" id="rot-btn-gmaps" style="display:none;">↗ Abrir rota no Google Maps</button>
       </div>
       <div id="rot-map-container" style="flex:1;position:relative;background:var(--bg3);">
         <!-- Placeholder quando sem pontos -->
-        <div class="rot-ph" id="rot-map-ph" style="position:absolute;inset:0;z-index:5;pointer-events:none;">
+        <div class="rot-ph" id="rot-map-ph">
           <div class="rot-ph-ic">🗺️</div>
           <div style="font-size:13px;font-weight:600;color:var(--tx2);">Mapa aparecerá aqui</div>
-          <div style="font-size:12px;text-align:center;max-width:260px;">Adicione o primeiro ponto para<br>ver o mapa com satélite</div>
+          <div style="font-size:12px;text-align:center;max-width:260px;">Adicione o primeiro ponto para<br>ver o mapa do Google Maps</div>
         </div>
-        <!-- Mapa Leaflet — satélite real sem iframe -->
-        <div id="rot-leaflet-map" style="width:100%;height:100%;"></div>
+        <!-- iframe do Google Maps — atualizado a cada ponto adicionado -->
+        <iframe id="rot-gmaps-iframe"
+          style="width:100%;height:100%;border:none;display:none;"
+          loading="lazy"
+          referrerpolicy="no-referrer-when-downgrade"
+          allowfullscreen>
+        </iframe>
+        <!-- Overlay de pins/rota SVG sobre o iframe (para numeração visual) -->
+        <div id="rot-mapa-svg" style="width:100%;height:100%;display:none;position:relative;overflow:hidden;"></div>
       </div>
     </div>
 
@@ -1680,11 +1642,6 @@ function sortData(arr, key, asc) {
       const db=diasAte(b.prazoFatal)??(asc?Infinity:-Infinity);
       return asc?da-db:db-da;
     }
-    if(key==='proxAcao'){
-      const _ord={vistoria:1,preenchimento:2,avaliacao:3,conferencia:4,finalizacao:5,finalizado:6};
-      const va=_ord[statusOS(a)]||9, vb=_ord[statusOS(b)]||9;
-      return asc?va-vb:vb-va;
-    }
     if(key==='valor') return asc?parsVal(a.valor)-parsVal(b.valor):parsVal(b.valor)-parsVal(a.valor);
     const va=a[key]||'',vb=b[key]||'';
     return asc?(va<vb?-1:va>vb?1:0):(va>vb?-1:va<vb?1:0);
@@ -1733,39 +1690,25 @@ function setConn(s) {
 // UTILS
 // ══════════════════════════════════════
 function uid() { return Date.now().toString(36)+Math.random().toString(36).slice(2,7); }
-function parseDt(iso) {
-  if(!iso) return null;
-  // Firestore Timestamp {seconds, nanoseconds}
-  if(typeof iso === 'object' && iso !== null && typeof iso.seconds === 'number')
-    return new Date(iso.seconds * 1000);
-  if(iso instanceof Date) return isNaN(iso.getTime()) ? null : iso;
-  const s = String(iso).trim();
-  if(!s) return null;
-  // ISO: 2026-04-17 ou 2026-04-17T15:37:00
-  if(/^\d{4}-\d{2}-\d{2}/.test(s)) return new Date(s.includes('T') ? s : s + 'T12:00:00');
-  // BR: 17/04/2026 ou 17/04/2026 15:37:00
-  const br = s.match(/^(\d{2})\/(\d{2})\/(\d{4})(?:[T\s](\d{2}:\d{2}(?::\d{2})?))?/);
-  if(br) return new Date(`${br[3]}-${br[2]}-${br[1]}T${br[4]||'12:00:00'}`);
-  const d = new Date(s); return isNaN(d.getTime()) ? null : d;
-}
 function fmtDate(iso) {
-  const d = parseDt(iso);
-  return d ? d.toLocaleDateString('pt-BR') : '—';
+  if(!iso) return '—';
+  const d = iso.includes('T') ? new Date(iso) : new Date(iso+'T12:00:00');
+  return d.toLocaleDateString('pt-BR');
 }
 function fmtDT(iso) {
-  const d = parseDt(iso);
-  return d ? d.toLocaleString('pt-BR') : '—';
+  if(!iso) return '—';
+  const d = new Date(iso);
+  return d.toLocaleString('pt-BR');
 }
+function parseDt(iso) { return iso ? (iso.includes('T') ? new Date(iso) : new Date(iso+'T12:00:00')) : null; }
 function diasAte(iso) {
   if(!iso) return null;
-  const d = parseDt(iso);
-  if(!d) return null;
   const now = new Date(); now.setHours(12,0,0,0);
+  const d = parseDt(iso);
   return Math.round((d-now)/86400000);
 }
 function addDias(iso, n) {
   const d = parseDt(iso);
-  if(!d) return '';
   d.setDate(d.getDate()+n);
   return d.toISOString().split('T')[0];
 }
@@ -1925,11 +1868,9 @@ function modoConsolidado() {
 function getDadosFiltrados() {
   if(dashConsolidado || (dashAno === null && dashMes === null)) return DB;
   return DB.filter(os => {
-    // OS sem data: inclui sempre (não some do dashboard)
-    if(!os.dataAbertura) return true;
+    if(!os.dataAbertura) return false;
     const d = parseDt(os.dataAbertura);
-    // Data inválida: inclui no ano atual
-    if(!d || isNaN(d.getTime())) return true;
+    if(!d) return false;
     if(dashAno !== null && d.getFullYear() !== dashAno) return false;
     if(dashMes !== null && d.getMonth() !== dashMes) return false;
     return true;
@@ -2606,11 +2547,9 @@ function renderSimple(mode) {
         <td>${os.cliente||'—'}</td><td>${os.cidade||'—'}</td>
         <td>${fmtDate(os.prazoFatal)}</td>
         <td>${diasBadge(dias)}</td>
-        <td><div style="position:relative;display:inline-block;">
-          <button onclick="abrirInlineStatus('${os.id}',this)" style="background:none;border:1px solid var(--br);border-radius:var(--rs);padding:3px 8px;font-size:11.5px;color:var(--tx2);cursor:pointer;white-space:nowrap;" title="Clique para atualizar etapa">${proxAcao(os)} ▾</button>
-        </div></td>
+        <td style="font-size:12px;color:var(--tx2);">${proxAcao(os)}</td>
         <td class="admin-only valor-col" style="color:var(--grn);font-weight:600;">${os.valor?'R$ '+os.valor:'—'}</td>
-        <td><button class="btn btn-ghost btn-xs" onclick="abrirDetalhe('${os.id}')">Abrir</button></td>
+        <td><button class="btn btn-primary btn-xs" onclick="abrirDetalhe('${os.id}')">Atualizar</button></td>
       </tr>`;
     }).join('');
   } else if(mode==='vencendo') {
@@ -2779,109 +2718,170 @@ function calcPrazoModal() {
 }
 
 async function salvar() {
-  // Desabilitar botão para evitar duplo-clique e OS duplicadas
-  const _bSv = document.querySelector('[onclick="salvar()"]');
-  if(_bSv) { if(_bSv.disabled) return; _bSv.disabled = true; }
-  try {
-    const empSel=document.getElementById('f-empresa').value;
-    const empresaRaw=empSel==='__outra__'?document.getElementById('f-outra').value.trim():empSel;
-    const empresa=normalizeEmpresa(empresaRaw)||empresaRaw;
-    const numeroOS=document.getElementById('f-ref').value.trim();
-    const tipoServico=document.getElementById('f-tipo').value;
-    const aberturaRaw=document.getElementById('f-abertura').value;
-    if(!empresa||!numeroOS||!tipoServico||!aberturaRaw){toast('Preencha os campos obrigatórios!','err');return;}
+  const empSel=document.getElementById('f-empresa').value;
+  const empresaRaw=empSel==='__outra__'?document.getElementById('f-outra').value.trim():empSel;
+  const empresa=normalizeEmpresa(empresaRaw)||empresaRaw;
+  const numeroOS=document.getElementById('f-ref').value.trim();
+  const tipoServico=document.getElementById('f-tipo').value;
+  const aberturaRaw=document.getElementById('f-abertura').value;
+  if(!empresa||!numeroOS||!tipoServico||!aberturaRaw){toast('Preencha os campos obrigatórios!','err');return;}
 
-    const dataAbertura=aberturaRaw;
-    const aberturaParaMes = aberturaRaw ? aberturaRaw.split('T')[0]||aberturaRaw : '';
-    const {mes:mes, ano:ano} = aberturaParaMes
-      ? calcMesRecebimento(aberturaParaMes)
-      : {mes: document.getElementById('f-mes').value, ano: document.getElementById('f-ano').value};
+  const dataAbertura=aberturaRaw; // store full datetime
+  // Sempre recalcula mês de recebimento pela regra (OS + 1 mês), ignora valor manual
+  const aberturaParaMes = aberturaRaw ? aberturaRaw.split('T')[0]||aberturaRaw : '';
+  const {mes:mes, ano:ano} = aberturaParaMes
+    ? calcMesRecebimento(aberturaParaMes)
+    : {mes: document.getElementById('f-mes').value, ano: document.getElementById('f-ano').value};
 
-    const os={
-      id:currentId||uid(),empresa,numeroOS,tipoServico,dataAbertura,
-      prazoFatal:prazoCalc(aberturaRaw.split('T')[0],tipoServico),
-      prazoExecucao:document.getElementById('f-prazo-exec').value,
-      cnpj:document.getElementById('f-cnpj').value.trim(),
-      municipio:document.getElementById('f-municipio').value.trim(),
-      email:document.getElementById('f-email').value.trim(),
-      celular:document.getElementById('f-celular').value.trim(),
-      assunto:document.getElementById('f-assunto').value.trim(),
-      atividade:document.getElementById('f-atividade').value.trim(),
-      produto:document.getElementById('f-produto').value.trim(),
-      linha:document.getElementById('f-linha').value.trim(),
-      fonte:document.getElementById('f-fonte').value.trim(),
-      edital:document.getElementById('f-edital').value.trim(),
-      cliente:document.getElementById('f-cliente').value.trim(),
-      identificacao:document.getElementById('f-ident').value.trim(),
-      tipoImovel:document.getElementById('f-tipo-imovel').value,
-      endRua:document.getElementById('f-end-rua').value.trim(),
-      endNum:document.getElementById('f-end-num').value.trim(),
-      endComp:document.getElementById('f-end-comp').value.trim(),
-      bairro:document.getElementById('f-bairro').value.trim(),
-      cep:document.getElementById('f-cep').value.trim(),
-      cidade:document.getElementById('f-cidade').value.trim(),
-      valor:document.getElementById('f-valor').value.trim(),
-      contatoNome:document.getElementById('f-contato-nome').value.trim(),
-      contatoTel:document.getElementById('f-contato-tel').value.trim(),
-      localDocs:document.getElementById('f-local-docs').value.trim(),
-      mesRecebimento:mes&&ano?`${mes}/${ano}`:'',
-      obs:document.getElementById('f-obs').value.trim(),
-      vistoria:document.getElementById('f-vistoria').value,
-      avaliacao:document.getElementById('f-avaliacao').value,
-      preenchimento:document.getElementById('f-preenchi').value,
-      conferencia:'Aguardando',finalizacao:'Laudo em Andamento',fichas:'Não iniciada',
-      dataFechamento:'',criadoEm:new Date().toISOString(),
-    };
+  const os={
+    id:currentId||uid(),empresa,numeroOS,tipoServico,dataAbertura,
+    prazoFatal:prazoCalc(aberturaRaw.split('T')[0],tipoServico),
+    prazoExecucao:document.getElementById('f-prazo-exec').value,
+    cnpj:document.getElementById('f-cnpj').value.trim(),
+    municipio:document.getElementById('f-municipio').value.trim(),
+    email:document.getElementById('f-email').value.trim(),
+    celular:document.getElementById('f-celular').value.trim(),
+    assunto:document.getElementById('f-assunto').value.trim(),
+    atividade:document.getElementById('f-atividade').value.trim(),
+    produto:document.getElementById('f-produto').value.trim(),
+    linha:document.getElementById('f-linha').value.trim(),
+    fonte:document.getElementById('f-fonte').value.trim(),
+    edital:document.getElementById('f-edital').value.trim(),
+    cliente:document.getElementById('f-cliente').value.trim(),
+    identificacao:document.getElementById('f-ident').value.trim(),
+    tipoImovel:document.getElementById('f-tipo-imovel').value,
+    endRua:document.getElementById('f-end-rua').value.trim(),
+    endNum:document.getElementById('f-end-num').value.trim(),
+    endComp:document.getElementById('f-end-comp').value.trim(),
+    bairro:document.getElementById('f-bairro').value.trim(),
+    cep:document.getElementById('f-cep').value.trim(),
+    cidade:document.getElementById('f-cidade').value.trim(),
+    valor:document.getElementById('f-valor').value.trim(),
+    contatoNome:document.getElementById('f-contato-nome').value.trim(),
+    contatoTel:document.getElementById('f-contato-tel').value.trim(),
+    localDocs:document.getElementById('f-local-docs').value.trim(),
+    mesRecebimento:mes&&ano?`${mes}/${ano}`:'',
+    obs:document.getElementById('f-obs').value.trim(),
+    vistoria:document.getElementById('f-vistoria').value,
+    avaliacao:document.getElementById('f-avaliacao').value,
+    preenchimento:document.getElementById('f-preenchi').value,
+    conferencia:'Aguardando',finalizacao:'Laudo em Andamento',fichas:'Não iniciada',
+    dataFechamento:'',criadoEm:new Date().toISOString(),
+  };
 
-    if(currentId) {
-      const ex=DB.find(o=>o.id===currentId);
-      if(ex){os.conferencia=ex.conferencia;os.finalizacao=ex.finalizacao;os.fichas=ex.fichas;os.dataFechamento=ex.dataFechamento;os.criadoEm=ex.criadoEm;}
-    }
-    closeOv('ov-os');
-    toast('Salvando...','ok');
-    await fbSave(os);
-  } catch(_e) {
-    console.error(_e);
-    toast('Erro ao salvar. Verifique sua conexão.','err');
-  } finally {
-    if(_bSv) setTimeout(() => { _bSv.disabled = false; }, 600);
+  if(currentId) {
+    const ex=DB.find(o=>o.id===currentId);
+    if(ex){os.conferencia=ex.conferencia;os.finalizacao=ex.finalizacao;os.fichas=ex.fichas;os.dataFechamento=ex.dataFechamento;os.criadoEm=ex.criadoEm;}
   }
+  closeOv('ov-os');
+  toast('Salvando...','ok');
+  await fbSave(os);
+  toast(currentId?'OS atualizada!':'OS cadastrada!','ok');
 }
 
+// ══════════════════════════════════════
+// MODAL DETALHE
+// ══════════════════════════════════════
+function abrirDetalhe(id) {
+  currentId=id;
+  const os=DB.find(o=>o.id===id); if(!os) return;
+  const dias=diasAte(os.prazoFatal);
+
+  document.getElementById('det-empresa').textContent=os.empresa;
+  document.getElementById('det-ref').textContent=os.numeroOS;
+
+  const diasStr=dias===null?'—':
+    dias<0?`<span style="color:var(--red);font-weight:700;">${Math.abs(dias)} dias VENCIDO</span>`:
+    dias===0?`<span style="color:var(--red);font-weight:700;">Vence HOJE</span>`:
+    dias<=3?`<span style="color:var(--org);font-weight:700;">${dias} dias</span>`:`${dias} dias`;
+
+  const endCompleto=[os.endRua,os.endNum&&os.endNum!=='0'?'Nº '+os.endNum:''].filter(Boolean).join(', ')||'—';
+
+  // OS dados
+  document.getElementById('dv-tipo').innerHTML=`<span class="badge bg-blue">${os.tipoServico}</span>`;
+  document.getElementById('dv-assunto').textContent=[os.assunto,os.atividade,os.produto].filter(Boolean).join(' / ')||'—';
+  document.getElementById('dv-linha').textContent=[os.linha&&'L: '+os.linha,os.fonte&&'F: '+os.fonte].filter(Boolean).join(' · ')||'—';
+  document.getElementById('dv-ref').textContent=vl(os.numeroOS);
+  document.getElementById('dv-edital').textContent=vl(os.edital);
+  document.getElementById('dv-abertura').textContent=os.dataAbertura?fmtDT(os.dataAbertura):'—';
+  document.getElementById('dv-prazo').textContent=fmtDate(os.prazoFatal);
+  document.getElementById('dv-dias').innerHTML=diasStr;
+  document.getElementById('dv-exec').textContent=os.prazoExecucao?os.prazoExecucao+' dias':'—';
+  document.getElementById('dv-valor').textContent=isAdmin()?(os.valor?'R$ '+os.valor:'—'):'••••';
+  document.getElementById('dv-mes').textContent=vl(os.mesRecebimento);
+  document.getElementById('dv-fech').textContent=fmtDate(os.dataFechamento);
+
+  // Empresa
+  document.getElementById('dv-empresa').textContent=vl(os.empresa);
+  document.getElementById('dv-cnpj').textContent=vl(os.cnpj);
+  document.getElementById('dv-municipio').textContent=vl(os.municipio);
+  document.getElementById('dv-email').textContent=vl(os.email);
+  document.getElementById('dv-celular').textContent=vl(os.celular);
+
+  // Imóvel
+  document.getElementById('dv-cliente').textContent=vl(os.cliente);
+  document.getElementById('dv-tipo-imovel').textContent=vl(os.tipoImovel);
+  document.getElementById('dv-ident').textContent=vl(os.identificacao);
+  document.getElementById('dv-end').textContent=endCompleto;
+  document.getElementById('dv-comp').textContent=vl(os.endComp);
+  document.getElementById('dv-bairro').textContent=vl(os.bairro);
+  document.getElementById('dv-cep').textContent=vl(os.cep);
+  document.getElementById('dv-cidade').textContent=vl(os.cidade);
+  document.getElementById('dv-contato').textContent=[os.contatoNome,os.contatoTel].filter(Boolean).join(' · ')||'—';
+  document.getElementById('dv-local').textContent=vl(os.localDocs);
+  document.getElementById('dv-obs').textContent=vl(os.obs);
+
+  // Status
+  document.getElementById('ed-vistoria').value=os.vistoria||'Aguardando vistoria';
+  document.getElementById('ed-avaliacao').value=os.avaliacao||'Avaliação não iniciada';
+  document.getElementById('ed-preenchi').value=os.preenchimento||'Não Iniciado';
+  document.getElementById('ed-confer').value=os.conferencia||'Aguardando';
+  document.getElementById('ed-final').value=os.finalizacao||'Laudo em Andamento';
+  document.getElementById('ed-fichas').value=os.fichas||'Não iniciada';
+  document.getElementById('ed-fech').value=os.dataFechamento||'';
+
+  openOv('ov-det');
+}
+
+function editarAtual() {
+  const os=DB.find(o=>o.id===currentId); if(!os) return;
+  closeOv('ov-det');
+  document.getElementById('m-title').textContent='Editar OS';
+  document.getElementById('m-sub').textContent=os.empresa+' · '+os.tipoServico;
+
+  const sel=document.getElementById('f-empresa');
+  if(EMPRESAS_LIST.includes(os.empresa)){sel.value=os.empresa;document.getElementById('f-outra-wr').style.display='none';}
+  else{sel.value='__outra__';document.getElementById('f-outra-wr').style.display='flex';document.getElementById('f-outra').value=os.empresa;}
+
+  const fm=(id,val)=>{const el=document.getElementById(id);if(el)el.value=val||'';};
+  fm('f-ref',os.numeroOS);fm('f-cnpj',os.cnpj);fm('f-municipio',os.municipio);
+  fm('f-email',os.email);fm('f-celular',os.celular);fm('f-tipo',os.tipoServico);
+  fm('f-abertura',os.dataAbertura?os.dataAbertura.slice(0,16):'');
+  fm('f-prazo',fmtDate(os.prazoFatal));fm('f-prazo-exec',os.prazoExecucao);
+  fm('f-assunto',os.assunto);fm('f-atividade',os.atividade);fm('f-produto',os.produto);
+  fm('f-linha',os.linha);fm('f-fonte',os.fonte);fm('f-edital',os.edital);
+  fm('f-cliente',os.cliente);fm('f-ident',os.identificacao);
+  fm('f-tipo-imovel',os.tipoImovel);fm('f-end-rua',os.endRua);fm('f-end-num',os.endNum);
+  fm('f-end-comp',os.endComp);fm('f-bairro',os.bairro);fm('f-cep',os.cep);fm('f-cidade',os.cidade);
+  fm('f-valor',os.valor);fm('f-contato-nome',os.contatoNome);fm('f-contato-tel',os.contatoTel);
+  fm('f-local-docs',os.localDocs);fm('f-obs',os.obs);
+  fm('f-vistoria',os.vistoria);fm('f-avaliacao',os.avaliacao);fm('f-preenchi',os.preenchimento);
+  if(os.mesRecebimento){const[m,a]=os.mesRecebimento.split('/');fm('f-mes',m);fm('f-ano',a);}
+  setPbar(false);
+  openOv('ov-os');
+}
 
 async function salvarStatus() {
   const os=DB.find(o=>o.id===currentId); if(!os) return;
-
-  // Registra alterações no histórico antes de aplicar
-  const campos = [
-    ['vistoria', 'ed-vistoria'],['avaliacao','ed-avaliacao'],
-    ['preenchimento','ed-preenchi'],['conferencia','ed-confer'],
-    ['finalizacao','ed-final'],['fichas','ed-fichas'],['dataFechamento','ed-fech']
-  ];
-  const alteracoes = [];
-  campos.forEach(([campo, elId]) => {
-    const novo = document.getElementById(elId)?.value;
-    const velho = os[campo] || '';
-    if(novo !== undefined && novo !== velho) {
-      alteracoes.push(`${campo}: "${velho}" → "${novo}"`);
-      os[campo] = novo;
-    }
-  });
-
+  os.vistoria=document.getElementById('ed-vistoria').value;
+  os.avaliacao=document.getElementById('ed-avaliacao').value;
+  os.preenchimento=document.getElementById('ed-preenchi').value;
+  os.conferencia=document.getElementById('ed-confer').value;
+  os.finalizacao=document.getElementById('ed-final').value;
+  os.fichas=document.getElementById('ed-fichas').value;
+  os.dataFechamento=document.getElementById('ed-fech').value;
   if(os.finalizacao==='Laudo Finalizado'&&!os.dataFechamento)
     os.dataFechamento=new Date().toISOString().split('T')[0];
-
-  // Grava log de alteração se houve mudanças
-  if(alteracoes.length) {
-    if(!os.logs) os.logs=[];
-    os.logs.push({
-      dt: new Date().toISOString(),
-      usuario: USUARIO_ATUAL?.nome || 'Sistema',
-      texto: '\u{1F4DD} [Automático] Etapas atualizadas: ' + alteracoes.join(' | '),
-      tipo: 'historico'
-    });
-  }
-
   closeOv('ov-det');
   toast('Salvando...','ok');
   await fbSave(os);
@@ -3534,7 +3534,7 @@ function filtrarFaturas() {
   const de      = document.getElementById('fat-de')?.value || '';
   const ate     = document.getElementById('fat-ate')?.value || '';
   const tipo    = document.getElementById('fat-tipo')?.value || '';
-  const order   = document.getElementById('fat-order')?.value || 'mesRecebimento';
+  const order   = document.getElementById('fat-order')?.value || 'dataAbertura';
 
   const isValidOS = (os) => {
     const emp = (os.empresa||'').toString().trim().toLowerCase();
@@ -3550,24 +3550,13 @@ function filtrarFaturas() {
     if(tipo && os.tipoServico !== tipo) return false;
     if(status === 'finalizado' && isAberto(os)) return false;
     if(status === 'aberto' && !isAberto(os)) return false;
-    // Filtro por MÊS DE RECEBIMENTO (não dataAbertura)
     if(de || ate) {
-      const {mIdx, ano: aRec} = getMesRecebimento(os);
-      if(mIdx < 0 || !aRec) return false;
-      const dRec = new Date(aRec, mIdx, 1).toISOString().split('T')[0];
-      if(de && dRec < de) return false;
-      if(ate) {
-        const ateD = new Date(ate);
-        const fimMes = new Date(ateD.getFullYear(), ateD.getMonth()+1, 0).toISOString().split('T')[0];
-        if(dRec > fimMes) return false;
-      }
+      const d = os.dataAbertura ? os.dataAbertura.split('T')[0] : '';
+      if(de && d < de) return false;
+      if(ate && d > ate) return false;
     }
     return true;
   }).sort((a,b) => {
-    if(order==='mesRecebimento') {
-      const ra=getMesRecebimento(a), rb=getMesRecebimento(b);
-      return (ra.ano*100+(ra.mIdx>=0?ra.mIdx:99)) - (rb.ano*100+(rb.mIdx>=0?rb.mIdx:99));
-    }
     const va = a[order]||'', vb = b[order]||'';
     if(order === 'valor') return parsVal(vb) - parsVal(va);
     return va < vb ? -1 : va > vb ? 1 : 0;
@@ -3776,7 +3765,7 @@ function gerarFaturaPDF() {
 
   <div class="footer">Documento gerado em ${new Date().toLocaleString('pt-BR')} · Sistema de Controle OS</div>
 </div>
-<script>window.onload=()=>window.print();<\/script>
+<scr\ipt>window.onload=()=>window.print();</scr\ipt>
 </body></html>`;
 
   const win = window.open('','_blank');
@@ -4594,8 +4583,6 @@ function limparRoteiro() {
   _rotRenderAnchors();
   _rotRenderLista();
   _rotRenderMapa();
-  if(window._rotMarkersLayer) window._rotMarkersLayer.clearLayers();
-  if(window._rotRotaLayer) window._rotRotaLayer.clearLayers();
   const infoEl = document.getElementById('rot-map-info');
   if(infoEl) infoEl.textContent = '';
   _rotAtualizarStatus();
@@ -4823,63 +4810,104 @@ function gerarRota() {
 
 // ── Renderizar mapa interno (Google Maps Embed) ──────────────
 function _rotRenderMapa() {
-  const ph = document.getElementById('rot-map-ph');
+  const ph     = document.getElementById('rot-map-ph');
+  const iframe = document.getElementById('rot-gmaps-iframe');
+  const svgDiv = document.getElementById('rot-mapa-svg');
+  if(!ph || !iframe) return;
 
   const { pontos } = _rotPontosCompletos();
 
   if(!pontos.length) {
-    if(ph) { ph.style.display='flex'; ph.style.pointerEvents='none'; }
+    ph.style.display     = 'flex';
+    iframe.style.display = 'none';
+    if(svgDiv) svgDiv.style.display = 'none';
     return;
   }
 
-  if(ph) ph.style.display = 'none';
-
-  // Inicializa o mapa Leaflet uma única vez
-  if(!window._rotMap) {
-    const container = document.getElementById('rot-leaflet-map');
-    if(!container) return;
-    window._rotMap = L.map('rot-leaflet-map', {
-      center: [-20.83, -49.38], zoom: 13, zoomControl: true
-    });
-
-    // Satélite Esri (alta qualidade, sem API key)
-    const sat = L.tileLayer(
-      'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
-      { attribution: '© Esri', maxZoom: 20 }
-    );
-    // Ruas OpenStreetMap
-    const ruas = L.tileLayer(
-      'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
-      { attribution: '© OpenStreetMap', maxZoom: 19 }
-    );
-    L.control.layers(
-      { '🛰️ Satélite': sat, '🗺️ Ruas': ruas }, {},
-      { position: 'topright', collapsed: false }
-    ).addTo(window._rotMap);
-    sat.addTo(window._rotMap);
-
-    window._rotMarkersLayer = L.layerGroup().addTo(window._rotMap);
-    window._rotRotaLayer    = L.layerGroup().addTo(window._rotMap);
-
-    // Clique no mapa adiciona ponto
-    window._rotMap.on('click', function(e) {
-      const latEl = document.getElementById('rot-lat');
-      const lngEl = document.getElementById('rot-lng');
-      if(latEl) latEl.value = e.latlng.lat.toFixed(6);
-      if(lngEl) lngEl.value = e.latlng.lng.toFixed(6);
-      document.getElementById('rot-nome')?.focus();
-      // Toast de confirmação
-      if(typeof toast === 'function') toast('Coordenadas coladas! Confirme e clique em + Adicionar ponto', 'ok');
-    });
-  }
-
-  const map = window._rotMap;
-  window._rotMarkersLayer.clearLayers();
-  window._rotRotaLayer.clearLayers();
+  ph.style.display = 'none';
+  if(svgDiv) svgDiv.style.display = 'none';
+  iframe.style.display = 'block';
 
   const ordem = _rotRoteada && _rotOrdemOtima.length === pontos.length
     ? _rotOrdemOtima
     : pontos.map((_, i) => i);
+
+  const pts = ordem.map(i => pontos[i]);
+  let embedUrl = '';
+
+  if(pts.length === 1) {
+    const p = pts[0];
+    // ll= força o centro exato; q= com !4d evita snap a POI próximo
+    embedUrl = `https://maps.google.com/maps?q=loc:${p.lat},${p.lng}&ll=${p.lat},${p.lng}&z=18&output=embed&hl=pt-BR`;
+
+  } else {
+    // Sempre rota de carro (dirflg=d). Embed clássico aceita até ~24 paradas via "+to:".
+    // Aumentamos o limite para 20 paradas; acima disso o embed pode truncar.
+    const MAX_EMBED = 20;
+    const ptsEmbed = pts.length > MAX_EMBED ? pts.slice(0, MAX_EMBED) : pts;
+    const origin = `${ptsEmbed[0].lat},${ptsEmbed[0].lng}`;
+    const dest   = `${ptsEmbed[ptsEmbed.length-1].lat},${ptsEmbed[ptsEmbed.length-1].lng}`;
+    const vias   = ptsEmbed.slice(1, -1).map(p => `${p.lat},${p.lng}`).join('+to:');
+    const daddr  = vias ? `${vias}+to:${dest}` : dest;
+    embedUrl = `https://maps.google.com/maps?saddr=${encodeURIComponent(origin)}&daddr=${encodeURIComponent(daddr)}&dirflg=d&output=embed&hl=pt-BR`;
+  }
+
+  if(iframe.src !== embedUrl) {
+    iframe.src = embedUrl;
+  }
+}
+
+
+function abrirGoogleMaps() {
+  const { pontos } = _rotPontosCompletos();
+  if(!pontos.length) return;
+  const ordem = _rotRoteada && _rotOrdemOtima.length === pontos.length
+    ? _rotOrdemOtima
+    : pontos.map((_,i) => i);
+
+  const pts = ordem.map(i => pontos[i]);
+  if(pts.length === 1) {
+    const p = pts[0];
+    // loc: + ll= mantém o pino na coordenada exata, sem "snap" para POIs próximos
+    window.open(`https://www.google.com/maps?q=loc:${p.lat},${p.lng}&ll=${p.lat},${p.lng}&z=18`, '_blank');
+    return;
+  }
+
+  // Suporte a até 20 paradas (limite prático do Google Maps Web).
+  // - api=1 com travelmode=driving: até 9 waypoints (origem + destino + 9 = 11 paradas).
+  // - Acima disso, formato path-style /maps/dir/A/B/.../Z/ que aceita ~25 paradas
+  //   e força carro com data=!4m2!4m1!3e0 (3e0 = driving).
+  const MAX_PARADAS = 20;
+  if(pts.length > MAX_PARADAS) {
+    toast(`Limite de ${MAX_PARADAS} paradas no Google Maps. Mostrando as primeiras ${MAX_PARADAS}.`, 'err');
+  }
+  const ptsLim      = pts.slice(0, MAX_PARADAS);
+  const origin      = `${ptsLim[0].lat},${ptsLim[0].lng}`;
+  const destination = `${ptsLim[ptsLim.length-1].lat},${ptsLim[ptsLim.length-1].lng}`;
+  const meio        = ptsLim.slice(1, -1);
+
+  let url;
+  if(meio.length <= 9) {
+    // Modo preferencial: api=1 com travelmode=driving — sempre rota de carro
+    const waypoints = meio.map(p => `${p.lat},${p.lng}`).join('|');
+    url = `https://www.google.com/maps/dir/?api=1&origin=${origin}&destination=${destination}&travelmode=driving`;
+    if(waypoints) url += `&waypoints=${encodeURIComponent(waypoints)}`;
+  } else {
+    // Muitas paradas: formato path-style /maps/dir/A/B/.../Z/data=!4m2!4m1!3e0 (3e0 = driving)
+    const todos = ptsLim.map(p => `${p.lat},${p.lng}`).join('/');
+    url = `https://www.google.com/maps/dir/${todos}/data=!4m2!4m1!3e0`;
+  }
+  window.open(url, '_blank');
+}
+
+// ── Exportar agenda de vistorias ──────────────────────────────
+function exportarRoteiro() {
+  const { pontos } = _rotPontosCompletos();
+  if(!pontos.length) { toast('Adicione pontos antes de exportar', 'err'); return; }
+
+  const ordem = _rotRoteada && _rotOrdemOtima.length === pontos.length
+    ? _rotOrdemOtima
+    : pontos.map((_,i) => i);
 
   const horaInicio = document.getElementById('rot-inicio')?.value || '08:00';
   const durMin     = parseInt(document.getElementById('rot-duracao')?.value || '30');
@@ -4887,83 +4915,42 @@ function _rotRenderMapa() {
   const [h0, m0]   = horaInicio.split(':').map(Number);
   let minCorridos  = h0 * 60 + m0;
 
-  // Adicionar pins numerados
+  let txt = 'AGENDA DE VISTORIAS — ' + new Date().toLocaleDateString('pt-BR') + '\n';
+  txt += '='.repeat(50) + '\n';
+  txt += `Início: ${horaInicio} | Duração/visita: ${durMin}min | Velocidade: ${velKmh}km/h\n`;
+  if(_rotPartida) txt += `Partida: ${_rotPartida.nome} (${_rotPartida.lat.toFixed(5)}, ${_rotPartida.lng.toFixed(5)})\n`;
+  if(_rotChegada) txt += `Chegada: ${_rotChegada.nome} (${_rotChegada.lat.toFixed(5)}, ${_rotChegada.lng.toFixed(5)})\n`;
+  txt += '='.repeat(50) + '\n\n';
+
   ordem.forEach((idx, pos) => {
     const p = pontos[idx];
-    const tipo = p._tipo;
-
-    // Calcular hora estimada
-    if(_rotRoteada && pos > 0) {
+    if(pos > 0) {
       const prev = pontos[ordem[pos-1]];
       const distKm = _rotDistancia(prev.lat, prev.lng, p.lat, p.lng);
-      const visitaPrev = prev._tipo === 'visita' ? durMin : 0;
-      minCorridos += Math.round((distKm / velKmh) * 60) + visitaPrev;
+      const tempoMin = Math.round((distKm/velKmh)*60);
+      const visitaPrev = (prev._tipo === 'visita') ? durMin : 0;
+      minCorridos += tempoMin + visitaPrev;
     }
-    const hh = Math.floor(minCorridos / 60) % 24;
-    const mm = minCorridos % 60;
-    const horaStr = _rotRoteada ? `${String(hh).padStart(2,'0')}:${String(mm).padStart(2,'0')}` : '';
-
-    // Cor e label do pin
-    const cor = tipo === 'partida' ? '#22c55e' : tipo === 'chegada' ? '#ef4444' : '#4e7bff';
-    const label = tipo === 'partida' ? '▶' : tipo === 'chegada' ? '⬛' : String(pos + 1);
-
-    const icon = L.divIcon({
-      className: '',
-      html: `<div style="width:32px;height:32px;border-radius:50%;background:${cor};border:3px solid #fff;
-        display:flex;align-items:center;justify-content:center;font-size:${tipo==='visita'?'13':'11'}px;
-        font-weight:700;color:#fff;box-shadow:0 3px 10px rgba(0,0,0,.5);
-        font-family:system-ui,sans-serif;cursor:pointer;">${label}</div>`,
-      iconSize: [32,32], iconAnchor: [16,16], popupAnchor: [0,-20]
-    });
-
-    const marker = L.marker([p.lat, p.lng], { icon }).addTo(window._rotMarkersLayer);
-    marker.bindPopup(`
-      <div style="font-family:system-ui,sans-serif;min-width:180px;">
-        <div style="font-size:13px;font-weight:700;margin-bottom:4px;">
-          ${tipo==='partida'?'🟢 ':tipo==='chegada'?'🏁 ':'📍 '}${p.nome}
-        </div>
-        <div style="font-size:11px;color:#666;font-family:monospace;">${p.lat.toFixed(6)}, ${p.lng.toFixed(6)}</div>
-        ${horaStr ? `<div style="font-size:12px;font-weight:600;color:#4e7bff;margin-top:4px;">⏰ Chegada estimada: ${horaStr}</div>` : ''}
-        <a href="https://maps.google.com?q=${p.lat},${p.lng}" target="_blank"
-           style="font-size:11px;color:#4e7bff;text-decoration:none;display:block;margin-top:6px;">
-          ↗ Ver no Google Maps
-        </a>
-      </div>
-    `, { maxWidth: 240 });
+    const hh = Math.floor(minCorridos/60)%24;
+    const mm = minCorridos%60;
+    const hora = `${String(hh).padStart(2,'0')}:${String(mm).padStart(2,'0')}`;
+    const tag = p._tipo === 'partida' ? '[PARTIDA] '
+              : p._tipo === 'chegada' ? '[CHEGADA] '
+              : `${pos}ª vistoria — `;
+    txt += `${pos+1}. ${tag}${hora}\n`;
+    txt += `   ${p.nome}\n`;
+    txt += `   Coord: ${p.lat.toFixed(6)}, ${p.lng.toFixed(6)}\n`;
+    txt += `   Maps: https://maps.google.com?q=${p.lat},${p.lng}\n\n`;
   });
 
-  // Desenhar linha da rota
-  if(_rotRoteada && ordem.length > 1) {
-    const latLngs = ordem.map(i => [pontos[i].lat, pontos[i].lng]);
-    L.polyline(latLngs, {
-      color: '#4e7bff', weight: 4, opacity: 0.85,
-      lineJoin: 'round', lineCap: 'round'
-    }).addTo(window._rotRotaLayer);
-
-    // Setas de direção nos segmentos
-    latLngs.forEach((pt, idx) => {
-      if(idx === 0) return;
-      const prev = latLngs[idx-1];
-      const mx = (prev[0]+pt[0])/2, my = (prev[1]+pt[1])/2;
-      const ang = Math.atan2(pt[1]-prev[1], pt[0]-prev[0]) * 180/Math.PI - 90;
-      L.marker([mx, my], {
-        icon: L.divIcon({
-          className:'',
-          html: `<div style="transform:rotate(${ang}deg);font-size:14px;color:#4e7bff;line-height:1;">▲</div>`,
-          iconSize:[14,14], iconAnchor:[7,7]
-        }),
-        interactive: false
-      }).addTo(window._rotRotaLayer);
-    });
-  }
-
-  // Ajustar zoom para mostrar todos os pins
-  const bounds = L.latLngBounds(pontos.map(p => [p.lat, p.lng]));
-  map.fitBounds(bounds, { padding: [40, 40], maxZoom: 16 });
-  setTimeout(() => map.invalidateSize(), 100);
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(new Blob([txt], {type:'text/plain;charset=utf-8'}));
+  a.download = 'agenda_vistorias_'+new Date().toISOString().split('T')[0]+'.txt';
+  document.body.appendChild(a); a.click(); document.body.removeChild(a);
+  toast('Agenda exportada!', 'ok');
 }
 
-
+// ── Inicializar a página de roteiro ──────────────────────────
 function _rotAtualizarStatus() {
   const el = document.getElementById('rot-map-status');
   if(!el) return;
@@ -4979,7 +4966,6 @@ function _rotAtualizarStatus() {
 
 function renderRoteiro() {
   _rotRenderAnchors();
-  setTimeout(() => { if(window._rotMap) window._rotMap.invalidateSize(); }, 200);
   _rotRenderLista();
   _rotRenderMapa();
 }
@@ -5052,13 +5038,12 @@ function normalizarPacoteCaixa(payload) {
       cliente: row.cliente || clienteDoc || 'A confirmar',
       cidade: row.cidade || '',
       prazoFatal: row.prazoFatal || '',
-      // Valores padrão compatíveis com statusOS() — 'Não' quebraria o fluxo
-      vistoria: row.vistoria==='Imóvel vistoriado' ? 'Imóvel vistoriado' : 'Aguardando vistoria',
-      preenchimento: row.preenchimento || 'Não Iniciado',
-      avaliacao: row.avaliacao || 'Avaliação não iniciada',
-      conferencia: row.conferencia==='Conferido' ? 'Conferido' : 'Aguardando',
-      finalizacao: row.finalizacao==='Laudo Finalizado' ? 'Laudo Finalizado' : 'Laudo em Andamento',
-      fichas: ['Realizada','Sem necessidade'].includes(row.fichas) ? row.fichas : 'Não iniciada',
+      vistoria: row.vistoria || 'Não',
+      preenchimento: row.preenchimento || 'Sem necessidade',
+      avaliacao: row.avaliacao || 'Pendente',
+      conferencia: row.conferencia || 'Aguardando',
+      finalizacao: row.finalizacao || 'Pendente',
+      fichas: row.fichas || 'Pendente',
       valor: row.valor || '0,00'
     };
   }).filter(r => r.numeroOS);
@@ -5136,318 +5121,6 @@ window.addEventListener('message', async (event) => {
     setCaixaStatus('Erro ao receber pacote da extensão.', 'err');
   }
 });
-
-
-// ══════════════════════════════════════════════════════════════
-// COMPARTILHAMENTO DE ROTA
-// Gera um link do Google Maps com todos os waypoints
-// que pode ser aberto no celular ou enviado por WhatsApp
-// ══════════════════════════════════════════════════════════════
-
-function _buildRotaUrl() {
-  const { pontos } = _rotPontosCompletos();
-  if(!pontos.length) return null;
-
-  const ordem = _rotRoteada && _rotOrdemOtima.length === pontos.length
-    ? _rotOrdemOtima
-    : pontos.map((_, i) => i);
-
-  const pts = ordem.map(i => pontos[i]);
-
-  if(pts.length === 1) {
-    return `https://maps.google.com?q=${pts[0].lat.toFixed(6)},${pts[0].lng.toFixed(6)}`;
-  }
-
-  const origin      = `${pts[0].lat.toFixed(6)},${pts[0].lng.toFixed(6)}`;
-  const destination = `${pts[pts.length-1].lat.toFixed(6)},${pts[pts.length-1].lng.toFixed(6)}`;
-  const waypoints   = pts.slice(1,-1).map(p=>`${p.lat.toFixed(6)},${p.lng.toFixed(6)}`).join('|');
-
-  let url = `https://www.google.com/maps/dir/?api=1`
-    + `&origin=${encodeURIComponent(origin)}`
-    + `&destination=${encodeURIComponent(destination)}`
-    + `&travelmode=driving`;
-  if(waypoints) url += `&waypoints=${encodeURIComponent(waypoints)}`;
-  return url;
-}
-
-function compartilharRota() {
-  const url = _buildRotaUrl();
-  if(!url) { toast('Gere a rota primeiro', 'err'); return; }
-
-  const box   = document.getElementById('rot-share-box');
-  const input = document.getElementById('rot-share-input');
-  if(box) box.classList.toggle('show');
-  if(input) input.value = url;
-}
-
-function copiarLinkRota() {
-  const input = document.getElementById('rot-share-input');
-  if(!input || !input.value) return;
-  navigator.clipboard.writeText(input.value).then(() => {
-    toast('Link copiado! Cole no WhatsApp ou navegador do celular', 'ok');
-  }).catch(() => {
-    input.select();
-    document.execCommand('copy');
-    toast('Link copiado!', 'ok');
-  });
-}
-
-function compartilharWhatsApp() {
-  const url = _buildRotaUrl();
-  if(!url) { toast('Gere a rota primeiro', 'err'); return; }
-
-  const { pontos } = _rotPontosCompletos();
-  const ordem = _rotRoteada && _rotOrdemOtima.length === pontos.length
-    ? _rotOrdemOtima : pontos.map((_,i)=>i);
-  const pts = ordem.map(i => pontos[i]);
-
-  const horaInicio = document.getElementById('rot-inicio')?.value || '08:00';
-  const durMin     = parseInt(document.getElementById('rot-duracao')?.value || '30');
-  const velKmh     = parseInt(document.getElementById('rot-vel')?.value || '40');
-  const [h0, m0]   = horaInicio.split(':').map(Number);
-  let minCorridos  = h0 * 60 + m0;
-
-  let msg = `🏗️ *Roteiro de Vistorias — ${new Date().toLocaleDateString('pt-BR')}*\n\n`;
-
-  pts.forEach((p, pos) => {
-    if(pos > 0) {
-      const prev = pts[pos-1];
-      const distKm = _rotDistancia(prev.lat, prev.lng, p.lat, p.lng);
-      const visitaPrev = prev._tipo === 'visita' ? durMin : 0;
-      minCorridos += Math.round((distKm / velKmh) * 60) + visitaPrev;
-    }
-    const hh = Math.floor(minCorridos/60)%24;
-    const mm = minCorridos%60;
-    const hora = `${String(hh).padStart(2,'0')}:${String(mm).padStart(2,'0')}`;
-    const ico = p._tipo==='partida' ? '🟢' : p._tipo==='chegada' ? '🏁' : `${pos+1}️⃣`;
-    msg += `${ico} *${hora}* — ${p.nome}\n`;
-    msg += `📍 https://maps.google.com?q=${p.lat.toFixed(6)},${p.lng.toFixed(6)}\n\n`;
-  });
-
-  msg += `🗺️ *Rota completa:*\n${url}`;
-
-  const waUrl = `https://wa.me/?text=${encodeURIComponent(msg)}`;
-  window.open(waUrl, '_blank');
-}
-
-// Sobrescreve abrirGoogleMaps para usar _buildRotaUrl
-function abrirGoogleMaps() {
-  const url = _buildRotaUrl();
-  if(url) window.open(url, '_blank');
-}
-
-// Mostra os botões de compartilhamento após gerar rota
-const _origGerarRota = gerarRota;
-gerarRota = function() {
-  _origGerarRota();
-  setTimeout(() => {
-    const shareBtn = document.getElementById('rot-btn-share');
-    const gmBtn    = document.getElementById('rot-btn-gmaps');
-    if(shareBtn) shareBtn.style.display = 'block';
-    if(gmBtn)    gmBtn.style.display    = 'block';
-    // Pré-preenche o link
-    const url = _buildRotaUrl();
-    const inp = document.getElementById('rot-share-input');
-    if(inp && url) inp.value = url;
-  }, 500);
-};
-
-// ══════════════════════════════════════════════════════════════
-// MELHORIAS DE PROFISSIONALISMO
-// ══════════════════════════════════════════════════════════════
-
-// 1. Atalhos de teclado globais
-document.addEventListener('keydown', function(e) {
-  // Ctrl+K = busca global (se existir)
-  if((e.ctrlKey||e.metaKey) && e.key==='k') {
-    e.preventDefault();
-    const busca = document.getElementById('busca-ov') || document.getElementById('s-lista');
-    if(busca && busca.id==='s-lista') {
-      go('lista');
-      setTimeout(()=>busca.focus(), 100);
-    }
-    return;
-  }
-  // N = nova OS (quando não está em input)
-  const tag = document.activeElement?.tagName;
-  if(tag==='INPUT'||tag==='TEXTAREA'||tag==='SELECT') return;
-  if(e.key==='n' && !e.ctrlKey && !e.metaKey) {
-    if(typeof abrirNova === 'function') abrirNova();
-  }
-  // Esc = fechar modal aberto
-  if(e.key==='Escape') {
-    document.querySelectorAll('.ov.open').forEach(ov => {
-      ov.classList.remove('open');
-    });
-  }
-});
-
-// 2. Atualizar badge do título com OS urgentes
-function atualizarTituloAba() {
-  const venc  = (typeof DB!=='undefined') ? DB.filter(os=>typeof isAberto==='function'&&isAberto(os)&&typeof diasAte==='function'&&diasAte(os.prazoFatal)!==null&&diasAte(os.prazoFatal)<0).length : 0;
-  const hoje  = (typeof DB!=='undefined') ? DB.filter(os=>typeof isAberto==='function'&&isAberto(os)&&typeof diasAte==='function'&&diasAte(os.prazoFatal)===0).length : 0;
-  const total = venc + hoje;
-  document.title = total > 0 ? `(${total} urgente${total>1?'s':''}) Controle OS` : 'Controle OS';
-}
-
-// Hook no refreshAll para atualizar título
-const _origRefreshAll = typeof refreshAll==='function' ? refreshAll : null;
-if(_origRefreshAll) {
-  const _prevRefresh = refreshAll;
-  // Usar intervalo em vez de hook para não conflitar
-}
-setInterval(atualizarTituloAba, 30000); // atualiza a cada 30s
-
-
-// ══════════════════════════════════════════════════════════════
-// BACKUP E RESTAURAÇÃO DO BANCO
-// ══════════════════════════════════════════════════════════════
-function fazerBackup() {
-  if(!DB.length) { toast('Nenhuma OS para exportar','err'); return; }
-  const payload = {
-    versao: '1.0',
-    exportadoEm: new Date().toISOString(),
-    exportadoPor: USUARIO_ATUAL?.nome || 'Sistema',
-    totalOS: DB.length,
-    dados: DB
-  };
-  const json = JSON.stringify(payload, null, 2);
-  const a = document.createElement('a');
-  a.href = URL.createObjectURL(new Blob([json], {type:'application/json'}));
-  a.download = 'backup_OS_' + new Date().toISOString().split('T')[0] + '.json';
-  document.body.appendChild(a); a.click(); document.body.removeChild(a);
-  setTimeout(() => URL.revokeObjectURL(a.href), 5000);
-  toast(`Backup de ${DB.length} OS exportado com sucesso!`, 'ok');
-
-  // Salva data do último backup no localStorage
-  try { localStorage.setItem('ultimo_backup', new Date().toISOString()); } catch(_) {}
-}
-
-// Lembrete de backup ao fazer login (se passaram mais de 30 dias)
-function verificarLembreteBackup() {
-  if(!isAdmin || !isAdmin()) return;
-  try {
-    const ultimo = localStorage.getItem('ultimo_backup');
-    if(!ultimo) {
-      setTimeout(() => toast('💾 Dica: faça um backup dos seus dados clicando em "Backup" na barra superior', 'ok'), 5000);
-      return;
-    }
-    const dias = Math.floor((Date.now() - new Date(ultimo).getTime()) / 86400000);
-    if(dias > 30) {
-      setTimeout(() => toast(`💾 Último backup há ${dias} dias — considere exportar seus dados`, 'ok'), 5000);
-    }
-  } catch(_) {}
-}
-
-// ══════════════════════════════════════════════════════════════
-// ATUALIZAÇÃO INLINE DE ETAPA (sem abrir modal)
-// ══════════════════════════════════════════════════════════════
-let _inlineMenu = null;
-
-function abrirInlineStatus(osId, btn) {
-  if(_inlineMenu) { _inlineMenu.remove(); _inlineMenu = null; }
-  const os = DB.find(o => o.id === osId);
-  if(!os) return;
-
-  const opcoes = [
-    { label: 'Aguardando vistoria', campo: 'vistoria',      valor: 'Aguardando vistoria' },
-    { label: 'Im\u00f3vel vistoriado',  campo: 'vistoria',      valor: 'Im\u00f3vel vistoriado' },
-    { label: 'Em preenchimento',    campo: 'preenchimento', valor: 'Em preenchimento' },
-    { label: 'Preenchido',          campo: 'preenchimento', valor: 'Preenchido' },
-    { label: 'Conferido',           campo: 'conferencia',   valor: 'Conferido' },
-    { label: 'Laudo Finalizado',    campo: 'finalizacao',   valor: 'Laudo Finalizado' },
-  ];
-
-  const menu = document.createElement('div');
-  menu.style.cssText = 'position:fixed;z-index:3000;background:var(--bg2);border:1px solid var(--br2);border-radius:var(--r);box-shadow:0 8px 24px rgba(0,0,0,.5);min-width:210px;overflow:hidden;';
-  const rect = btn.getBoundingClientRect();
-  menu.style.top  = (rect.bottom + 4) + 'px';
-  menu.style.left = rect.left + 'px';
-
-  const itens = opcoes.map(function(op) {
-    const ativo = os[op.campo] === op.valor;
-    const bgOn  = 'rgba(78,123,255,.1)';
-    const bgOff = 'transparent';
-    const cor   = ativo ? 'var(--acc)' : 'var(--tx2)';
-    const borda = ativo ? '2px solid var(--acc)' : '2px solid transparent';
-    const check = ativo ? ' \u2713' : '';
-    const el = document.createElement('div');
-    el.style.cssText = 'padding:9px 14px;font-size:12.5px;cursor:pointer;color:' + cor + ';background:' + (ativo ? bgOn : bgOff) + ';display:flex;align-items:center;gap:8px;border-left:' + borda + ';';
-    el.textContent = op.label + check;
-    el.onmouseover = function() { this.style.background = 'var(--bg3)'; };
-    el.onmouseout  = function() { this.style.background = ativo ? bgOn : bgOff; };
-    el.onclick = function() { aplicarInlineStatus(osId, op.campo, op.valor); };
-    return el;
-  });
-
-  const titulo = document.createElement('div');
-  titulo.style.cssText = 'padding:8px 12px;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.7px;color:var(--tx4);border-bottom:1px solid var(--br);';
-  titulo.textContent = 'Atualizar etapa';
-
-  const detalhes = document.createElement('div');
-  detalhes.style.cssText = 'padding:8px 14px;font-size:11.5px;color:var(--tx3);cursor:pointer;border-top:1px solid var(--br);';
-  detalhes.textContent = '\u2197 Abrir detalhes completos';
-  detalhes.onmouseover = function() { this.style.background = 'var(--bg3)'; };
-  detalhes.onmouseout  = function() { this.style.background = 'transparent'; };
-  detalhes.onclick = function() { abrirDetalhe(osId); };
-
-  menu.appendChild(titulo);
-  itens.forEach(function(el) { menu.appendChild(el); });
-  menu.appendChild(detalhes);
-  document.body.appendChild(menu);
-  _inlineMenu = menu;
-
-  setTimeout(function() {
-    document.addEventListener('click', function _close(e) {
-      if(!menu.contains(e.target) && e.target !== btn) {
-        menu.remove(); _inlineMenu = null;
-        document.removeEventListener('click', _close);
-      }
-    });
-  }, 10);
-}
-
-
-async function aplicarInlineStatus(osId, campo, valor) {
-  if(_inlineMenu) { _inlineMenu.remove(); _inlineMenu = null; }
-
-  const os = DB.find(o => o.id === osId);
-  if(!os) return;
-
-  const anterior = os[campo] || '';
-  if(anterior === valor) return; // sem mudança
-
-  // Histórico automático
-  if(!os.logs) os.logs = [];
-  os.logs.push({
-    dt: new Date().toISOString(),
-    usuario: USUARIO_ATUAL?.nome || 'Sistema',
-    texto: `📝 [Automático] ${campo}: "${anterior}" → "${valor}"`,
-    tipo: 'historico'
-  });
-
-  os[campo] = valor;
-
-  // Auto-fechar se finalizou
-  if(campo === 'finalizacao' && valor === 'Laudo Finalizado' && !os.dataFechamento)
-    os.dataFechamento = new Date().toISOString().split('T')[0];
-
-  toast('Salvando...', 'ok');
-  await fbSave(os);
-  toast(`${campo} atualizado!`, 'ok');
-}
-
-// ══════════════════════════════════════════════════════════════
-// HOOK NO APLICARPERFIL para verificar lembrete de backup
-// ══════════════════════════════════════════════════════════════
-const _origAplicarPerfil = typeof aplicarPerfil === 'function' ? aplicarPerfil : null;
-if(_origAplicarPerfil) {
-  aplicarPerfil = function() {
-    _origAplicarPerfil.apply(this, arguments);
-    setTimeout(verificarLembreteBackup, 3000);
-  };
-}
-
 
 // ══════════════════════════════════════
 // INIT
