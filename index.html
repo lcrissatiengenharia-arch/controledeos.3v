@@ -129,18 +129,18 @@ document.addEventListener('DOMContentLoaded', () => { /* login controls when to 
 </script>
 <style>
 :root {
-  --bg0:#080a10; --bg1:#0d1017; --bg2:#111520; --bg3:#161b28; --bg4:#1c2235; --bg5:#222844;
-  --br:#232840; --br2:#2e3658; --br3:#3a4470;
+  --bg0:#f4f7fb; --bg1:#ffffff; --bg2:#ffffff; --bg3:#f7f9fc; --bg4:#edf2f8; --bg5:#e4ebf5;
+  --br:#dde5f0; --br2:#cbd7e6; --br3:#b7c6da;
   --acc:#4e7bff; --acc2:#7c55ff; --acc-g:linear-gradient(135deg,#4e7bff,#7c55ff);
-  --grn:#18d4a0; --grn2:#0fa87e;
-  --yel:#f0c040; --red:#ff4466; --org:#ff7733; --sky:#38bfff;
-  --tx:#dde2f8; --tx2:#8892c0; --tx3:#4a5278; --tx4:#2e3558;
-  --shadow:0 8px 32px rgba(0,0,0,.55);
-  --r:14px; --rs:9px; --rxs:6px;
+  --grn:#16b889; --grn2:#10936e;
+  --yel:#d9a72b; --red:#e84d6e; --org:#f08a32; --sky:#2ea8df;
+  --tx:#172033; --tx2:#52607a; --tx3:#7f8aa3; --tx4:#a5afc0;
+  --shadow:0 14px 38px rgba(18,38,63,.08);
+  --r:16px; --rs:10px; --rxs:8px;
 }
 *{box-sizing:border-box;margin:0;padding:0;}
 html{scroll-behavior:smooth;}
-body{font-family:'Inter',sans-serif;background:var(--bg0);color:var(--tx);font-size:13.5px;min-height:100vh;overflow-x:hidden;}
+body{font-family:'Inter',sans-serif;background:linear-gradient(180deg,#f8fbff 0%, #f4f7fb 100%);color:var(--tx);font-size:13.5px;min-height:100vh;overflow-x:hidden;}
 
 /* ─── SIDEBAR ─── */
 .sb{position:fixed;left:0;top:0;bottom:0;width:232px;background:var(--bg1);border-right:1px solid var(--br);display:flex;flex-direction:column;z-index:200;transition:width .2s;}
@@ -173,7 +173,7 @@ body{font-family:'Inter',sans-serif;background:var(--bg0);color:var(--tx);font-s
 .main{margin-left:232px;min-height:100vh;}
 
 /* ─── TOP BAR ─── */
-.topbar{height:60px;background:var(--bg1);border-bottom:1px solid var(--br);display:flex;align-items:center;justify-content:space-between;padding:0 28px;position:sticky;top:0;z-index:100;}
+.topbar{height:64px;background:rgba(255,255,255,.88);border-bottom:1px solid var(--br);display:flex;align-items:center;justify-content:space-between;padding:0 28px;position:sticky;top:0;z-index:100;backdrop-filter:blur(14px);}
 .topbar-left{display:flex;align-items:center;gap:12px;}
 .topbar-title{font-size:16px;font-weight:700;letter-spacing:-.3px;}
 .topbar-sub{font-size:11.5px;color:var(--tx3);}
@@ -187,7 +187,7 @@ body{font-family:'Inter',sans-serif;background:var(--bg0);color:var(--tx);font-s
 
 /* ─── STATS ─── */
 .stats{display:grid;grid-template-columns:repeat(5,1fr);gap:12px;margin-bottom:20px;}
-.stat{background:var(--bg2);border:1px solid var(--br);border-radius:var(--r);padding:16px 18px;position:relative;overflow:hidden;transition:transform .2s,box-shadow .2s;}
+.stat{background:rgba(255,255,255,.95);border:1px solid var(--br);border-radius:var(--r);padding:16px 18px;position:relative;overflow:hidden;transition:transform .2s,box-shadow .2s;box-shadow:var(--shadow);}
 .stat:hover{transform:translateY(-2px);box-shadow:0 8px 24px rgba(0,0,0,.4);}
 .stat::after{content:'';position:absolute;bottom:0;left:0;right:0;height:2px;background:var(--sc,var(--acc));}
 .stat-lbl{font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:.8px;color:var(--tx3);margin-bottom:8px;}
@@ -205,15 +205,15 @@ body{font-family:'Inter',sans-serif;background:var(--bg0);color:var(--tx);font-s
 .span2{grid-column:span 2;}.span3{grid-column:span 3;}.spanAll{grid-column:1/-1;}
 
 /* ─── CARD ─── */
-.card{background:var(--bg2);border:1px solid var(--br);border-radius:var(--r);padding:20px;}
+.card{background:rgba(255,255,255,.92);border:1px solid var(--br);border-radius:var(--r);padding:20px;box-shadow:var(--shadow);}
 .card-hd{display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;}
 .card-hd h3{font-size:13px;font-weight:700;}
 .card-hd p{font-size:11px;color:var(--tx3);}
 
 /* ─── TABLE ─── */
-.tw{overflow-x:auto;border-radius:var(--r);border:1px solid var(--br);}
+.tw{overflow-x:auto;border-radius:var(--r);border:1px solid var(--br);background:rgba(255,255,255,.94);box-shadow:var(--shadow);}
 table{width:100%;border-collapse:collapse;font-size:12.5px;}
-thead{background:var(--bg3);}
+thead{background:#f3f7fc;}
 th.sort-asc::after{content:' ↑';color:var(--acc);}
 th.sort-desc::after{content:' ↓';color:var(--acc);}
 th[onclick]{transition:color .15s;}
@@ -221,7 +221,7 @@ th[onclick]:hover{color:var(--tx);background:var(--bg4);}
 th{padding:10px 14px;text-align:left;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.7px;color:var(--tx3);white-space:nowrap;cursor:pointer;user-select:none;transition:color .15s;}
 th:hover{color:var(--tx2);}
 td{padding:10px 14px;border-top:1px solid var(--br);vertical-align:middle;}
-tr:hover td{background:rgba(255,255,255,.02);}
+tr:hover td{background:rgba(78,123,255,.04);}
 .mono{font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--tx2);}
 .el{max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
 
@@ -296,6 +296,10 @@ textarea{resize:vertical;min-height:64px;line-height:1.5;}
 .chip{padding:5px 12px;border-radius:20px;font-size:11.5px;font-weight:500;cursor:pointer;border:1px solid var(--br);background:var(--bg2);color:var(--tx2);transition:all .15s;}
 .chip:hover{border-color:var(--br2);color:var(--tx);}
 .chip.on{background:rgba(78,123,255,.14);border-color:rgba(78,123,255,.35);color:var(--acc);}
+
+.toolbar-filters{display:flex;align-items:center;gap:8px;flex-wrap:wrap;}
+.toolbar-select{width:auto;min-width:150px;padding:8px 12px;background:var(--bg2);border:1.5px solid var(--br);border-radius:999px;color:var(--tx2);font-size:12px;}
+.toolbar-select:focus{outline:none;border-color:var(--acc);color:var(--tx);}
 
 /* ─── CHART BARS ─── */
 .mbar-wrap{display:flex;gap:5px;align-items:flex-end;height:100px;padding-bottom:2px;}
@@ -394,57 +398,35 @@ textarea{resize:vertical;min-height:64px;line-height:1.5;}
   0%,100%{background:rgba(255,68,102,.12);}
   50%{background:rgba(255,68,102,.32);}
 }
-.badge.blink-vencido{animation:blinkRed 1.1s ease-in-out infinite;color:#fff !important;font-weight:800 !important;border-color:transparent !important;}
-.badge.blink-hoje{animation:blinkRed 1.4s ease-in-out infinite;color:#fff !important;font-weight:800 !important;border-color:transparent !important;}
-tr.row-vencido{animation:blinkRedSoft 1.6s ease-in-out infinite;}
-.ni .cnt.blink-cnt{animation:blinkRed 1.2s ease-in-out infinite;color:#fff !important;}
+.badge.blink-vencido{background:rgba(232,77,110,.14);color:var(--red)!important;font-weight:700!important;border-color:rgba(232,77,110,.22)!important;}
+.badge.blink-hoje{background:rgba(232,77,110,.10);color:var(--red)!important;font-weight:700!important;border-color:rgba(232,77,110,.18)!important;}
+tr.row-vencido{background:rgba(232,77,110,.05);}
+.ni .cnt.blink-cnt{background:rgba(232,77,110,.14);color:var(--red)!important;}
 
-/* ─── PAINEL DE ALERTAS CRÍTICOS (GRANDE, MUITO VISÍVEL) ─── */
-@keyframes alertPulse{
-  0%,100%{box-shadow:0 0 0 0 rgba(255,68,102,.55), inset 0 0 0 1px rgba(255,68,102,.6);}
-  50%{box-shadow:0 0 30px 6px rgba(255,68,102,.55), inset 0 0 0 1px rgba(255,68,102,1);}
-}
-@keyframes alertBgFlash{
-  0%,100%{background:linear-gradient(135deg,rgba(255,68,102,.10),rgba(255,119,51,.06));}
-  50%{background:linear-gradient(135deg,rgba(255,68,102,.30),rgba(255,119,51,.18));}
-}
-.alert-panel{
-  border-radius:14px;padding:16px 18px;margin-bottom:16px;
-  border:1px solid rgba(255,68,102,.4);
-  animation:alertBgFlash 1.8s ease-in-out infinite, alertPulse 1.8s ease-in-out infinite;
-  position:relative;overflow:hidden;
-}
-.alert-panel.alert-ok{
-  animation:none;background:linear-gradient(135deg,rgba(24,212,160,.08),rgba(78,123,255,.05));
-  border-color:rgba(24,212,160,.35);box-shadow:none;
-}
-.alert-panel-hd{display:flex;align-items:center;gap:12px;margin-bottom:10px;}
-.alert-panel-ic{font-size:28px;animation:blinkRed 1.1s ease-in-out infinite;
-  display:inline-flex;align-items:center;justify-content:center;
-  width:46px;height:46px;border-radius:50%;color:#fff;font-weight:800;}
-.alert-panel.alert-ok .alert-panel-ic{animation:none;background:rgba(24,212,160,.25);color:var(--grn);}
-.alert-panel-title{font-size:15px;font-weight:800;color:#fff;letter-spacing:.3px;text-transform:uppercase;}
-.alert-panel-sub{font-size:11.5px;color:var(--tx2);margin-top:2px;}
-.alert-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:10px;}
-.alert-item{background:rgba(0,0,0,.28);border:1px solid rgba(255,255,255,.06);border-radius:10px;
-  padding:10px 12px;cursor:pointer;transition:transform .15s,border-color .15s;
-  display:flex;align-items:center;gap:10px;}
-.alert-item:hover{transform:translateY(-2px);border-color:rgba(255,68,102,.6);}
-.alert-item-d{flex-shrink:0;width:46px;height:46px;border-radius:10px;
-  display:flex;flex-direction:column;align-items:center;justify-content:center;
-  font-weight:800;color:#fff;background:var(--red);}
-.alert-item-d.d-hoje{background:var(--red);animation:blinkRed 1s ease-in-out infinite;}
-.alert-item-d.d-amanha{background:var(--org);}
-.alert-item-d.d-prox{background:var(--yel);color:#1a1a1a;}
-.alert-item-d.d-venc{background:#8b0024;animation:blinkRed .9s ease-in-out infinite;}
-.alert-item-d .n{font-size:18px;line-height:1;}
-.alert-item-d .l{font-size:8.5px;letter-spacing:.5px;margin-top:2px;}
+/* ─── LETREIRO DE ALERTAS CRÍTICOS (DISCRETO) ─── */
+@keyframes tickerScroll{0%{transform:translateX(0)}100%{transform:translateX(-50%)}}
+.alert-panel{border-radius:14px;padding:10px 14px;margin-bottom:16px;border:1px solid rgba(232,77,110,.18);background:linear-gradient(90deg,rgba(255,255,255,.92),rgba(255,247,249,.96));position:relative;overflow:hidden;box-shadow:var(--shadow);}
+.alert-panel.alert-ok{background:linear-gradient(90deg,rgba(255,255,255,.92),rgba(241,252,248,.98));border-color:rgba(22,184,137,.18);}
+.alert-panel-hd{display:flex;align-items:center;gap:10px;margin-bottom:8px;}
+.alert-panel-ic{width:30px;height:30px;border-radius:999px;display:inline-flex;align-items:center;justify-content:center;background:rgba(232,77,110,.12);color:var(--red);font-size:14px;font-weight:800;}
+.alert-panel.alert-ok .alert-panel-ic{background:rgba(22,184,137,.14);color:var(--grn);}
+.alert-panel-title{font-size:13px;font-weight:700;color:var(--tx);letter-spacing:-.1px;text-transform:none;}
+.alert-panel-sub{font-size:11px;color:var(--tx3);margin-top:1px;}
+.alert-grid{display:block;overflow:hidden;white-space:nowrap;mask-image:linear-gradient(to right,transparent,black 5%,black 95%,transparent);}
+.alert-track{display:inline-flex;gap:10px;min-width:max-content;animation:tickerScroll 30s linear infinite;}
+.alert-panel:hover .alert-track{animation-play-state:paused;}
+.alert-item{background:#fff;border:1px solid var(--br);border-radius:999px;padding:8px 12px;cursor:pointer;transition:transform .15s,border-color .15s,box-shadow .15s;display:inline-flex;align-items:center;gap:9px;min-width:280px;box-shadow:0 8px 24px rgba(18,38,63,.06);}
+.alert-item:hover{transform:translateY(-1px);border-color:rgba(78,123,255,.26);box-shadow:0 10px 24px rgba(18,38,63,.10);}
+.alert-item-d{width:34px;height:34px;border-radius:999px;display:flex;flex-direction:column;align-items:center;justify-content:center;font-weight:800;background:rgba(232,77,110,.12);color:var(--red);flex-shrink:0;}
+.alert-item-d.d-hoje{background:rgba(232,77,110,.14);}
+.alert-item-d.d-amanha{background:rgba(240,138,50,.14);color:var(--org);}
+.alert-item-d.d-prox{background:rgba(217,167,43,.14);color:var(--yel);}
+.alert-item-d.d-venc{background:rgba(232,77,110,.18);color:var(--red);}
+.alert-item-d .n{font-size:13px;line-height:1;}
+.alert-item-d .l{font-size:7px;letter-spacing:.4px;margin-top:1px;text-transform:uppercase;}
 .alert-item-info{flex:1;min-width:0;}
-.alert-item-info .t{font-size:12px;font-weight:700;color:var(--tx);
-  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
-.alert-item-info .s{font-size:10.5px;color:var(--tx3);margin-top:2px;
-  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
-
+.alert-item-info .t{font-size:11.5px;font-weight:700;color:var(--tx);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.alert-item-info .s{font-size:10px;color:var(--tx3);margin-top:1px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
 /* ─── KPIs AUXILIARES (mini-cards) ─── */
 .mini-stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:10px;margin-bottom:16px;}
 .mini-stat{background:var(--bg2);border:1px solid var(--br);border-radius:10px;padding:10px 12px;
@@ -924,7 +906,7 @@ tr.sel-row td{background:rgba(255,68,102,.05);}
 <div class="page" id="page-preenchidas"><div class="tw"><table><thead><tr><th onclick="srtSub('preen','empresa')">Empresa</th><th onclick="srtSub('preen','tipoServico')">Tipo</th><th onclick="srtSub('preen','numeroOS')">Referência OS</th><th onclick="srtSub('preen','cliente')">Cliente</th><th onclick="srtSub('preen','cidade')">Cidade</th><th onclick="srtSub('preen','vistoria')">Vistoria</th><th onclick="srtSub('preen','preenchimento')">Preenchimento</th><th onclick="srtSub('preen','avaliacao')">Avaliação</th><th onclick="srtSub('preen','conferencia')">Conferência</th><th onclick="srtSub('preen','prazoFatal')" class="sort-asc">Prazo Fatal ↕</th><th onclick="srtSub('preen','dias')">Dias</th><th></th></tr></thead><tbody id="tb-preenchidas"></tbody></table></div></div>
 <div class="page" id="page-vistoriadas"><div class="tw"><table><thead><tr><th onclick="srtSub('vist','empresa')">Empresa</th><th onclick="srtSub('vist','tipoServico')">Tipo</th><th onclick="srtSub('vist','numeroOS')">Referência OS</th><th onclick="srtSub('vist','cliente')">Cliente</th><th onclick="srtSub('vist','cidade')">Cidade</th><th onclick="srtSub('vist','vistoria')">Vistoria</th><th onclick="srtSub('vist','dataAbertura')">Abertura</th><th onclick="srtSub('vist','prazoFatal')" class="sort-asc">Prazo Fatal ↕</th><th onclick="srtSub('vist','dias')">Dias</th><th>Próxima etapa</th><th></th></tr></thead><tbody id="tb-vistoriadas"></tbody></table></div></div>
 <div class="page" id="page-sem-ficha"><div class="tw"><table><thead><tr><th onclick="srtSub('ficha','empresa')">Empresa</th><th onclick="srtSub('ficha','tipoServico')">Tipo</th><th onclick="srtSub('ficha','numeroOS')">Referência OS</th><th onclick="srtSub('ficha','cliente')">Cliente</th><th onclick="srtSub('ficha','cidade')">Cidade</th><th onclick="srtSub('ficha','finalizacao')">Finalização</th><th onclick="srtSub('ficha','fichas')">Ficha Pesquisa</th><th onclick="srtSub('ficha','prazoFatal')" class="sort-asc">Prazo Fatal ↕</th><th onclick="srtSub('ficha','dias')">Dias</th><th></th></tr></thead><tbody id="tb-sem-ficha"></tbody></table></div></div>
-<div class="page" id="page-andamento"><div class="toolbar"><div class="srch"><span style="color:var(--tx3)">🔍</span><input type="text" id="s-and" placeholder="Buscar..." oninput="renderSimple('andamento')"></div><div class="chips" id="chips-and"><div class="chip on" onclick="setChipAnd('all',this)">Todas</div><div class="chip" onclick="setChipAnd('vistoria',this)">Ag. vistoria</div><div class="chip" onclick="setChipAnd('estagiario',this)">Com estagiário</div><div class="chip" onclick="setChipAnd('conferencia',this)">Ag. conferência</div></div></div><div class="tw"><table><thead><tr><th onclick="srtSub('and','empresa')">Empresa</th><th onclick="srtSub('and','tipoServico')">Tipo</th><th onclick="srtSub('and','numeroOS')">Referência OS</th><th onclick="srtSub('and','cliente')">Cliente</th><th onclick="srtSub('and','cidade')">Cidade</th><th onclick="srtSub('and','prazoFatal')" class="sort-asc">Prazo Fatal ↕</th><th onclick="srtSub('and','dias')">Dias Rest.</th><th>Próxima ação</th><th onclick="srtSub('and','valor')" class="admin-only valor-col">Valor</th><th></th></tr></thead><tbody id="tb-and"></tbody></table></div></div>
+<div class="page" id="page-andamento"><div class="toolbar"><div class="srch"><span style="color:var(--tx3)">🔍</span><input type="text" id="s-and" placeholder="Buscar..." oninput="renderSimple('andamento')"></div><div class="chips" id="chips-and"><div class="chip on" onclick="setChipAnd('all',this)">Todas</div><div class="chip" onclick="setChipAnd('vistoria',this)">Ag. vistoria</div><div class="chip" onclick="setChipAnd('estagiario',this)">Com estagiário</div><div class="chip" onclick="setChipAnd('conferencia',this)">Ag. conferência</div></div><div class="toolbar-filters"><select id="f-and-dias" class="toolbar-select" onchange="setAndDias(this.value)"><option value="">Dias restantes</option><option value="critico">Até 1 dia</option><option value="3">Até 3 dias</option><option value="5">Até 5 dias</option><option value="7">Até 7 dias</option><option value="8+">Mais de 7 dias</option><option value="vencido">Vencidas</option></select><select id="f-and-acao" class="toolbar-select" onchange="setAndAcao(this.value)"><option value="">Próxima ação</option><option value="vistoria">Realizar vistoria</option><option value="preenchimento">A preencher</option><option value="avaliacao">Realizar avaliação</option><option value="conferencia">Sua conferência</option><option value="finalizacao">Emitir laudo</option></select></div></div><div class="tw"><table><thead><tr><th onclick="srtSub('and','empresa')">Empresa</th><th onclick="srtSub('and','tipoServico')">Tipo</th><th onclick="srtSub('and','numeroOS')">Referência OS</th><th onclick="srtSub('and','cliente')">Cliente</th><th onclick="srtSub('and','cidade')">Cidade</th><th onclick="srtSub('and','prazoFatal')" class="sort-asc">Prazo Fatal ↕</th><th onclick="srtSub('and','dias')">Dias Rest.</th><th>Próxima ação</th><th onclick="srtSub('and','valor')" class="admin-only valor-col">Valor</th><th></th></tr></thead><tbody id="tb-and"></tbody></table></div></div>
 <div class="page" id="page-vencendo"><div class="tw"><table><thead><tr><th onclick="srtSub('venc','empresa')">Empresa</th><th onclick="srtSub('venc','tipoServico')">Tipo</th><th onclick="srtSub('venc','numeroOS')">Referência OS</th><th onclick="srtSub('venc','cliente')">Cliente</th><th onclick="srtSub('venc','cidade')">Cidade</th><th onclick="srtSub('venc','prazoFatal')" class="sort-asc">Prazo Fatal ↕</th><th onclick="srtSub('venc','dias')">Dias</th><th>Status</th><th></th></tr></thead><tbody id="tb-venc"></tbody></table></div></div>
 <div class="page" id="page-finalizadas">
   <div class="toolbar" style="flex-wrap:wrap;gap:10px;margin-bottom:14px;">
@@ -1647,7 +1629,9 @@ function sortData(arr, key, asc) {
     return asc?(va<vb?-1:va>vb?1:0):(va>vb?-1:va<vb?1:0);
   });
 }
-let filtroLista = 'all', filtroAnd = 'all';
+let filtroLista = 'all', filtroAnd = 'all', filtroAndDias = '', filtroAndAcao = '';
+function setAndDias(val){ filtroAndDias = val||''; renderSimple('andamento'); }
+function setAndAcao(val){ filtroAndAcao = val||''; renderSimple('andamento'); }
 let loteOSs = []; // for bulk import
 
 // ══════════════════════════════════════
@@ -1968,7 +1952,7 @@ function updateBadges() {
         panel.classList.add('alert-ok');
         if(icEl){ icEl.textContent = '✓'; icEl.style.background='rgba(24,212,160,.25)'; }
         if(titleEl) titleEl.textContent = 'Nenhum prazo crítico no momento';
-        if(subEl) subEl.textContent = 'Todas as OS abertas estão com mais de 3 dias até o vencimento';
+        if(subEl) subEl.textContent = 'Sem alertas urgentes no momento';
         grid.innerHTML = '';
       } else {
         panel.style.display = 'block';
@@ -1976,14 +1960,14 @@ function updateBadges() {
         if(icEl){ icEl.textContent = '⚠'; icEl.style.background='var(--red)'; }
         const nVenc = criticos.filter(o=>o._dias<0).length;
         const nHoje = criticos.filter(o=>o._dias===0).length;
-        if(titleEl) titleEl.textContent = `${criticos.length} OS em estado crítico` + (nVenc?` · ${nVenc} vencida(s)`:'') + (nHoje?` · ${nHoje} vence(m) hoje`:'');
-        if(subEl) subEl.textContent = 'Clique em uma OS para abrir os detalhes — atualizado em tempo real';
-        grid.innerHTML = criticos.slice(0,12).map(os=>{
+        if(titleEl) titleEl.textContent = `${criticos.length} prazo(s) crítico(s)` + (nVenc?` · ${nVenc} vencida(s)`:'') + (nHoje?` · ${nHoje} hoje`:'');
+        if(subEl) subEl.textContent = 'Letreiro discreto com atualização em tempo real — passe o mouse para pausar';
+        const itensTicker = criticos.slice(0,12).map(os=>{
           const d = os._dias;
           let cls='d-prox', label='dias', n=String(d);
-          if(d<0){ cls='d-venc'; label='VENC'; n='!'+Math.abs(d); }
-          else if(d===0){ cls='d-hoje'; label='HOJE'; n='0'; }
-          else if(d===1){ cls='d-amanha'; label='AMANHÃ'; n='1'; }
+          if(d<0){ cls='d-venc'; label='venc'; n='+'+Math.abs(d); }
+          else if(d===0){ cls='d-hoje'; label='hoje'; n='0'; }
+          else if(d===1){ cls='d-amanha'; label='amanhã'; n='1'; }
           const tit = (os.empresa||'—');
           const sub = `${os.tipoServico||''}${os.cliente?' · '+String(os.cliente).split(' ')[0]:''} · ${fmtDate(os.prazoFatal)}`;
           return `<div class="alert-item" onclick="abrirDetalhe('${os.id}')">
@@ -1991,6 +1975,7 @@ function updateBadges() {
             <div class="alert-item-info"><div class="t">${tit}</div><div class="s">${sub}</div></div>
           </div>`;
         }).join('');
+        grid.innerHTML = `<div class="alert-track">${itensTicker}${itensTicker}</div>`;
       }
     }
   }catch(e){ console.warn('alert-panel:',e); }
@@ -2467,6 +2452,22 @@ function renderSimple(mode) {
     if(filtroAnd==='vistoria') d=d.filter(o=>o.vistoria==='Aguardando vistoria');
     else if(filtroAnd==='estagiario') d=d.filter(o=>statusOS(o)==='estagiario');
     else if(filtroAnd==='conferencia') d=d.filter(o=>statusOS(o)==='conferencia');
+
+    if(filtroAndDias){
+      d=d.filter(o=>{
+        const dias = diasAte(o.prazoFatal);
+        if(dias===null) return false;
+        if(filtroAndDias==='vencido') return dias < 0;
+        if(filtroAndDias==='critico') return dias <= 1;
+        if(filtroAndDias==='8+') return dias > 7;
+        return dias <= Number(filtroAndDias);
+      });
+    }
+
+    if(filtroAndAcao){
+      d=d.filter(o=>statusOS(o)===filtroAndAcao);
+    }
+
     d=sortData(d, subSort.and.key, subSort.and.asc);
   }
   if(mode==='vencendo') {
@@ -2535,7 +2536,7 @@ function renderSimple(mode) {
   const tb=document.getElementById(tbId);
   if(!tb) return;
 
-  if(!d.length) { tb.innerHTML=emptyRow(10); return; }
+  if(!d.length) { tb.innerHTML=emptyRow(mode==='andamento'?10:10); return; }
 
   if(mode==='andamento') {
     tb.innerHTML=d.map(os=>{
