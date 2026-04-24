@@ -618,11 +618,10 @@ td{color:#1f2937;}
 .badge.blink-vencido,.badge.blink-hoje{animation:none!important;}
 tr.row-vencido{animation:none!important;}
 
-
 /* ── Badges por tipo de serviço ── */
 .bg-tipo-a{background:rgba(79,70,229,.09);color:#4338ca;border:1px solid rgba(79,70,229,.2);}
 .bg-tipo-e{background:rgba(5,150,105,.09);color:#047857;border:1px solid rgba(5,150,105,.2);}
-.bg-tipo-b{background:rgba(217,119,6,.10);color:#b45309;border:1px solid rgba(217,119,6,.22);}
+.bg-tipo-b{background:rgba(217,119,6,.1);color:#b45309;border:1px solid rgba(217,119,6,.22);}
 .bg-tipo-g{background:rgba(124,58,237,.09);color:#6d28d9;border:1px solid rgba(124,58,237,.2);}
 .bg-tipo-ava{background:rgba(220,38,38,.09);color:#b91c1c;border:1px solid rgba(220,38,38,.18);}
 </style>
@@ -1577,7 +1576,11 @@ tr.row-vencido{animation:none!important;}
 <div class="toast" id="toast"><span id="toast-ic">✅</span><span id="toast-msg"></span></div>
 
 <script>
-// ── Cor por família de tipo de serviço ─────────────────
+// ══════════════════════════════════════
+// CONSTANTS
+// ══════════════════════════════════════
+
+// ── Cor por família de tipo de serviço ──────────────────────
 function tipoBadge(tipo) {
   if(!tipo) return '<span class="badge bg-gray">—</span>';
   const t = tipo.toUpperCase();
@@ -1589,10 +1592,6 @@ function tipoBadge(tipo) {
   else if(t.startsWith('AVA') || t.startsWith('AV')) cls = 'bg-tipo-ava';
   return '<span class="badge ' + cls + '">' + tipo + '</span>';
 }
-
-// ══════════════════════════════════════
-// CONSTANTS
-// ══════════════════════════════════════
 
 // ══════════════════════════════════════
 // TABELA DE PREÇOS POR EMPRESA
