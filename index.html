@@ -700,6 +700,8 @@ tr.row-vencido{animation:none!important;}
   </div>
   <div class="topbar-right">
     <span class="saving-ind" id="saving-ind"><span class="dot"></span><span id="saving-ind-msg">salvando…</span></span>
+    <button class="btn btn-ghost btn-sm" onclick="abrirBuscaGlobal()" title="Busca global em todas as OS (Ctrl+K)">🔍 Buscar</button>
+    <button class="btn btn-ghost btn-sm" onclick="openOv('ov-backup')" title="Backup/Restauração de dados">💾 Backup</button>
     <button class="btn btn-ghost btn-sm" onclick="openOv('ov-caixa')" title="Integração com extensão da CAIXA">🏦 Importar da CAIXA</button>
     <label class="btn btn-ghost btn-sm" style="cursor:pointer" title="Importar PDF">
       📄 Importar PDF
@@ -1435,8 +1437,53 @@ tr.row-vencido{animation:none!important;}
 </div>
 
 
-<!-- ═══ ROTEIRIZAÇÃO DE VISTORIAS ═══ -->
-<!-- ═══ LIXEIRA ═══ -->
+<!-- ═══ BUSCA GLOBAL ═══ -->
+<div class="ov" id="ov-busca">
+<div class="modal" style="width:720px;max-height:85vh;">
+  <div class="mh">
+    <div><h3>🔍 Busca global</h3><p>Pesquise em todas as OS por empresa, cliente, OS, cidade, endereço…</p></div>
+    <button class="cbtn" onclick="closeOv('ov-busca')">✕</button>
+  </div>
+  <div class="mb">
+    <input type="text" id="busca-global-q" placeholder="Digite para buscar em tudo..." style="width:100%;padding:10px 14px;font-size:14px;background:var(--bg2);border:1px solid var(--br);border-radius:var(--rs);color:var(--tx);" oninput="executarBuscaGlobal()" onkeydown="if(event.key==='Escape')closeOv('ov-busca')">
+    <div id="busca-global-info" style="margin-top:8px;font-size:11px;color:var(--tx3);"></div>
+    <div id="busca-global-res" style="margin-top:10px;max-height:55vh;overflow-y:auto;"></div>
+  </div>
+</div>
+</div>
+
+<!-- ═══ BACKUP / RESTAURAÇÃO ═══ -->
+<div class="ov" id="ov-backup">
+<div class="modal" style="width:560px;">
+  <div class="mh">
+    <div><h3>💾 Backup e Restauração</h3><p>Exporte ou restaure todas as suas OS em um arquivo JSON</p></div>
+    <button class="cbtn" onclick="closeOv('ov-backup')">✕</button>
+  </div>
+  <div class="mb">
+    <div style="background:var(--bg2);border:1px solid var(--br);border-radius:var(--rs);padding:14px;margin-bottom:12px;">
+      <div style="font-weight:600;font-size:13px;color:var(--tx);margin-bottom:6px;">📤 Exportar backup</div>
+      <p style="font-size:12px;color:var(--tx2);margin:0 0 10px 0;">Gera um arquivo <code>.json</code> com TODAS as OS do sistema. Guarde em local seguro.</p>
+      <div id="backup-info" style="font-size:11px;color:var(--tx3);margin-bottom:8px;"></div>
+      <button class="btn btn-primary btn-sm" onclick="exportarBackupJSON()">📥 Baixar backup completo (JSON)</button>
+      <button class="btn btn-ghost btn-sm" onclick="exportarBackupCSV()" style="margin-left:6px;">📊 Baixar como CSV (Excel)</button>
+    </div>
+    <div style="background:var(--bg2);border:1px solid var(--br);border-radius:var(--rs);padding:14px;">
+      <div style="font-weight:600;font-size:13px;color:var(--tx);margin-bottom:6px;">📥 Importar backup</div>
+      <p style="font-size:12px;color:var(--tx2);margin:0 0 10px 0;">Restaura OS a partir de um arquivo JSON. Itens com mesmo ID são <strong>mesclados</strong>; novos são adicionados.</p>
+      <label class="btn btn-primary btn-sm" style="cursor:pointer;">
+        📂 Escolher arquivo JSON
+        <input type="file" accept=".json,application/json" style="display:none;" onchange="importarBackupJSON(this)">
+      </label>
+      <div id="backup-import-status" style="margin-top:10px;font-size:12px;"></div>
+    </div>
+  </div>
+  <div class="mf">
+    <button class="btn btn-ghost" onclick="closeOv('ov-backup')">Fechar</button>
+  </div>
+</div>
+</div>
+
+
 <div class="page" id="page-lixeira">
   <div class="toolbar">
     <div class="srch"><span style="color:var(--tx3)">🔍</span><input type="text" id="s-lix" placeholder="Empresa, OS, cliente..." oninput="renderLixeira()"></div>
@@ -3454,8 +3501,123 @@ window.addEventListener('load', _showSecBanner);
 // ══════════════════════════════════════
 
 // ══════════════════════════════════════
-// FINANCEIRO
+// 🔍 BUSCA GLOBAL EM TODAS AS OS
 // ══════════════════════════════════════
+function abrirBuscaGlobal() {
+  openOv('ov-busca');
+  setTimeout(()=>{
+    const inp = document.getElementById('busca-global-q');
+    if(inp){ inp.value=''; inp.focus(); }
+    const res = document.getElementById('busca-global-res');
+    if(res) res.innerHTML = `<div style="text-align:center;padding:30px;color:var(--tx3);font-size:13px;">💡 Digite ao menos 2 caracteres para buscar em <strong>${DB.length}</strong> OS</div>`;
+    const info = document.getElementById('busca-global-info'); if(info) info.textContent = '';
+  }, 50);
+}
+function executarBuscaGlobal() {
+  const q = (document.getElementById('busca-global-q')?.value || '').trim().toLowerCase();
+  const res = document.getElementById('busca-global-res');
+  const info = document.getElementById('busca-global-info');
+  if(!res) return;
+  if(q.length < 2) { res.innerHTML = `<div style="text-align:center;padding:30px;color:var(--tx3);font-size:13px;">Digite ao menos 2 caracteres</div>`; if(info) info.textContent=''; return; }
+  const t0 = performance.now();
+  const campos = ['empresa','tipoServico','numeroOS','cliente','cidade','endRua','bairro','cep','cnpj','identificacao','tipoImovel','assunto'];
+  const matches = DB.filter(os => campos.some(c => String(os[c]||'').toLowerCase().includes(q)));
+  const dt = (performance.now()-t0).toFixed(0);
+  if(info) info.textContent = `${matches.length} resultado${matches.length!==1?'s':''} em ${dt}ms`;
+  if(!matches.length){ res.innerHTML = `<div style="text-align:center;padding:30px;color:var(--tx3);font-size:13px;">😔 Nenhum resultado para "<strong>${q}</strong>"</div>`; return; }
+  res.innerHTML = matches.slice(0,50).map(os => {
+    const st = statusOS(os);
+    const stCor = st==='finalizado'?'var(--grn)':st==='vistoriada'?'var(--blu)':st==='preenchida'?'var(--yel)':'var(--tx3)';
+    const dias = os.prazoFatal ? diasAte(os.prazoFatal) : null;
+    const diasTxt = dias!==null ? (dias<0?`<span style="color:var(--red);font-weight:600;">${Math.abs(dias)}d vencida</span>`:`<span style="color:${dias<=3?'var(--red)':dias<=7?'var(--yel)':'var(--tx3)'};">${dias}d restantes</span>`) : '';
+    return `<div onclick="closeOv('ov-busca');abrirDetalhe('${os.id}')" style="padding:10px 12px;border:1px solid var(--br);border-radius:var(--rs);margin-bottom:6px;cursor:pointer;background:var(--bg2);transition:background .15s;" onmouseover="this.style.background='var(--bg3)'" onmouseout="this.style.background='var(--bg2)'">
+      <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;">
+        <div style="font-weight:600;font-size:13px;color:var(--tx);">${vl(os.empresa)} · ${vl(os.numeroOS)}</div>
+        <span style="font-size:10px;padding:2px 8px;border-radius:10px;background:${stCor}22;color:${stCor};font-weight:600;text-transform:uppercase;">${st}</span>
+      </div>
+      <div style="font-size:11.5px;color:var(--tx2);margin-top:3px;">${vl(os.cliente)} · ${vl(os.cidade)} · ${vl(os.tipoServico)}</div>
+      <div style="font-size:11px;color:var(--tx3);margin-top:2px;display:flex;justify-content:space-between;">
+        <span>${os.endRua?vl(os.endRua)+(os.endNum?', '+os.endNum:''):''}</span>
+        <span>${diasTxt}</span>
+      </div>
+    </div>`;
+  }).join('') + (matches.length>50?`<div style="text-align:center;padding:10px;font-size:11px;color:var(--tx3);">Mostrando primeiros 50 de ${matches.length} — refine a busca</div>`:'');
+}
+
+// ══════════════════════════════════════
+// 💾 BACKUP / RESTAURAÇÃO
+// ══════════════════════════════════════
+function _atualizarInfoBackup(){
+  const el = document.getElementById('backup-info'); if(!el) return;
+  el.innerHTML = `📦 <strong>${DB.length}</strong> OS no sistema · último cálculo agora`;
+}
+function exportarBackupJSON(){
+  const payload = { _meta:{ exportadoEm:new Date().toISOString(), versao:'1.0', total:DB.length }, ordens:DB };
+  const blob = new Blob([JSON.stringify(payload,null,2)], {type:'application/json;charset=utf-8'});
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'backup_OS_'+new Date().toISOString().split('T')[0]+'.json';
+  document.body.appendChild(a); a.click(); document.body.removeChild(a);
+  toast(`Backup gerado: ${DB.length} OS`, 'ok');
+}
+function exportarBackupCSV(){
+  if(!DB.length){ toast('Sem OS para exportar','err'); return; }
+  const cols = ['numeroOS','empresa','tipoServico','cliente','cidade','endRua','endNum','bairro','cep','dataAbertura','prazoFatal','vistoria','preenchimento','avaliacao','conferencia','finalizacao','valor','observacoes'];
+  const esc = v => { const s=String(v??'').replace(/"/g,'""'); return /[",;\n]/.test(s)?`"${s}"`:s; };
+  const linhas = [cols.join(';')].concat(DB.map(os => cols.map(c => esc(os[c])).join(';')));
+  const blob = new Blob(['\ufeff'+linhas.join('\n')], {type:'text/csv;charset=utf-8'});
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'OS_export_'+new Date().toISOString().split('T')[0]+'.csv';
+  document.body.appendChild(a); a.click(); document.body.removeChild(a);
+  toast(`CSV gerado: ${DB.length} OS`, 'ok');
+}
+async function importarBackupJSON(input){
+  const file = input.files?.[0]; input.value='';
+  const status = document.getElementById('backup-import-status');
+  if(!file){ return; }
+  if(status) status.innerHTML = '<span style="color:var(--tx3);">⏳ Lendo arquivo...</span>';
+  try {
+    const txt = await file.text();
+    const obj = JSON.parse(txt);
+    const lista = Array.isArray(obj) ? obj : (obj.ordens || obj.OSs || []);
+    if(!Array.isArray(lista) || !lista.length) throw new Error('Arquivo sem OS válidas');
+    if(!confirm(`Importar ${lista.length} OS do backup?\n\n• OS com mesmo ID serão atualizadas\n• OS novas serão adicionadas\n• Suas OS atuais NÃO serão excluídas`)){ if(status)status.innerHTML=''; return; }
+    let novos=0, atualizados=0;
+    for(const item of lista){
+      if(!item || !item.id) continue;
+      const idx = DB.findIndex(o => o.id === item.id);
+      if(idx>=0){ DB[idx] = {...DB[idx], ...item}; atualizados++; }
+      else{ DB.push(item); novos++; }
+      try { await fbSave(item); } catch(e){ /* offline ok */ }
+    }
+    if(status) status.innerHTML = `<span style="color:var(--grn);">✅ Importado: ${novos} novas + ${atualizados} atualizadas</span>`;
+    toast(`Backup importado: ${novos+atualizados} OS`, 'ok');
+    refreshAll();
+  } catch(e){
+    if(status) status.innerHTML = `<span style="color:var(--red);">❌ Erro: ${e.message}</span>`;
+    toast('Falha ao importar: '+e.message, 'err');
+  }
+}
+
+// ══════════════════════════════════════
+// ⌨️ ATALHO Ctrl+K → BUSCA GLOBAL
+// ══════════════════════════════════════
+document.addEventListener('keydown', (e)=>{
+  if((e.ctrlKey||e.metaKey) && e.key.toLowerCase()==='k'){ e.preventDefault(); abrirBuscaGlobal(); }
+});
+
+// ══════════════════════════════════════
+// 🌐 INDICADOR ONLINE/OFFLINE (toast nativo do navegador)
+// ══════════════════════════════════════
+window.addEventListener('online',  ()=> toast('🌐 Conexão restabelecida', 'ok'));
+window.addEventListener('offline', ()=> toast('📴 Sem internet — alterações ficarão pendentes', 'err'));
+
+// Atualiza info do backup ao abrir
+const _origOpenOv = window.openOv;
+window.openOv = function(id){ _origOpenOv(id); if(id==='ov-backup') _atualizarInfoBackup(); };
+
+
 function parsVal(v) {
   if(!v) return 0;
   const n = parseFloat(String(v).replace(/[R$\s]/g,'').replace(',','.'));
