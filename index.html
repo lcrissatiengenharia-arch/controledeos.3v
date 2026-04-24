@@ -1,4 +1,16 @@
-<!DOCTYPE html>
+<
+function tipoBadge(tipo) {
+  if(!tipo) return '<span class="badge bg-tipo-outro">—</span>';
+  const t = tipo.toUpperCase();
+  let cls = 'bg-tipo-outro';
+  if(t.startsWith('A-') || t.startsWith('A '))       cls = 'bg-tipo-a';
+  else if(t.startsWith('E-') || t.startsWith('E '))  cls = 'bg-tipo-e';
+  else if(t.startsWith('B-') || t.startsWith('B '))  cls = 'bg-tipo-b';
+  else if(t.startsWith('G-') || t.startsWith('G '))  cls = 'bg-tipo-g';
+  else if(t.startsWith('AVA') || t.startsWith('AV')) cls = 'bg-tipo-ava';
+  return '<span class="badge ' + cls + '">' + tipo + '</span>';
+}
+!DOCTYPE html>
 <html lang="pt-BR">
 <head>
 <meta charset="UTF-8">
@@ -608,6 +620,13 @@ td{color:#1f2937;}
 .mono{color:#667085;}
 .badge{font-weight:700;}
 .bg-blue{background:rgba(79,70,229,.08);color:#4f46e5;border:1px solid rgba(79,70,229,.12);}
+/* ── Cores por tipo de serviço ── */
+.bg-tipo-a{background:rgba(79,70,229,.09);color:#4338ca;border:1px solid rgba(79,70,229,.2);}
+.bg-tipo-e{background:rgba(5,150,105,.09);color:#047857;border:1px solid rgba(5,150,105,.2);}
+.bg-tipo-b{background:rgba(217,119,6,.1);color:#b45309;border:1px solid rgba(217,119,6,.22);}
+.bg-tipo-g{background:rgba(124,58,237,.09);color:#6d28d9;border:1px solid rgba(124,58,237,.2);}
+.bg-tipo-ava{background:rgba(220,38,38,.09);color:#b91c1c;border:1px solid rgba(220,38,38,.18);}
+.bg-tipo-outro{background:rgba(107,114,128,.1);color:#4b5563;border:1px solid rgba(107,114,128,.2);}
 .bg-green{background:rgba(22,163,74,.08);color:#15803d;border:1px solid rgba(22,163,74,.12);}
 .bg-yellow{background:rgba(183,121,31,.08);color:#a16207;border:1px solid rgba(183,121,31,.14);}
 .bg-red{background:rgba(224,90,109,.08);color:#d9485f;border:1px solid rgba(224,90,109,.14);}
@@ -1935,7 +1954,7 @@ function updateBadges() {
   const venc = DB.filter(os=>isAberto(os)&&diasAte(os.prazoFatal)!==null&&diasAte(os.prazoFatal)<=3).length;
   const preen = DB.filter(os=>isAberto(os)&&os.preenchimento==='Preenchido').length;
   const vist = DB.filter(os=>os.vistoria==='Imóvel vistoriado').length;
-  const semFicha = DB.filter(os=>isAberto(os)&&!['Realizada','Sem necessidade'].includes(os.fichas)).length;
+  const semFicha = DB.filter(os=>!isAberto(os)&&!['Realizada','Sem necessidade'].includes(os.fichas)).length;
 
   const vencidas = DB.filter(os=>isAberto(os)&&diasAte(os.prazoFatal)!==null&&diasAte(os.prazoFatal)<0).length;
   const lixCount = (window.LIX_DB||[]).length;
@@ -2204,7 +2223,7 @@ function renderDash() {
         <div style="font-size:12px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${os.empresa}</div>
         <div style="font-size:10.5px;color:var(--tx3);">${os.tipoServico}${os.cliente?' · '+os.cliente.split(' ')[0]:''} · ${fmtDate(os.prazoFatal)}</div>
       </div>
-      <span class="badge bg-blue" style="font-size:10px;">${os.tipoServico}</span>
+      ${tipoBadge(os.tipoServico)}
     </div>`;
   }).join('') : '<div style="font-size:12px;color:var(--tx3);text-align:center;padding:20px 0;">✅ Nenhum prazo próximo esta semana</div>';
 
@@ -2310,7 +2329,7 @@ function renderDash() {
   const ultimas = [...DB].sort((a,b)=>(b.criadoEm||'')>(a.criadoEm||'')?1:-1).slice(0,6);
   document.getElementById('ultimas-os').innerHTML = ultimas.length ? ultimas.map(os=>`
     <div style="display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid var(--br);cursor:pointer;" onclick="abrirDetalhe('${os.id}')">
-      <span class="badge bg-blue" style="font-size:10px;flex-shrink:0;">${os.tipoServico}</span>
+      ${tipoBadge(os.tipoServico)}
       <div style="flex:1;min-width:0;">
         <div style="font-size:12px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${os.empresa}</div>
         <div style="font-size:10.5px;color:var(--tx3);">${os.cliente||os.numeroOS||''}</div>
@@ -2428,7 +2447,7 @@ function renderLista() {
         <input type="checkbox" ${selRow?'checked':''} onchange="toggleSelOS('${os.id}',this)" style="accent-color:var(--red);width:15px;height:15px;cursor:pointer;">
       </td>
       <td style="font-weight:600;max-width:130px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="${os.empresa}">${os.empresa}</td>
-      <td><span class="badge bg-blue">${os.tipoServico}</span></td>
+      <td>${tipoBadge(os.tipoServico)}</td>
       <td style="color:var(--tx3);font-size:11px;">${os.assunto||''}${os.atividade?' / '+os.atividade:''}</td>
       <td><div class="mono el" title="${os.numeroOS}">${os.numeroOS}</div></td>
       <td style="max-width:130px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="${os.cliente||''}">${os.cliente||'—'}</td>
@@ -2459,7 +2478,7 @@ function renderPreenchidas() {
     const cB=os.conferencia==='Conferido'?'<span class="badge bg-green">✓ Conferido</span>':'<span class="badge bg-yellow">Aguardando</span>';
     return `<tr>
       <td style="font-weight:600;">${os.empresa}</td>
-      <td><span class="badge bg-blue">${os.tipoServico}</span></td>
+      <td>${tipoBadge(os.tipoServico)}</td>
       <td><div class="mono el" title="${os.numeroOS}">${os.numeroOS}</div></td>
       <td>${os.cliente||'—'}</td><td>${os.cidade||'—'}</td>
       <td>${vB}</td><td>${pB}</td><td>${aB}</td><td>${cB}</td>
@@ -2479,7 +2498,7 @@ function renderVistoriadas() {
       : '<span class="badge bg-gray">🕐 Aguardando</span>';
     return `<tr>
       <td style="font-weight:600;">${os.empresa}</td>
-      <td><span class="badge bg-blue">${os.tipoServico}</span></td>
+      <td>${tipoBadge(os.tipoServico)}</td>
       <td><div class="mono el" title="${os.numeroOS}">${os.numeroOS}</div></td>
       <td>${os.cliente||'—'}</td><td>${os.cidade||'—'}</td>
       <td>${vistBadge}</td>
@@ -2493,21 +2512,27 @@ function renderVistoriadas() {
 }
 
 function renderSemFicha() {
-  const d=sortData(DB.filter(os=>isAberto(os)&&!['Realizada','Sem necessidade'].includes(os.fichas)), subSort.ficha?.key||'prazoFatal', subSort.ficha?.asc!==false);
+  const d=sortData(
+    DB.filter(os => !isAberto(os) && !['Realizada','Sem necessidade'].includes(os.fichas)),
+    subSort.ficha?.key||'prazoFatal', subSort.ficha?.asc!==false
+  );
   document.getElementById('tb-sem-ficha').innerHTML = d.length ? d.map(os=>{
     const dias=diasAte(os.prazoFatal);
+    const fichaStatus = os.fichas||'Não iniciada';
+    const fichaCls = fichaStatus==='Não iniciada' ? 'bg-orange' : 'bg-gray';
     return `<tr>
       <td style="font-weight:600;">${os.empresa}</td>
-      <td><span class="badge bg-blue">${os.tipoServico}</span></td>
+      <td>${tipoBadge(os.tipoServico)}</td>
       <td><div class="mono el" title="${os.numeroOS}">${os.numeroOS}</div></td>
-      <td>${os.cliente||'—'}</td><td>${os.cidade||'—'}</td>
-      <td><span class="badge bg-green">${os.finalizacao}</span></td>
-      <td><span class="badge bg-orange">${os.fichas||'Não iniciada'}</span></td>
+      <td>${os.cliente||'—'}</td><td title="${os.cidade||''}">${os.cidade||'—'}</td>
+      <td><span class="badge bg-green">✓ Laudo Finalizado</span></td>
+      <td><span class="badge ${fichaCls}">${fichaStatus}</span></td>
       <td>${fmtDate(os.prazoFatal)}</td>
       <td>${diasBadge(dias)}</td>
       <td><button class="btn btn-primary btn-xs" onclick="abrirDetalhe('${os.id}')">Atualizar</button></td>
-    </tr>`;}).join('') : emptyRow(10,true,'✅','Nenhuma OS pendente de ficha de pesquisa');
+    </tr>`}).join('') : emptyRow(10,true,'✅','Todas as fichas de pesquisa realizadas!');
 }
+
 
 function renderSimple(mode) {
   let d=[...DB];
@@ -2609,7 +2634,7 @@ function renderSimple(mode) {
       const dias=diasAte(os.prazoFatal);
       return `<tr>
         <td style="font-weight:600;">${os.empresa}</td>
-        <td><span class="badge bg-blue">${os.tipoServico}</span></td>
+        <td>${tipoBadge(os.tipoServico)}</td>
         <td><div class="mono el" title="${os.numeroOS}">${os.numeroOS}</div></td>
         <td>${os.cliente||'—'}</td><td>${os.cidade||'—'}</td>
         <td>${fmtDate(os.prazoFatal)}</td>
@@ -2624,7 +2649,7 @@ function renderSimple(mode) {
       const [bc,bl]=statusBadge(os);
       return `<tr>
         <td style="font-weight:600;">${os.empresa}</td>
-        <td><span class="badge bg-blue">${os.tipoServico}</span></td>
+        <td>${tipoBadge(os.tipoServico)}</td>
         <td><div class="mono el" title="${os.numeroOS}">${os.numeroOS}</div></td>
         <td>${os.cliente||'—'}</td><td>${os.cidade||'—'}</td>
         <td>${fmtDate(os.prazoFatal)}</td>
@@ -2642,7 +2667,7 @@ function renderSimple(mode) {
         : '<span style="color:var(--tx4);font-size:11px;">—</span>';
       return `<tr>
         <td style="font-weight:600;max-width:130px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="${os.empresa}">${os.empresa}</td>
-        <td><span class="badge bg-blue">${os.tipoServico}</span></td>
+        <td>${tipoBadge(os.tipoServico)}</td>
         <td><div class="mono el" title="${os.numeroOS}">${os.numeroOS}</div></td>
         <td style="max-width:120px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${os.cliente||'—'}</td>
         <td>${os.cidade||'—'}</td>
@@ -2865,7 +2890,7 @@ function abrirDetalhe(id) {
   const endCompleto=[os.endRua,os.endNum&&os.endNum!=='0'?'Nº '+os.endNum:''].filter(Boolean).join(', ')||'—';
 
   // OS dados
-  document.getElementById('dv-tipo').innerHTML=`<span class="badge bg-blue">${os.tipoServico}</span>`;
+  document.getElementById('dv-tipo').innerHTML=`${tipoBadge(os.tipoServico)}`;
   document.getElementById('dv-assunto').textContent=[os.assunto,os.atividade,os.produto].filter(Boolean).join(' / ')||'—';
   document.getElementById('dv-linha').textContent=[os.linha&&'L: '+os.linha,os.fonte&&'F: '+os.fonte].filter(Boolean).join(' · ')||'—';
   document.getElementById('dv-ref').textContent=vl(os.numeroOS);
@@ -3506,7 +3531,7 @@ function renderFinanceiro() {
   const tipoTbl = document.getElementById('fin-tipo-table');
   if(tipoTbl) tipoTbl.innerHTML = tipoArr.map(([t,d])=>`
     <div style="display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid var(--br);">
-      <span class="badge bg-blue" style="width:58px;justify-content:center;">${t}</span>
+      ${tipoBadge(t)}
       <div style="flex:1;background:var(--bg4);border-radius:3px;height:5px;overflow:hidden;">
         <div style="height:100%;width:${d.total/tipoMax*100}%;background:linear-gradient(to right,var(--grn),var(--sky));border-radius:3px;"></div>
       </div>
@@ -3547,7 +3572,7 @@ function renderFinanceiro() {
   if(detTb) detTb.innerHTML = detArr.map(d=>`
     <tr>
       <td style="font-weight:600;">${d.empresa}</td>
-      <td><span class="badge bg-blue">${d.tipo}</span></td>
+      <td>${tipoBadge(d.tipo)}</td>
       <td style="text-align:center;">${d.cnt}</td>
       <td style="font-weight:700;color:var(--tx);">${fmtVal(d.total)}</td>
       <td style="color:var(--grn);font-weight:600;">${fmtVal(d.rec)}</td>
@@ -3662,7 +3687,7 @@ function renderFaturaList() {
       <div style="flex:1;min-width:0;">
         <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
           <span style="font-weight:600;font-size:13px;">${os.empresa}</span>
-          <span class="badge bg-blue" style="font-size:10px;">${os.tipoServico}</span>
+          ${tipoBadge(os.tipoServico)}
           <span class="badge ${bc}" style="font-size:10px;">${bl}</span>
         </div>
         <div class="mono" style="font-size:11px;margin-top:3px;color:var(--tx3);">${os.numeroOS}</div>
@@ -5281,7 +5306,7 @@ function renderLixeira(){
   tb.innerHTML = arr.map(os=>`
     <tr>
       <td>${os.empresa||'—'}</td>
-      <td><span class="badge bg-gray">${os.tipoServico||'—'}</span></td>
+      <td>${tipoBadge(os.tipoServico||'—')}</td>
       <td style="font-family:'JetBrains Mono',monospace;font-size:11px;">${os.numeroOS||'—'}</td>
       <td>${os.cliente||'—'}</td>
       <td>${os.cidade||'—'}</td>
