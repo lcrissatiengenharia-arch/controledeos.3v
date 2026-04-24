@@ -1467,9 +1467,14 @@ tr.row-vencido{animation:none!important;}
       <input type="number" id="rot-duracao" value="30" min="5" max="240" style="width:70px;padding:5px 10px;font-size:12px;background:var(--bg2);border:1px solid var(--br);border-radius:var(--rs);color:var(--tx);">
       <label>Velocidade média (km/h):</label>
       <input type="number" id="rot-vel" value="40" min="10" max="120" style="width:70px;padding:5px 10px;font-size:12px;background:var(--bg2);border:1px solid var(--br);border-radius:var(--rs);color:var(--tx);">
+      <label title="Quilômetros por litro do veículo">⛽ Consumo (km/L):</label>
+      <input type="number" id="rot-consumo" value="12" min="1" max="50" step="0.5" style="width:65px;padding:5px 10px;font-size:12px;background:var(--bg2);border:1px solid var(--br);border-radius:var(--rs);color:var(--tx);">
+      <label title="Preço do combustível por litro">R$/L:</label>
+      <input type="number" id="rot-preco-comb" value="6.00" min="0" max="50" step="0.10" style="width:70px;padding:5px 10px;font-size:12px;background:var(--bg2);border:1px solid var(--br);border-radius:var(--rs);color:var(--tx);">
     </div>
     <button class="btn btn-ghost btn-sm" onclick="limparRoteiro()" style="margin-left:auto;">🗑 Limpar tudo</button>
     <button class="btn btn-ghost btn-sm" onclick="exportarRoteiro()">📋 Exportar agenda</button>
+    <button class="btn btn-ghost btn-sm" onclick="compartilharRotaWhatsApp()" title="Enviar rota via WhatsApp">💬 WhatsApp</button>
   </div>
 
   <div class="rot-wrap">
@@ -4904,9 +4909,27 @@ function gerarRota() {
     const hh = Math.floor(tempoTotalMin / 60);
     const mm = tempoTotalMin % 60;
 
+    // ── Estatísticas extras (perito/vistoriador) ───────────────
+    const horaInicio = document.getElementById('rot-inicio')?.value || '08:00';
+    const [h0, m0]   = horaInicio.split(':').map(Number);
+    const fimMin     = (h0*60 + m0) + tempoTotalMin;
+    const fimHH      = Math.floor(fimMin/60) % 24;
+    const fimMM      = fimMin % 60;
+    const horaFim    = `${String(fimHH).padStart(2,'0')}:${String(fimMM).padStart(2,'0')}`;
+
+    const consumoKmL = parseFloat(document.getElementById('rot-consumo')?.value || '12');
+    const precoComb  = parseFloat(document.getElementById('rot-preco-comb')?.value || '6');
+    const litros     = consumoKmL > 0 ? distTotal / consumoKmL : 0;
+    const custoComb  = litros * precoComb;
+
+    const trechos    = _rotOrdemOtima.length - 1;
+    const distMedia  = trechos > 0 ? distTotal / trechos : 0;
+
     const infoEl = document.getElementById('rot-map-info');
-    if(infoEl) infoEl.textContent =
-      `${distTotal.toFixed(1)} km · ~${hh > 0 ? hh + 'h ' : ''}${mm}min no total`;
+    if(infoEl) infoEl.innerHTML =
+      `<strong>${distTotal.toFixed(1)} km</strong> · ~${hh > 0 ? hh + 'h ' : ''}${mm}min · ` +
+      `término ~${horaFim} · ${distMedia.toFixed(1)} km/trecho · ` +
+      `⛽ ${litros.toFixed(1)}L (~R$ ${custoComb.toFixed(2)})`;
 
     if(btn) { btn.disabled = false; btn.textContent = '🔄 Recalcular rota'; }
 
@@ -4949,12 +4972,12 @@ function _rotRenderMapa() {
 
   if(pts.length === 1) {
     const p = pts[0];
-    // ll= força o centro exato; q= com !4d evita snap a POI próximo
-    embedUrl = `https://maps.google.com/maps?q=loc:${p.lat},${p.lng}&ll=${p.lat},${p.lng}&z=18&output=embed&hl=pt-BR`;
+    // Embed clássico (sem API key) usa ?q=lat,lng — NÃO aceita "loc:" e cai no mapa-mundi.
+    // Adicionamos &z= e &t=m para garantir zoom e tipo padrão.
+    embedUrl = `https://maps.google.com/maps?q=${p.lat},${p.lng}&z=17&t=m&output=embed&hl=pt-BR`;
 
   } else {
     // Sempre rota de carro (dirflg=d). Embed clássico aceita até ~24 paradas via "+to:".
-    // Aumentamos o limite para 20 paradas; acima disso o embed pode truncar.
     const MAX_EMBED = 20;
     const ptsEmbed = pts.length > MAX_EMBED ? pts.slice(0, MAX_EMBED) : pts;
     const origin = `${ptsEmbed[0].lat},${ptsEmbed[0].lng}`;
@@ -5060,6 +5083,38 @@ function exportarRoteiro() {
   a.download = 'agenda_vistorias_'+new Date().toISOString().split('T')[0]+'.txt';
   document.body.appendChild(a); a.click(); document.body.removeChild(a);
   toast('Agenda exportada!', 'ok');
+}
+
+// ── Compartilhar rota via WhatsApp ───────────────────────────
+function compartilharRotaWhatsApp() {
+  const { pontos } = _rotPontosCompletos();
+  if(!pontos.length) { toast('Adicione pontos antes de compartilhar', 'err'); return; }
+  const ordem = _rotRoteada && _rotOrdemOtima.length === pontos.length
+    ? _rotOrdemOtima : pontos.map((_,i)=>i);
+  const horaInicio = document.getElementById('rot-inicio')?.value || '08:00';
+  const durMin = parseInt(document.getElementById('rot-duracao')?.value || '30');
+  const velKmh = parseInt(document.getElementById('rot-vel')?.value || '40');
+  const [h0,m0] = horaInicio.split(':').map(Number);
+  let minCorridos = h0*60 + m0;
+
+  let msg = `*🗺 Rota de Vistorias — ${new Date().toLocaleDateString('pt-BR')}*%0A`;
+  msg += `Início: ${horaInicio} | ${pontos.length} paradas%0A%0A`;
+  ordem.forEach((idx,pos) => {
+    const p = pontos[idx];
+    if(pos>0){
+      const prev = pontos[ordem[pos-1]];
+      const distKm = _rotDistancia(prev.lat,prev.lng,p.lat,p.lng);
+      const tMin = Math.round((distKm/velKmh)*60);
+      const visitaPrev = (prev._tipo==='visita')?durMin:0;
+      minCorridos += tMin + visitaPrev;
+    }
+    const hh = Math.floor(minCorridos/60)%24;
+    const mm = minCorridos%60;
+    const hora = `${String(hh).padStart(2,'0')}:${String(mm).padStart(2,'0')}`;
+    const tag = p._tipo==='partida'?'🚗 PARTIDA':p._tipo==='chegada'?'🏁 CHEGADA':`📍 ${pos}ª`;
+    msg += `*${tag} — ${hora}*%0A${p.nome}%0Ahttps://maps.google.com/?q=${p.lat},${p.lng}%0A%0A`;
+  });
+  window.open(`https://wa.me/?text=${msg}`, '_blank');
 }
 
 // ── Inicializar a página de roteiro ──────────────────────────
