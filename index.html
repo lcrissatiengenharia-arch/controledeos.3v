@@ -172,6 +172,9 @@ window._fbListen = () => {
   }
 };
 document.addEventListener('DOMContentLoaded', () => { /* login controls when to start */ });
+
+// Sinaliza que o módulo Firebase terminou de carregar
+window.dispatchEvent(new CustomEvent('fbReady'));
 </script>
 <style>
 :root {
@@ -4340,7 +4343,9 @@ function verificarSessao() {
 }
 
 // ── Listener central de auth: roda no carregamento e em cada login/logout ──
-window._fbAuth.onChange(async (user) => {
+// Aguarda o módulo Firebase estar pronto antes de registrar o listener
+function _registrarAuthListener() {
+  window._fbAuth.onChange(async (user) => {
   if(user) {
     try {
       USUARIO_ATUAL = await _carregarPerfil(user);
@@ -4370,7 +4375,15 @@ window._fbAuth.onChange(async (user) => {
     if(wrap) wrap.innerHTML = '';
   }
   _authInitDone = true;
-});
+  });
+}
+
+// Registra o listener assim que o módulo Firebase estiver pronto
+if(window._fbAuth) {
+  _registrarAuthListener();
+} else {
+  window.addEventListener('fbReady', _registrarAuthListener, { once: true });
+}
 
 // ── Tela de gerenciamento de usuários (apenas admin) ──
 function abrirGerenciarUsuarios() {
