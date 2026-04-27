@@ -29,8 +29,14 @@
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
-import { getFirestore, collection, onSnapshot, setDoc, deleteDoc, doc, serverTimestamp }
+import { getFirestore, collection, onSnapshot, setDoc, getDoc, deleteDoc, doc, serverTimestamp }
   from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+import {
+  getAuth, onAuthStateChanged, signInWithEmailAndPassword, signOut,
+  setPersistence, browserSessionPersistence, browserLocalPersistence,
+  EmailAuthProvider, reauthenticateWithCredential,
+  createUserWithEmailAndPassword, sendPasswordResetEmail
+} from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
 
 const firebaseConfig = {
   apiKey: "AIzaSyBQFQcoeTIUyosiFqRea6u03Co5S6NuH1s",
@@ -41,9 +47,49 @@ const firebaseConfig = {
   appId: "1:952425730756:web:3a4081496d248ac47eef91"
 };
 
-const app = initializeApp(firebaseConfig);
-const db  = getFirestore(app);
-const col = collection(db, "ordens_servico");
+const app  = initializeApp(firebaseConfig);
+const db   = getFirestore(app);
+const auth = getAuth(app);
+const col  = collection(db, "ordens_servico");
+
+// Sessão fecha junto com o navegador (igual ao comportamento anterior)
+setPersistence(auth, browserSessionPersistence).catch(e => console.warn('persist:', e));
+
+// ── Expor APIs de Auth para o resto do app (escopo global controlado) ──
+window._fbAuth = {
+  // Login com email/senha
+  login: (email, pass) => signInWithEmailAndPassword(auth, email, pass),
+  // Logout
+  logout: () => signOut(auth),
+  // Listener de mudança de estado
+  onChange: (cb) => onAuthStateChanged(auth, cb),
+  // Reautenticação (usada na confirmação de exclusão)
+  reauth: async (pass) => {
+    const u = auth.currentUser;
+    if(!u || !u.email) throw new Error('Sem usuário logado');
+    const cred = EmailAuthProvider.credential(u.email, pass);
+    return reauthenticateWithCredential(u, cred);
+  },
+  // Reset de senha por email
+  resetPassword: (email) => sendPasswordResetEmail(auth, email),
+  // Criar novo usuário (apenas admin) — ver aviso abaixo
+  createUser: async (email, pass) => createUserWithEmailAndPassword(auth, email, pass),
+  // Lê o doc de perfil em /usuarios/{uid}
+  getProfile: async (uid) => {
+    const snap = await getDoc(doc(db, "usuarios", uid));
+    return snap.exists() ? snap.data() : null;
+  },
+  // Cria/atualiza doc de perfil
+  setProfile: async (uid, data) => setDoc(doc(db, "usuarios", uid), data, { merge: true }),
+  // Token claims (perfil vem daqui quando configurado via Cloud Function)
+  getClaims: async (forceRefresh = false) => {
+    const u = auth.currentUser;
+    if(!u) return null;
+    const tk = await u.getIdTokenResult(forceRefresh);
+    return tk.claims || {};
+  },
+  currentUser: () => auth.currentUser,
+};
 
 window._fbSave = async (os) => {
   const { id, ...data } = os;
@@ -637,15 +683,18 @@ tr.row-vencido{animation:none!important;}
       <p>Sistema de Gestão · Caixa Econômica Federal</p>
     </div>
     <div class="login-fld">
-      <label>Usuário</label>
-      <input type="text" id="l-user" placeholder="seu usuário" autocomplete="username" onkeydown="if(event.key==='Enter')document.getElementById('l-pass').focus()">
+      <label>Email</label>
+      <input type="email" id="l-user" placeholder="seu@email.com" autocomplete="username" onkeydown="if(event.key==='Enter')document.getElementById('l-pass').focus()">
     </div>
     <div class="login-fld">
       <label>Senha</label>
       <input type="password" id="l-pass" placeholder="••••••••" autocomplete="current-password" onkeydown="if(event.key==='Enter')fazerLogin()">
     </div>
-    <button class="login-btn" onclick="fazerLogin()">Entrar</button>
-    <div class="login-err" id="login-err">Usuário ou senha incorretos. Tente novamente.</div>
+    <button class="login-btn" id="l-btn" onclick="fazerLogin()">Entrar</button>
+    <div style="text-align:center;margin-top:10px;">
+      <a href="#" id="l-forgot" onclick="event.preventDefault();esqueciSenha()" style="font-size:12px;color:var(--tx3);text-decoration:none;">Esqueci minha senha</a>
+    </div>
+    <div class="login-err" id="login-err">Email ou senha incorretos. Tente novamente.</div>
   </div>
 </div>
 
@@ -1436,6 +1485,51 @@ tr.row-vencido{animation:none!important;}
 </div>
 </div>
 
+<!-- ═══ MODAL GERENCIAR USUÁRIOS (apenas admin) ═══ -->
+<div class="ov" id="ov-users">
+<div class="modal" style="width:520px;">
+  <div class="mh">
+    <div><h3>👥 Gerenciar usuários</h3><p>Cadastre novos colaboradores no sistema</p></div>
+    <button class="cbtn" onclick="closeOv('ov-users')">✕</button>
+  </div>
+  <div class="mb">
+    <div style="background:rgba(78,123,255,.08);border:1px solid rgba(78,123,255,.25);border-radius:var(--rs);padding:10px 14px;margin-bottom:14px;font-size:12px;color:var(--tx2);">
+      ℹ️ Após criar o usuário, o perfil é gravado em <code style="background:var(--bg3);padding:1px 5px;border-radius:3px;">/usuarios/{uid}</code>. Para usar Custom Claims (mais seguro), execute a Cloud Function <code style="background:var(--bg3);padding:1px 5px;border-radius:3px;">setUserRole</code>.
+    </div>
+
+    <div class="login-fld">
+      <label>Nome completo</label>
+      <input type="text" id="nu-nome" placeholder="Ex: Maria Silva">
+    </div>
+    <div class="login-fld">
+      <label>Email</label>
+      <input type="email" id="nu-email" placeholder="maria@empresa.com" autocomplete="off">
+    </div>
+    <div class="login-fld">
+      <label>Senha provisória (mín. 6 caracteres)</label>
+      <input type="text" id="nu-senha" placeholder="••••••••" autocomplete="off">
+    </div>
+    <div class="login-fld">
+      <label>Perfil</label>
+      <select id="nu-perfil" style="width:100%;padding:11px 14px;background:var(--bg3);border:1.5px solid var(--br);border-radius:var(--rs);color:var(--tx);font-size:14px;font-family:'Inter',sans-serif;">
+        <option value="estagiario">📝 Estagiário (Colaborador)</option>
+        <option value="admin">👑 Administrador</option>
+      </select>
+    </div>
+    <div class="login-fld">
+      <label>Cargo (opcional)</label>
+      <input type="text" id="nu-cargo" placeholder="Ex: Analista, Engenheiro...">
+    </div>
+
+    <div id="nu-err" style="display:none;background:rgba(255,68,102,.12);border:1px solid rgba(255,68,102,.3);border-radius:var(--rs);padding:8px 12px;font-size:12px;color:var(--red);margin-top:8px;"></div>
+    <div id="nu-ok"  style="display:none;background:rgba(46,212,122,.12);border:1px solid rgba(46,212,122,.3);border-radius:var(--rs);padding:8px 12px;font-size:12px;color:var(--grn);margin-top:8px;"></div>
+  </div>
+  <div class="mf">
+    <button class="btn btn-ghost"   onclick="closeOv('ov-users')">Fechar</button>
+    <button class="btn btn-primary" id="nu-btn" onclick="criarUsuario()">➕ Criar usuário</button>
+  </div>
+</div>
+</div>
 
 <!-- ═══ BUSCA GLOBAL ═══ -->
 <div class="ov" id="ov-busca">
@@ -4055,18 +4149,23 @@ tr.row-vencido{animation:none!important;}
 
 
 // ══════════════════════════════════════
-// AUTH — Login / Perfis
+// AUTH — Firebase Authentication
 // ══════════════════════════════════════
+//
+// ⚠️  As senhas NÃO ficam mais no front-end.
+//     Os usuários são gerenciados no Firebase Authentication.
+//     O perfil (admin/estagiario) é definido por:
+//       1) Custom claim "perfil" no token (recomendado — definido via Cloud Function)
+//       2) Fallback: doc Firestore /usuarios/{uid} com { perfil, nome, cargo }
+//
+// ➕ Para criar o primeiro admin:
+//     a) Crie o usuário em Firebase Auth → Users (Console Firebase)
+//     b) Rode a Cloud Function `setUserRole` (ver bloco abaixo) ou crie
+//        manualmente o doc /usuarios/{uid} com { perfil:"admin", nome, cargo }
 
-// ⚠️  ALTERE AS SENHAS AQUI:
-const USUARIOS = {
-  'leonardorissati': { senha: '13126705l',   perfil: 'admin',      nome: 'Leonardo Rissati', cargo: 'Administrador' },
-  'paulo':           { senha: 'PauloGerente',perfil: 'estagiario', nome: 'Paulo',           cargo: 'Colaborador'   },
-  'joaopaulo':       { senha: 'JP123',       perfil: 'estagiario', nome: 'João Paulo',      cargo: 'Colaborador'   },
-};
-
-let PERFIL_ATUAL = null; // 'admin' | 'estagiario'
-let USUARIO_ATUAL = null;
+let PERFIL_ATUAL  = null; // 'admin' | 'estagiario'
+let USUARIO_ATUAL = null; // { uid, email, nome, perfil, cargo }
+let _authInitDone = false;
 
 function showLoginError(msg, keepVisible=false) {
   const err = document.getElementById('login-err');
@@ -4079,7 +4178,7 @@ function showLoginError(msg, keepVisible=false) {
 function clearLoginError() {
   const err = document.getElementById('login-err');
   if(!err) return;
-  err.textContent = 'Usuário ou senha incorretos. Tente novamente.';
+  err.textContent = 'Email ou senha incorretos. Tente novamente.';
   err.classList.remove('show');
 }
 
@@ -4087,43 +4186,104 @@ function handleFirebaseInitError(err) {
   const msg = err?.message || 'Não foi possível conectar ao Firebase.';
   console.error('Falha de inicialização do sistema:', err);
   try {
-    if(typeof toast === 'function') toast('Sistema aberto em modo local. Verifique a conexão com o Firebase.', 'err');
+    if(typeof toast === 'function') toast('Falha ao carregar dados online.', 'err');
   } catch(_) {}
-  showLoginError('Login realizado, mas houve falha ao carregar os dados online. O sistema foi aberto em modo local.', true);
-  const login = document.getElementById('login-screen');
-  if(login) login.classList.add('hidden');
-  try { refreshAll(); } catch(_) {}
   const lbl = document.getElementById('clbl');
   if(lbl && msg) lbl.textContent = 'Sem conexão – ' + msg;
 }
 
-function fazerLogin() {
-  const user = (document.getElementById('l-user')?.value || '').trim().toLowerCase();
-  const pass = document.getElementById('l-pass')?.value || '';
+// Traduz mensagens do Firebase Auth p/ português
+function _authErrorMsg(code) {
+  const map = {
+    'auth/invalid-email':           'Email inválido.',
+    'auth/user-disabled':           'Usuário desativado. Contate o administrador.',
+    'auth/user-not-found':          'Email ou senha incorretos.',
+    'auth/wrong-password':          'Email ou senha incorretos.',
+    'auth/invalid-credential':      'Email ou senha incorretos.',
+    'auth/invalid-login-credentials':'Email ou senha incorretos.',
+    'auth/too-many-requests':       'Muitas tentativas. Aguarde alguns minutos.',
+    'auth/network-request-failed':  'Sem conexão com a internet.',
+    'auth/email-already-in-use':    'Este email já está cadastrado.',
+    'auth/weak-password':           'Senha muito fraca (mínimo 6 caracteres).',
+    'auth/requires-recent-login':   'Faça login novamente para continuar.',
+  };
+  return map[code] || 'Erro de autenticação.';
+}
+
+async function fazerLogin() {
+  const email = (document.getElementById('l-user')?.value || '').trim();
+  const pass  = document.getElementById('l-pass')?.value || '';
 
   clearLoginError();
 
-  const dados = USUARIOS[user];
-  if(!dados || dados.senha !== pass) {
-    showLoginError('Usuário ou senha incorretos. Tente novamente.');
-    document.getElementById('l-pass').value = '';
-    document.getElementById('l-pass').focus();
+  if(!email || !pass) {
+    showLoginError('Informe email e senha.');
     return;
   }
 
-  PERFIL_ATUAL  = dados.perfil;
-  USUARIO_ATUAL = { user, nome: dados.nome, perfil: dados.perfil, cargo: dados.cargo||'' };
-
-  // Salva sessão no sessionStorage (fecha ao fechar o navegador)
-  sessionStorage.setItem('os_perfil',  PERFIL_ATUAL);
-  sessionStorage.setItem('os_usuario', JSON.stringify(USUARIO_ATUAL));
+  const btn = document.getElementById('l-btn');
+  if(btn) { btn.disabled = true; btn.textContent = 'Entrando...'; }
 
   try {
-    aplicarPerfil();
+    await window._fbAuth.login(email, pass);
+    // O onAuthStateChanged abaixo cuida do resto (carregar perfil + aplicarPerfil)
   } catch(err) {
-    console.error('Erro ao aplicar perfil no login:', err);
-    handleFirebaseInitError(err);
+    console.warn('Login falhou:', err?.code);
+    showLoginError(_authErrorMsg(err?.code));
+    document.getElementById('l-pass').value = '';
+    document.getElementById('l-pass').focus();
+  } finally {
+    if(btn) { btn.disabled = false; btn.textContent = 'Entrar'; }
   }
+}
+
+async function esqueciSenha() {
+  const email = (document.getElementById('l-user')?.value || '').trim();
+  if(!email) {
+    showLoginError('Digite seu email no campo acima e clique novamente em "Esqueci minha senha".');
+    return;
+  }
+  try {
+    await window._fbAuth.resetPassword(email);
+    showLoginError('Email de recuperação enviado para ' + email, true);
+  } catch(err) {
+    showLoginError(_authErrorMsg(err?.code));
+  }
+}
+
+// Carrega o perfil do usuário (claims primeiro, depois doc /usuarios/{uid})
+async function _carregarPerfil(user) {
+  // 1) Tenta claims (recomendado — definido por Cloud Function)
+  let perfil = null, nome = null, cargo = null;
+  try {
+    const claims = await window._fbAuth.getClaims(true);
+    if(claims?.perfil) {
+      perfil = claims.perfil;
+      nome   = claims.nome  || user.displayName || user.email;
+      cargo  = claims.cargo || (perfil==='admin' ? 'Administrador' : 'Colaborador');
+    }
+  } catch(e) { /* ignora — segue p/ fallback */ }
+
+  // 2) Fallback: doc /usuarios/{uid}
+  if(!perfil) {
+    try {
+      const prof = await window._fbAuth.getProfile(user.uid);
+      if(prof) {
+        perfil = prof.perfil || 'estagiario';
+        nome   = prof.nome   || user.displayName || user.email;
+        cargo  = prof.cargo  || (perfil==='admin' ? 'Administrador' : 'Colaborador');
+      }
+    } catch(e) { console.warn('Falha ao ler /usuarios/{uid}:', e); }
+  }
+
+  // 3) Default seguro: estagiário (mínimo privilégio)
+  if(!perfil) {
+    perfil = 'estagiario';
+    nome   = user.displayName || user.email;
+    cargo  = 'Colaborador';
+  }
+
+  return { uid: user.uid, email: user.email, nome, perfil, cargo, user: user.email };
 }
 
 function aplicarPerfil() {
@@ -4139,6 +4299,7 @@ function aplicarPerfil() {
   // Badge do usuário na sidebar
   const wrap = document.getElementById('user-badge-wrap');
   if(wrap) {
+    const podeGerenciar = isAdmin();
     wrap.innerHTML = `
       <div class="user-badge">
         <div class="av ${PERFIL_ATUAL}">${PERFIL_ATUAL==='admin'?'👑':'📝'}</div>
@@ -4146,6 +4307,7 @@ function aplicarPerfil() {
           <div class="name">${USUARIO_ATUAL?.nome || 'Usuário'}</div>
           <div class="role">${USUARIO_ATUAL?.cargo||'Colaborador'}</div>
         </div>
+        ${podeGerenciar ? '<button class="logout-btn" onclick="abrirGerenciarUsuarios()" title="Gerenciar usuários" style="margin-right:4px;">👥</button>' : ''}
         <button class="logout-btn" onclick="logout()" title="Sair">↩</button>
       </div>`;
   }
@@ -4163,45 +4325,126 @@ function aplicarPerfil() {
   }
 }
 
-function logout() {
+async function logout() {
   if(!confirm('Deseja sair do sistema?')) return;
-  sessionStorage.removeItem('os_perfil');
-  sessionStorage.removeItem('os_usuario');
-  PERFIL_ATUAL = null;
-  USUARIO_ATUAL = null;
-  if(typeof window._fbUnsub === 'function') {
-    try { window._fbUnsub(); } catch(_) {}
-  }
-  window._fbUnsub = null;
-  window._fbStarted = false;
-  document.body.classList.remove('admin','estagiario');
-  document.getElementById('login-screen').classList.remove('hidden');
-  document.getElementById('l-user').value = '';
-  document.getElementById('l-pass').value = '';
-  clearLoginError();
-  const wrap = document.getElementById('user-badge-wrap');
-  if(wrap) wrap.innerHTML = '';
+  try { await window._fbAuth.logout(); } catch(e) { console.warn('signOut:', e); }
+  // O onAuthStateChanged abaixo limpa o estado e mostra a tela de login
 }
 
 function isAdmin() { return PERFIL_ATUAL === 'admin'; }
 
-// Verifica sessão ao carregar
+// Verifica sessão ao carregar — agora delegado ao onAuthStateChanged.
+// Retorna true se já existe usuário Firebase logado (sessão de navegador ativa).
 function verificarSessao() {
-  const perfil   = sessionStorage.getItem('os_perfil');
-  const usuarioS = sessionStorage.getItem('os_usuario');
-  if(perfil && usuarioS) {
-    try {
-      PERFIL_ATUAL  = perfil;
-      USUARIO_ATUAL = JSON.parse(usuarioS);
-      aplicarPerfil();
-      return true;
-    } catch(e) {}
-  }
-  return false;
+  return !!(window._fbAuth && window._fbAuth.currentUser());
 }
 
+// ── Listener central de auth: roda no carregamento e em cada login/logout ──
+window._fbAuth.onChange(async (user) => {
+  if(user) {
+    try {
+      USUARIO_ATUAL = await _carregarPerfil(user);
+      PERFIL_ATUAL  = USUARIO_ATUAL.perfil;
+      aplicarPerfil();
+    } catch(err) {
+      console.error('Erro ao carregar perfil:', err);
+      showLoginError('Não foi possível carregar seu perfil. Contate o administrador.');
+      try { await window._fbAuth.logout(); } catch(_) {}
+    }
+  } else {
+    // Limpa estado e volta para tela de login
+    PERFIL_ATUAL  = null;
+    USUARIO_ATUAL = null;
+    if(typeof window._fbUnsub === 'function') {
+      try { window._fbUnsub(); } catch(_) {}
+    }
+    window._fbUnsub = null;
+    window._fbStarted = false;
+    document.body.classList.remove('admin','estagiario');
+    const ls = document.getElementById('login-screen');
+    if(ls) ls.classList.remove('hidden');
+    const lu = document.getElementById('l-user'); if(lu) lu.value = '';
+    const lp = document.getElementById('l-pass'); if(lp) lp.value = '';
+    clearLoginError();
+    const wrap = document.getElementById('user-badge-wrap');
+    if(wrap) wrap.innerHTML = '';
+  }
+  _authInitDone = true;
+});
 
-// ── Normalização de nomes de empresa ──────────────────────
+// ── Tela de gerenciamento de usuários (apenas admin) ──
+function abrirGerenciarUsuarios() {
+  if(!isAdmin()) { toast('Apenas administradores podem gerenciar usuários','err'); return; }
+  ['nu-nome','nu-email','nu-senha','nu-cargo'].forEach(id => { const el=document.getElementById(id); if(el) el.value=''; });
+  const sel = document.getElementById('nu-perfil'); if(sel) sel.value='estagiario';
+  ['nu-err','nu-ok'].forEach(id => { const el=document.getElementById(id); if(el) el.style.display='none'; });
+  openOv('ov-users');
+}
+
+async function criarUsuario() {
+  if(!isAdmin()) return;
+  const nome   = (document.getElementById('nu-nome')?.value  || '').trim();
+  const email  = (document.getElementById('nu-email')?.value || '').trim();
+  const senha  = document.getElementById('nu-senha')?.value || '';
+  const perfil = document.getElementById('nu-perfil')?.value || 'estagiario';
+  const cargo  = (document.getElementById('nu-cargo')?.value || '').trim() || (perfil==='admin' ? 'Administrador' : 'Colaborador');
+
+  const errEl = document.getElementById('nu-err');
+  const okEl  = document.getElementById('nu-ok');
+  errEl.style.display = okEl.style.display = 'none';
+
+  if(!nome || !email || !senha) {
+    errEl.textContent = '❌ Preencha nome, email e senha.';
+    errEl.style.display = 'block';
+    return;
+  }
+  if(senha.length < 6) {
+    errEl.textContent = '❌ A senha precisa de pelo menos 6 caracteres.';
+    errEl.style.display = 'block';
+    return;
+  }
+
+  const btn = document.getElementById('nu-btn');
+  if(btn) { btn.disabled = true; btn.textContent = 'Criando...'; }
+
+  // ⚠️ ATENÇÃO: createUserWithEmailAndPassword no client troca a sessão p/ o novo
+  // usuário. Para evitar isso o ideal é uma Cloud Function com Admin SDK.
+  const adminEmail = USUARIO_ATUAL?.email;
+
+  try {
+    const cred = await window._fbAuth.createUser(email, senha);
+    const novoUid = cred.user.uid;
+
+    // Salva perfil em /usuarios/{uid}
+    await window._fbAuth.setProfile(novoUid, {
+      nome, email, perfil, cargo,
+      criadoPor: adminEmail || null,
+      criadoEm: new Date().toISOString()
+    });
+
+    okEl.innerHTML = `✅ Usuário <strong>${nome}</strong> criado!<br>
+      ⚠️ Sua sessão foi trocada para o novo usuário. Faça logout e entre novamente como <strong>${adminEmail}</strong>.`;
+    okEl.style.display = 'block';
+
+    ['nu-nome','nu-email','nu-senha','nu-cargo'].forEach(id => { const el=document.getElementById(id); if(el) el.value=''; });
+  } catch(err) {
+    console.error('Falha ao criar usuário:', err);
+    errEl.textContent = '❌ ' + _authErrorMsg(err?.code);
+    errEl.style.display = 'block';
+  } finally {
+    if(btn) { btn.disabled = false; btn.textContent = '➕ Criar usuário'; }
+  }
+}
+
+// Expor no escopo global (chamadas via onclick="...")
+window.fazerLogin             = fazerLogin;
+window.esqueciSenha           = esqueciSenha;
+window.logout                 = logout;
+window.abrirGerenciarUsuarios = abrirGerenciarUsuarios;
+window.criarUsuario           = criarUsuario;
+
+
+
 window.normalizeEmpresa = function normalizeEmpresa(nome) {
   if(!nome) return nome;
   const n = nome.trim();
@@ -4669,10 +4912,13 @@ function abrirApagarTudo() {
 async function confirmarDelecao() {
   if(!isAdmin()) return;
   const senha = document.getElementById('del-senha').value;
-  // Verifica a senha do usuário logado
-  const dadosUser = USUARIOS[USUARIO_ATUAL?.user?.toLowerCase()];
-  if(!dadosUser || dadosUser.senha !== senha) {
+
+  // Reautentica via Firebase (sem senha hardcoded no front-end)
+  try {
+    await window._fbAuth.reauth(senha);
+  } catch(err) {
     document.getElementById('del-err').style.display = 'block';
+    document.getElementById('del-err').textContent = '❌ ' + _authErrorMsg(err?.code);
     document.getElementById('del-senha').value = '';
     document.getElementById('del-senha').focus();
     setTimeout(()=>document.getElementById('del-err').style.display='none', 3000);
