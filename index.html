@@ -19,6 +19,14 @@
          match /ordens_servico_lixeira/{id} {
            allow read, write: if request.auth != null;
          }
+         match /chat_mensagens/{id} {
+           allow read, create: if request.auth != null;
+           allow delete: if request.auth != null && request.auth.uid == resource.data.uid;
+         }
+         match /chat_presenca/{id} {
+           allow read: if request.auth != null;
+           allow write: if request.auth != null && request.auth.uid == id;
+         }
        }
      }
   2) Restringir a apiKey do Firebase por HTTP referrer (Console GCP).
@@ -49,6 +57,7 @@ const firebaseConfig = {
 
 const app  = initializeApp(firebaseConfig);
 const db   = getFirestore(app);
+window._fbDb = db;
 const auth = getAuth(app);
 const col  = collection(db, "ordens_servico");
 
@@ -513,6 +522,26 @@ tr.row-vencido{background:rgba(232,77,110,.05);}
   margin-top:8px;display:flex;flex-wrap:wrap;gap:8px;}
 .audit-line b{color:var(--tx2);font-weight:600;}
 
+/* ─── CHAT ─── */
+.chat-msg{display:flex;gap:10px;align-items:flex-start;animation:fadeInUp .2s ease;}
+.chat-msg.mine{flex-direction:row-reverse;}
+@keyframes fadeInUp{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+.chat-avatar{width:32px;height:32px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:700;flex-shrink:0;background:linear-gradient(135deg,var(--acc),var(--acc2));}
+.chat-bubble{max-width:70%;background:var(--bg3);border:1px solid var(--br);border-radius:18px 18px 18px 4px;padding:10px 14px;font-size:13px;line-height:1.5;color:var(--tx);}
+.chat-msg.mine .chat-bubble{background:linear-gradient(135deg,rgba(79,70,229,.12),rgba(99,102,241,.08));border-color:rgba(79,70,229,.2);border-radius:18px 18px 4px 18px;}
+.chat-meta{font-size:10px;color:var(--tx4);margin-top:4px;}
+.chat-msg.mine .chat-meta{text-align:right;}
+.online-user-item{display:flex;align-items:center;gap:10px;padding:10px 16px;border-bottom:1px solid var(--br);transition:background .15s;}
+.online-user-item:hover{background:var(--bg3);}
+.online-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0;}
+.online-dot.online{background:var(--grn);box-shadow:0 0 6px var(--grn);}
+.online-dot.away{background:var(--yel);}
+.online-dot.offline{background:var(--br2);}
+.chat-date-sep{text-align:center;font-size:10px;color:var(--tx4);padding:8px 0;position:relative;}
+.chat-date-sep::before,.chat-date-sep::after{content:'';position:absolute;top:50%;width:30%;height:1px;background:var(--br);}
+.chat-date-sep::before{left:0;}.chat-date-sep::after{right:0;}
+.chat-sys{text-align:center;font-size:11px;color:var(--tx4);padding:4px 0;font-style:italic;}
+
 /* ─── EMPTY ─── */
 .empty{text-align:center;padding:56px 20px;}
 .empty .ei{font-size:48px;margin-bottom:14px;filter:grayscale(1);opacity:.35;}
@@ -729,12 +758,13 @@ tr.row-vencido{animation:none!important;}
 
     <div class="sb-sec">Campo</div>
     <button class="ni" data-page="roteiro" onclick="go('roteiro')"><span class="ic">🗺️</span><span class="lbl">Roteirização</span></button>
+    <button class="ni" data-page="chat" onclick="go('chat')"><span class="ic">💬</span><span class="lbl">Chat Equipe</span><span class="cnt" id="nb-chat" style="display:none;background:rgba(78,123,255,.2);color:var(--acc);">●</span></button>
 
   </nav>
   <div class="sb-foot">
     <div id="user-badge-wrap" style="margin-bottom:10px;"></div>
     <div class="conn"><div class="conn-dot" id="cdot"></div><span class="conn-lbl" id="clbl">Conectando...</span></div>
-    <div class="sb-ver">v3.0 · 2026</div>
+    <div class="sb-ver">v3.1 · 2026</div>
   </div>
 </aside>
 
@@ -1324,7 +1354,7 @@ tr.row-vencido{animation:none!important;}
 
       <div class="fsep">📅 Recebimento e Observações</div>
 
-      <div class="fld"><span class="flabel">Mês Recebimento <span style="font-weight:400;color:var(--grn);font-size:9px;">AUTO (mês seguinte)</span></span>
+      <div class="fld"><span class="flabel">Mês Recebimento <span style="font-weight:400;color:var(--grn);font-size:9px;">AUTO (mês seguinte ao encerramento)</span></span>
         <select id="f-mes"><option value="">—</option>
           <option>Janeiro</option><option>Fevereiro</option><option>Março</option>
           <option>Abril</option><option>Maio</option><option>Junho</option>
@@ -1721,6 +1751,61 @@ tr.row-vencido{animation:none!important;}
   </div>
 </div>
 
+<!-- ═══ CHAT DA EQUIPE ═══ -->
+<div class="page" id="page-chat">
+  <div style="display:grid;grid-template-columns:220px 1fr;gap:16px;height:calc(100vh - 160px);min-height:500px;">
+
+    <!-- Painel de usuários online -->
+    <div class="card" style="display:flex;flex-direction:column;padding:0;overflow:hidden;">
+      <div style="padding:16px 18px;border-bottom:1px solid var(--br);background:linear-gradient(135deg,rgba(79,70,229,.06),transparent);">
+        <div style="font-size:12px;font-weight:700;color:var(--tx);margin-bottom:2px;">👥 Equipe Online</div>
+        <div style="font-size:10px;color:var(--tx3);" id="online-count">carregando...</div>
+      </div>
+      <div id="online-users-list" style="flex:1;overflow-y:auto;padding:10px 0;">
+        <div style="padding:12px 16px;text-align:center;color:var(--tx4);font-size:12px;">Aguardando...</div>
+      </div>
+    </div>
+
+    <!-- Área do chat -->
+    <div class="card" style="display:flex;flex-direction:column;padding:0;overflow:hidden;">
+
+      <!-- Header -->
+      <div style="padding:14px 20px;border-bottom:1px solid var(--br);background:linear-gradient(135deg,rgba(79,70,229,.06),transparent);display:flex;align-items:center;justify-content:space-between;">
+        <div>
+          <div style="font-size:13px;font-weight:700;color:var(--tx);">💬 Canal Geral</div>
+          <div style="font-size:10.5px;color:var(--tx3);" id="chat-typing-indicator"></div>
+        </div>
+        <div style="display:flex;align-items:center;gap:6px;">
+          <div style="width:8px;height:8px;border-radius:50%;background:var(--grn);box-shadow:0 0 8px var(--grn);"></div>
+          <span style="font-size:11px;color:var(--tx3);">ao vivo</span>
+        </div>
+      </div>
+
+      <!-- Mensagens -->
+      <div id="chat-messages" style="flex:1;overflow-y:auto;padding:16px 20px;display:flex;flex-direction:column;gap:10px;">
+        <div style="text-align:center;padding:20px;color:var(--tx4);font-size:12px;">
+          🔒 Bem-vindo ao chat da equipe. Mensagens são visíveis a todos os membros logados.
+        </div>
+      </div>
+
+      <!-- Input -->
+      <div style="padding:14px 20px;border-top:1px solid var(--br);background:rgba(255,255,255,.6);">
+        <div style="display:flex;gap:10px;align-items:flex-end;">
+          <div style="flex:1;background:var(--bg3);border:1.5px solid var(--br);border-radius:var(--r);padding:10px 14px;display:flex;align-items:center;gap:8px;transition:border-color .15s;" id="chat-input-wrap">
+            <textarea id="chat-input" placeholder="Digite sua mensagem... (Enter para enviar, Shift+Enter para nova linha)"
+              style="flex:1;background:none;border:none;font-family:'Inter',sans-serif;font-size:13px;color:var(--tx);resize:none;max-height:100px;min-height:20px;line-height:1.5;outline:none;"
+              rows="1" oninput="chatAutoResize(this);chatTyping()" onkeydown="chatKeyDown(event)"></textarea>
+          </div>
+          <button class="btn btn-primary" onclick="chatEnviar()" style="height:44px;padding:0 18px;flex-shrink:0;" title="Enviar (Enter)">
+            ↑ Enviar
+          </button>
+        </div>
+        <div style="font-size:10px;color:var(--tx4);margin-top:6px;">Enter para enviar · Shift+Enter para nova linha</div>
+      </div>
+    </div>
+  </div>
+</div>
+
 <!-- TOAST -->
 <div class="toast" id="toast"><span id="toast-ic">✅</span><span id="toast-msg"></span></div>
 
@@ -1761,7 +1846,8 @@ const PAGE_TITLES = {
   andamento:'Em Andamento','vencendo':'Próximo do vencimento','finalizadas':'Finalizadas',
   financeiro:'Dashboard Financeiro','faturas':'Gerar Fatura',
   roteiro:'Roteirização de Vistorias',
-  lixeira:'Lixeira (recuperáveis por 30 dias)'
+  lixeira:'Lixeira (recuperáveis por 30 dias)',
+  chat:'Chat da Equipe'
 };
 
 let DB = [];
@@ -2020,6 +2106,7 @@ function renderPage(id) {
   else if(id==='faturas') renderFaturas();
   else if(id==='roteiro') renderRoteiro();
   else if(id==='lixeira') renderLixeira();
+  else if(id==='chat') renderChatPage();
 }
 
 let _refreshTmr = null;
@@ -2896,21 +2983,33 @@ function autoFillValor() {
 }
 
 
-// ── Regra de recebimento: OS recebida em mês X → paga em mês X+1 ──
+// ── Regra de recebimento: OS FINALIZADA no mês X → recebida no mês X+1 ──
 // Helper único: retorna {mIdx (0-11), ano} do mês de RECEBIMENTO de uma OS
-// Prioriza os.mesRecebimento; se ausente/inválido, calcula = dataAbertura + 1 mês.
+// Prioriza os.mesRecebimento; se ausente/inválido:
+//   - OS finalizada (dataFechamento presente): recebe no mês seguinte ao fechamento
+//   - OS em aberto (sem dataFechamento): recebe no mês seguinte à abertura (estimativa)
 const _MIDX = {
   'Janeiro':0,'Fevereiro':1,'Março':2,'Marco':2,'Abril':3,'Maio':4,'Junho':5,
   'Julho':6,'Agosto':7,'Setembro':8,'Outubro':9,'Novembro':10,'Dezembro':11
 };
 function getMesRecebimento(os) {
   if(!os) return {mIdx:-1, ano:null};
+  // 1) Prioriza campo explícito mesRecebimento
   if(os.mesRecebimento && typeof os.mesRecebimento === 'string' && os.mesRecebimento.includes('/')) {
     const [mNome, aStr] = os.mesRecebimento.split('/');
     const mIdx = _MIDX[mNome?.trim()];
     const ano = parseInt(aStr);
     if(mIdx !== undefined && !isNaN(ano)) return {mIdx, ano};
   }
+  // 2) OS finalizada: usa data de encerramento (mês seguinte)
+  if(os.dataFechamento) {
+    const d = new Date(os.dataFechamento.length>10?os.dataFechamento:os.dataFechamento+'T12:00:00');
+    if(!isNaN(d)) {
+      const prox = new Date(d.getFullYear(), d.getMonth()+1, 1);
+      return {mIdx: prox.getMonth(), ano: prox.getFullYear()};
+    }
+  }
+  // 3) Fallback: OS em aberto - usa data de abertura (apenas estimativa)
   if(os.dataAbertura) {
     const d = new Date(os.dataAbertura.length>10?os.dataAbertura:os.dataAbertura+'T12:00:00');
     if(!isNaN(d)) {
@@ -2920,19 +3019,21 @@ function getMesRecebimento(os) {
   }
   return {mIdx:-1, ano:null};
 }
-function calcMesRecebimento(dataISO) {
-  if(!dataISO) return {mes:'', ano:''};
-  const d = parseDt(dataISO);
+function calcMesRecebimento(dataFechamentoISO, dataAberturaISO) {
+  // Usa data de fechamento se disponível; senão usa abertura como estimativa
+  const dataRef = dataFechamentoISO || dataAberturaISO;
+  if(!dataRef) return {mes:'', ano:''};
+  const d = parseDt(dataRef);
   if(!d) return {mes:'', ano:''};
-  // Avança 1 mês
+  // Mês seguinte ao encerramento (ou abertura como estimativa)
   const prox = new Date(d.getFullYear(), d.getMonth()+1, 1);
   return {
     mes: MESES[prox.getMonth()],
     ano: String(prox.getFullYear())
   };
 }
-function calcMesRecebimentoStr(dataISO) {
-  const {mes,ano} = calcMesRecebimento(dataISO);
+function calcMesRecebimentoStr(dataFechamentoISO, dataAberturaISO) {
+  const {mes,ano} = calcMesRecebimento(dataFechamentoISO, dataAberturaISO);
   return mes && ano ? `${mes}/${ano}` : '';
 }
 function calcPrazoModal() {
@@ -2943,10 +3044,11 @@ function calcPrazoModal() {
   const prazo=prazoCalc(data,tipo);
   document.getElementById('f-prazo').value=prazo?fmtDate(prazo):'';
   if(tipo&&PRAZOS[tipo]) document.getElementById('f-prazo-exec').value=PRAZOS[tipo];
-  // Mês de recebimento = mês da OS + 1 (regra fixa)
+  // Mês de recebimento: ao criar OS nova (sem fechamento), estimativa = abertura + 1 mês
+  // Será recalculado corretamente quando a OS for finalizada
   const dtAbertura = document.getElementById('f-abertura').value;
   if(dtAbertura) {
-    const {mes:mRec, ano:aRec} = calcMesRecebimento(dtAbertura.split('T')[0]||dtAbertura);
+    const {mes:mRec, ano:aRec} = calcMesRecebimento('', dtAbertura.split('T')[0]||dtAbertura);
     document.getElementById('f-mes').value = mRec;
     document.getElementById('f-ano').value = aRec;
   }
@@ -2962,10 +3064,13 @@ async function salvar() {
   if(!empresa||!numeroOS||!tipoServico||!aberturaRaw){toast('Preencha os campos obrigatórios!','err');return;}
 
   const dataAbertura=aberturaRaw; // store full datetime
-  // Sempre recalcula mês de recebimento pela regra (OS + 1 mês), ignora valor manual
+  // Recalcula mês de recebimento:
+  // - Se OS já tem dataFechamento (finalizando no form): usa data de encerramento + 1 mês
+  // - Caso contrário (OS em aberto): usa data de abertura como estimativa (será corrigido ao finalizar)
+  const dataFechamentoParaMes = '';  // No form de nova OS nunca há fechamento
   const aberturaParaMes = aberturaRaw ? aberturaRaw.split('T')[0]||aberturaRaw : '';
   const {mes:mes, ano:ano} = aberturaParaMes
-    ? calcMesRecebimento(aberturaParaMes)
+    ? calcMesRecebimento(dataFechamentoParaMes, aberturaParaMes)
     : {mes: document.getElementById('f-mes').value, ano: document.getElementById('f-ano').value};
 
   const os={
@@ -3117,6 +3222,12 @@ async function salvarStatus() {
   os.dataFechamento=document.getElementById('ed-fech').value;
   if(os.finalizacao==='Laudo Finalizado'&&!os.dataFechamento)
     os.dataFechamento=new Date().toISOString().split('T')[0];
+  // Recalcula mês de recebimento pela data de ENCERRAMENTO (regra correta)
+  // OS finalizadas no mês X serão recebidas no mês X+1
+  if(os.dataFechamento) {
+    const {mes:mRec, ano:aRec} = calcMesRecebimento(os.dataFechamento, os.dataAbertura);
+    if(mRec && aRec) os.mesRecebimento = `${mRec}/${aRec}`;
+  }
   closeOv('ov-det');
   toast('Salvando...','ok');
   await fbSave(os);
@@ -3386,7 +3497,7 @@ function dadosToOS(d) {
     vistoria:'Aguardando vistoria',avaliacao:'Avaliação não iniciada',
     preenchimento:'Não Iniciado',conferencia:'Aguardando',
     finalizacao:'Laudo em Andamento',fichas:'Não iniciada',
-    dataFechamento:'',mesRecebimento:calcMesRecebimentoStr(d.dataAbertura),criadoEm:new Date().toISOString(),
+    dataFechamento:'',mesRecebimento:calcMesRecebimentoStr('', d.dataAbertura),criadoEm:new Date().toISOString(),
   };
 }
 
@@ -5842,6 +5953,274 @@ async function esvaziarLixeira(){
 updateBadges();
 renderDash();
 try { verificarPacoteCaixaPendente(); } catch(_) {}
+
+// ══════════════════════════════════════════════════════════════
+// 💬 MÓDULO DE CHAT DA EQUIPE COM PRESENÇA ONLINE
+// Usa Firestore: /chat_mensagens e /chat_presenca
+// ══════════════════════════════════════════════════════════════
+
+let _chatUnsub = null;        // listener de mensagens
+let _presencaUnsub = null;    // listener de presença
+let _chatIniciado = false;
+let _chatTypingTimer = null;
+let _ultimaMsgData = null;
+
+// ── Inicializar chat (chamado quando a página é aberta) ─────────────
+function renderChatPage() {
+  if(!USUARIO_ATUAL) return;
+  if(!_chatIniciado) {
+    _chatIniciado = true;
+    _initChat();
+  }
+  _marcarPresenca('online');
+  _scrollChatBottom();
+}
+
+async function _initChat() {
+  try {
+    // Importar Firestore extras via módulo (já temos db e as funções importadas no topo)
+    const { collection, onSnapshot, addDoc, serverTimestamp, query, orderBy,
+            limit, doc, setDoc, deleteDoc, onDisconnect } =
+      await import('https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js');
+
+    const db = window._fbDb;
+    if(!db) { console.warn('db não disponível para chat'); return; }
+
+    const colMsg = collection(db, 'chat_mensagens');
+    const colPres = collection(db, 'chat_presenca');
+
+    // ── Listener de mensagens (últimas 100) ──
+    const q = query(colMsg, orderBy('ts', 'asc'), limit(100));
+    _chatUnsub = onSnapshot(q, snap => {
+      const msgs = snap.docs.map(d => ({id:d.id, ...d.data()}));
+      _renderMensagens(msgs);
+    }, err => console.error('Chat msg error:', err));
+
+    // ── Listener de presença ──
+    _presencaUnsub = onSnapshot(colPres, snap => {
+      const users = snap.docs.map(d => ({id:d.id, ...d.data()}));
+      _renderPresenca(users);
+    }, err => console.error('Chat presença error:', err));
+
+    // ── Marcar presença ──
+    window._chatColMsg  = colMsg;
+    window._chatColPres = colPres;
+    window._chatAddDoc  = addDoc;
+    window._chatSetDoc  = (docRef, data) => setDoc(docRef, data, {merge:true});
+    window._chatDelDoc  = deleteDoc;
+    window._chatDoc     = doc;
+    window._chatSrvTs   = serverTimestamp;
+    window._chatDb      = db;
+
+    _marcarPresenca('online');
+
+    // Remove presença ao fechar aba
+    window.addEventListener('beforeunload', () => _marcarPresenca('offline'));
+    document.addEventListener('visibilitychange', () => {
+      _marcarPresenca(document.hidden ? 'away' : 'online');
+    });
+  } catch(err) {
+    console.error('Chat init error:', err);
+  }
+}
+
+async function _marcarPresenca(status) {
+  if(!USUARIO_ATUAL || !window._chatDoc || !window._chatSetDoc) return;
+  try {
+    const docRef = window._chatDoc(window._chatDb, 'chat_presenca', USUARIO_ATUAL.uid);
+    if(status === 'offline') {
+      await window._chatDelDoc(docRef);
+    } else {
+      await window._chatSetDoc(docRef, {
+        uid: USUARIO_ATUAL.uid,
+        nome: USUARIO_ATUAL.nome || USUARIO_ATUAL.email,
+        email: USUARIO_ATUAL.email,
+        perfil: USUARIO_ATUAL.perfil,
+        status,
+        ts: window._chatSrvTs()
+      });
+    }
+  } catch(e) { /* silencioso */ }
+}
+
+function _renderPresenca(users) {
+  const online = users.filter(u => u.status === 'online');
+  const away   = users.filter(u => u.status === 'away');
+  const todos  = [...online, ...away];
+
+  const countEl = document.getElementById('online-count');
+  if(countEl) countEl.textContent = `${online.length} online${away.length?' · '+away.length+' ausente':''}`;
+
+  // Badge na sidebar
+  const badge = document.getElementById('nb-chat');
+  if(badge) {
+    if(online.length > 1) { // mais de 1 (inclui o próprio usuário)
+      badge.style.display = 'inline-flex';
+      badge.textContent = online.length;
+    } else {
+      badge.style.display = 'none';
+    }
+  }
+
+  const list = document.getElementById('online-users-list');
+  if(!list) return;
+
+  if(!todos.length) {
+    list.innerHTML = '<div style="padding:20px;text-align:center;color:var(--tx4);font-size:12px;">Nenhum usuário online</div>';
+    return;
+  }
+
+  list.innerHTML = todos.map(u => {
+    const isMine = u.uid === USUARIO_ATUAL?.uid;
+    const initials = (u.nome||'?').split(' ').map(w=>w[0]).join('').slice(0,2).toUpperCase();
+    const statusColor = u.status==='online' ? '#22c55e' : '#f0c040';
+    const statusLabel = u.status==='online' ? 'online' : 'ausente';
+    return `<div class="online-user-item">
+      <div style="position:relative;flex-shrink:0;">
+        <div style="width:32px;height:32px;border-radius:50%;background:linear-gradient(135deg,${isMine?'var(--acc)':'#6b7280'},${isMine?'var(--acc2)':'#4b5563'});
+          display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;color:#fff;">${initials}</div>
+        <div style="position:absolute;bottom:0;right:0;width:9px;height:9px;border-radius:50%;background:${statusColor};
+          border:2px solid var(--bg2);${u.status==='online'?'box-shadow:0 0 5px '+statusColor+';':''}"></div>
+      </div>
+      <div style="flex:1;min-width:0;">
+        <div style="font-size:12px;font-weight:${isMine?'700':'600'};color:${isMine?'var(--acc)':'var(--tx)'};white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">
+          ${u.nome||u.email||'?'}${isMine?' (você)':''}
+        </div>
+        <div style="font-size:10px;color:var(--tx4);">${statusLabel}</div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function _renderMensagens(msgs) {
+  const container = document.getElementById('chat-messages');
+  if(!container) return;
+
+  const isAtBottom = container.scrollHeight - container.scrollTop - container.clientHeight < 80;
+  let html = '';
+  let lastDate = null;
+
+  if(!msgs.length) {
+    html = `<div style="text-align:center;padding:40px 20px;color:var(--tx4);">
+      <div style="font-size:36px;margin-bottom:10px;">💬</div>
+      <div style="font-size:14px;font-weight:600;margin-bottom:4px;color:var(--tx2);">Nenhuma mensagem ainda</div>
+      <div style="font-size:12px;">Seja o primeiro a escrever!</div>
+    </div>`;
+  } else {
+    msgs.forEach(msg => {
+      // Data separator
+      let ts = null;
+      try {
+        ts = msg.ts?.toDate ? msg.ts.toDate() : (msg.ts ? new Date(msg.ts) : null);
+      } catch(e) {}
+
+      if(ts) {
+        const dateStr = ts.toLocaleDateString('pt-BR', {day:'2-digit',month:'2-digit',year:'numeric'});
+        if(dateStr !== lastDate) {
+          const hoje = new Date().toLocaleDateString('pt-BR', {day:'2-digit',month:'2-digit',year:'numeric'});
+          const ontem = new Date(Date.now()-86400000).toLocaleDateString('pt-BR', {day:'2-digit',month:'2-digit',year:'numeric'});
+          const label = dateStr===hoje?'Hoje':dateStr===ontem?'Ontem':dateStr;
+          html += `<div class="chat-date-sep">${label}</div>`;
+          lastDate = dateStr;
+        }
+      }
+
+      if(msg.tipo === 'sistema') {
+        html += `<div class="chat-sys">● ${msg.texto}</div>`;
+        return;
+      }
+
+      const isMine = msg.uid === USUARIO_ATUAL?.uid;
+      const initials = (msg.nome||'?').split(' ').map(w=>w[0]).join('').slice(0,2).toUpperCase();
+      const hora = ts ? ts.toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'}) : '';
+      const perfilIcon = msg.perfil==='admin' ? '👑' : '📝';
+      const texto = (msg.texto||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/\n/g,'<br>');
+
+      html += `<div class="chat-msg${isMine?' mine':''}">
+        <div class="chat-avatar" style="background:linear-gradient(135deg,${isMine?'var(--acc)':'#6b7280'},${isMine?'var(--acc2)':'#4b5563'});
+          font-size:11px;" title="${msg.nome||'?'}">${initials}</div>
+        <div>
+          ${!isMine?`<div style="font-size:10.5px;font-weight:700;color:var(--tx2);margin-bottom:4px;">${perfilIcon} ${msg.nome||'?'}</div>`:''}
+          <div class="chat-bubble">${texto}</div>
+          <div class="chat-meta">${hora}</div>
+        </div>
+      </div>`;
+    });
+  }
+
+  container.innerHTML = html;
+
+  // Auto-scroll se estava no final
+  if(isAtBottom || msgs[msgs.length-1]?.uid === USUARIO_ATUAL?.uid) {
+    _scrollChatBottom();
+  }
+}
+
+function _scrollChatBottom() {
+  setTimeout(() => {
+    const el = document.getElementById('chat-messages');
+    if(el) el.scrollTop = el.scrollHeight;
+  }, 50);
+}
+
+async function chatEnviar() {
+  if(!USUARIO_ATUAL || !window._chatColMsg || !window._chatAddDoc) return;
+  const inp = document.getElementById('chat-input');
+  const texto = (inp?.value || '').trim();
+  if(!texto) return;
+
+  inp.value = '';
+  chatAutoResize(inp);
+
+  try {
+    await window._chatAddDoc(window._chatColMsg, {
+      uid:    USUARIO_ATUAL.uid,
+      email:  USUARIO_ATUAL.email,
+      nome:   USUARIO_ATUAL.nome || USUARIO_ATUAL.email,
+      perfil: USUARIO_ATUAL.perfil,
+      texto,
+      tipo:   'mensagem',
+      ts:     window._chatSrvTs()
+    });
+    _scrollChatBottom();
+  } catch(err) {
+    console.error('Erro ao enviar msg:', err);
+    toast('Erro ao enviar mensagem', 'err');
+    inp.value = texto; // restaura
+  }
+}
+
+function chatKeyDown(e) {
+  if(e.key === 'Enter' && !e.shiftKey) {
+    e.preventDefault();
+    chatEnviar();
+  }
+}
+
+function chatAutoResize(el) {
+  el.style.height = 'auto';
+  el.style.height = Math.min(el.scrollHeight, 100) + 'px';
+  const wrap = document.getElementById('chat-input-wrap');
+  if(wrap) wrap.style.borderColor = el.value ? 'var(--acc)' : 'var(--br)';
+}
+
+let _typingTimeout = null;
+function chatTyping() {
+  // (opcional: indicador de "digitando") — leve, apenas local
+  clearTimeout(_typingTimeout);
+}
+
+// Finalizar listeners ao fazer logout
+const _origLogout = window.logout;
+window.logout = async function() {
+  if(_chatUnsub)   { try { _chatUnsub(); } catch(e){} }
+  if(_presencaUnsub){ try { _presencaUnsub(); } catch(e){} }
+  await _marcarPresenca('offline');
+  _chatIniciado = false;
+  _chatUnsub = null;
+  _presencaUnsub = null;
+  if(_origLogout) await _origLogout();
+};
 </script>
 </body>
 </html>
