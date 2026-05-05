@@ -1894,14 +1894,14 @@ function srtSub(page, key) {
 
 function sortData(arr, key, asc) {
   const dateFields=['dataAbertura','prazoFatal','dataFechamento','criadoEm'];
-  // mesRecebimento: "Maio/2026" → sort numérico por ano+mês
+  // mesRecebimento: sort usa getMesRecebimento() para garantir cálculo pela dataFechamento
   if(key==='mesRecebimento') {
-    const toNum = (s) => {
-      if(!s) return asc ? Infinity : -Infinity;
-      const [m,y] = s.split('/');
-      return parseInt(y||0)*100 + (MESES.indexOf(m)+1);
+    const toNum = (os) => {
+      const {mIdx, ano} = getMesRecebimento(os);
+      if(mIdx < 0 || !ano) return asc ? Infinity : -Infinity;
+      return ano*100 + (mIdx+1);
     };
-    return [...arr].sort((a,b)=> asc ? toNum(a[key])-toNum(b[key]) : toNum(b[key])-toNum(a[key]));
+    return [...arr].sort((a,b)=> asc ? toNum(a)-toNum(b) : toNum(b)-toNum(a));
   }
   return [...arr].sort((a,b)=>{
     if(dateFields.includes(key)){
@@ -2798,13 +2798,19 @@ function renderSimple(mode) {
   if(mode==='finalizadas') {
     d=d.filter(os=>!isAberto(os));
 
+    // Helper: mês de recebimento calculado (sempre usa dataFechamento quando presente)
+    const getMesRec = (os) => {
+      const {mIdx, ano} = getMesRecebimento(os);
+      return (mIdx >= 0 && ano) ? MESES[mIdx]+'/'+ano : (os.mesRecebimento || '');
+    };
+
     // Popula dropdowns de mês, ano e empresa
     const mesEl  = document.getElementById('fin-mes-filtro');
     const empEl  = document.getElementById('fin-emp-filtro');
     if(mesEl && mesEl.options.length <= 1) {
-      // Coleta todos os meses/anos únicos das OS finalizadas
+      // Coleta todos os meses/anos únicos das OS finalizadas (calculado dinamicamente)
       const mesesSet = new Set();
-      d.forEach(os => { if(os.mesRecebimento) mesesSet.add(os.mesRecebimento); });
+      d.forEach(os => { const m = getMesRec(os); if(m) mesesSet.add(m); });
       const mesesArr = [...mesesSet].sort((a,b) => {
         const [ma,ya] = a.split('/'); const [mb,yb] = b.split('/');
         const toNum = (m,y) => parseInt(y)*100 + MESES.indexOf(m);
@@ -2825,12 +2831,12 @@ function renderSimple(mode) {
       });
     }
 
-    // Aplica filtros
+    // Aplica filtros usando mês calculado dinamicamente
     const filtMes  = mesEl?.value  || '';
     const filtAno  = document.getElementById('fin-ano-filtro')?.value || '';
     const filtEmp  = empEl?.value  || '';
-    if(filtMes) d=d.filter(os=>(os.mesRecebimento||'')=== filtMes);
-    else if(filtAno) d=d.filter(os=>(os.mesRecebimento||'').endsWith('/'+filtAno));
+    if(filtMes) d=d.filter(os=>getMesRec(os) === filtMes);
+    else if(filtAno) d=d.filter(os=>getMesRec(os).endsWith('/'+filtAno));
     if(filtEmp) d=d.filter(os=>os.empresa===filtEmp);
 
     d=sortData(d, subSort.fin.key, subSort.fin.asc);
@@ -2891,7 +2897,9 @@ function renderSimple(mode) {
   } else if(mode==='finalizadas') {
     if(!d.length) { tb.innerHTML=emptyRow(10,true,'✅','Nenhuma OS finalizada com esse filtro'); }
     else tb.innerHTML=d.map(os=>{
-      const mesRec = os.mesRecebimento || '';
+      // Calcula mês de recebimento dinamicamente pela data de fechamento (prioridade absoluta)
+      const {mIdx: _mI, ano: _mA} = getMesRecebimento(os);
+      const mesRec = (_mI >= 0 && _mA) ? MESES[_mI]+'/'+_mA : (os.mesRecebimento || '');
       const mesBadge = mesRec
         ? `<span style="display:inline-block;padding:3px 9px;border-radius:20px;font-size:11px;font-weight:600;background:rgba(24,212,160,.12);color:var(--grn);border:1px solid rgba(24,212,160,.25);">📅 ${mesRec}</span>`
         : '<span style="color:var(--tx4);font-size:11px;">—</span>';
@@ -2994,14 +3002,9 @@ const _MIDX = {
 };
 function getMesRecebimento(os) {
   if(!os) return {mIdx:-1, ano:null};
-  // 1) Prioriza campo explícito mesRecebimento
-  if(os.mesRecebimento && typeof os.mesRecebimento === 'string' && os.mesRecebimento.includes('/')) {
-    const [mNome, aStr] = os.mesRecebimento.split('/');
-    const mIdx = _MIDX[mNome?.trim()];
-    const ano = parseInt(aStr);
-    if(mIdx !== undefined && !isNaN(ano)) return {mIdx, ano};
-  }
-  // 2) OS finalizada: usa data de encerramento (mês seguinte)
+  // REGRA PRINCIPAL: dataFechamento tem prioridade absoluta.
+  // OS finalizada em ABRIL/2026 → recebida em MAIO/2026 (fechamento + 1 mês).
+  // 1) Tem dataFechamento → sempre usa ele, independente de mesRecebimento salvo
   if(os.dataFechamento) {
     const d = new Date(os.dataFechamento.length>10?os.dataFechamento:os.dataFechamento+'T12:00:00');
     if(!isNaN(d)) {
@@ -3009,7 +3012,14 @@ function getMesRecebimento(os) {
       return {mIdx: prox.getMonth(), ano: prox.getFullYear()};
     }
   }
-  // 3) Fallback: OS em aberto - usa data de abertura (apenas estimativa)
+  // 2) Sem fechamento: mesRecebimento manual salvo (OS em aberto com mês definido manualmente)
+  if(os.mesRecebimento && typeof os.mesRecebimento === 'string' && os.mesRecebimento.includes('/')) {
+    const [mNome, aStr] = os.mesRecebimento.split('/');
+    const mIdx = _MIDX[mNome?.trim()];
+    const ano = parseInt(aStr);
+    if(mIdx !== undefined && !isNaN(ano)) return {mIdx, ano};
+  }
+  // 3) Fallback final: OS em aberto sem fechamento → estimativa pela abertura
   if(os.dataAbertura) {
     const d = new Date(os.dataAbertura.length>10?os.dataAbertura:os.dataAbertura+'T12:00:00');
     if(!isNaN(d)) {
