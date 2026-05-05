@@ -3000,14 +3000,30 @@ const _MIDX = {
   'Janeiro':0,'Fevereiro':1,'Março':2,'Marco':2,'Abril':3,'Maio':4,'Junho':5,
   'Julho':6,'Agosto':7,'Setembro':8,'Outubro':9,'Novembro':10,'Dezembro':11
 };
+function _parseDateFlexivel(s) {
+  // Aceita ISO (2026-05-05), ISO+hora (2026-05-05T...) e formato BR (05/05/2026)
+  if(!s) return null;
+  s = String(s).trim();
+  // Formato BR: DD/MM/YYYY
+  const brMatch = s.match(/^(\d{2})\/(\d{2})\/(\d{4})/);
+  if(brMatch) {
+    const d = new Date(parseInt(brMatch[3]), parseInt(brMatch[2])-1, parseInt(brMatch[1]), 12, 0, 0);
+    return isNaN(d) ? null : d;
+  }
+  // Formato ISO: YYYY-MM-DD ou YYYY-MM-DDTHH:MM
+  const isoStr = s.length === 10 ? s+'T12:00:00' : s;
+  const d = new Date(isoStr);
+  return isNaN(d) ? null : d;
+}
+
 function getMesRecebimento(os) {
   if(!os) return {mIdx:-1, ano:null};
   // REGRA PRINCIPAL: dataFechamento tem prioridade absoluta.
   // OS finalizada em ABRIL/2026 → recebida em MAIO/2026 (fechamento + 1 mês).
   // 1) Tem dataFechamento → sempre usa ele, independente de mesRecebimento salvo
   if(os.dataFechamento) {
-    const d = new Date(os.dataFechamento.length>10?os.dataFechamento:os.dataFechamento+'T12:00:00');
-    if(!isNaN(d)) {
+    const d = _parseDateFlexivel(os.dataFechamento);
+    if(d) {
       const prox = new Date(d.getFullYear(), d.getMonth()+1, 1);
       return {mIdx: prox.getMonth(), ano: prox.getFullYear()};
     }
@@ -3021,8 +3037,8 @@ function getMesRecebimento(os) {
   }
   // 3) Fallback final: OS em aberto sem fechamento → estimativa pela abertura
   if(os.dataAbertura) {
-    const d = new Date(os.dataAbertura.length>10?os.dataAbertura:os.dataAbertura+'T12:00:00');
-    if(!isNaN(d)) {
+    const d = _parseDateFlexivel(os.dataAbertura);
+    if(d) {
       const prox = new Date(d.getFullYear(), d.getMonth()+1, 1);
       return {mIdx: prox.getMonth(), ano: prox.getFullYear()};
     }
