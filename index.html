@@ -6,6 +6,18 @@
 <title>Controle OS — Caixa (v3.2)</title>
 <meta name="description" content="Sistema de gestão de Ordens de Serviço para engenharia/avaliações — Caixa Econômica Federal">
 <meta name="robots" content="noindex, nofollow">
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+<style>
+.leaflet-container { font-family: 'Inter', -apple-system, sans-serif !important; }
+.leaflet-tile { image-rendering: -webkit-optimize-contrast; image-rendering: crisp-edges; }
+.leaflet-control-zoom a { font-size:16px !important; line-height:26px !important; width:26px !important; height:26px !important; }
+.leaflet-control-zoom { border:none !important; box-shadow:0 2px 12px rgba(0,0,0,.12) !important; border-radius:8px !important; overflow:hidden; }
+.leaflet-control-zoom a:first-child { border-radius:8px 8px 0 0 !important; }
+.leaflet-control-zoom a:last-child  { border-radius:0 0 8px 8px !important; }
+.leaflet-bottom.leaflet-right { bottom: 6px !important; right: 6px !important; }
+</style>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="https://unpkg.com/leaflet.heat@0.2.0/dist/leaflet-heat.js"></script>
 <!--
   ⚠️  AVISO DE SEGURANÇA — LEIA ANTES DE COLOCAR EM PRODUÇÃO
   ─────────────────────────────────────────────────────────
@@ -754,6 +766,11 @@ tr.row-vencido{animation:none!important;}
     <button class="ni" data-page="lixeira" onclick="go('lixeira')"><span class="ic">🗑️</span><span class="lbl">Lixeira</span><span class="cnt" id="nb-lix">0</span></button>
     <button class="ni" data-page="finalizadas" onclick="go('finalizadas')"><span class="ic">✅</span><span class="lbl">Finalizadas</span><span class="cnt green" id="nb-fin">0</span></button>
 
+    <div class="sb-sec">Análises</div>
+    <button class="ni" data-page="dash-tendencia" onclick="go('dash-tendencia')"><span class="ic">📈</span><span class="lbl">Tendência de Prazo</span></button>
+    <button class="ni admin-only" data-page="dash-receita" onclick="go('dash-receita')"><span class="ic">💹</span><span class="lbl">Receita Empresa × Tipo</span></button>
+    <button class="ni" data-page="dash-cidades" onclick="go('dash-cidades')"><span class="ic">🗺️</span><span class="lbl">Mapa de Cidades</span></button>
+
     <div class="sb-sec admin-only">Financeiro</div>
     <button class="ni admin-only" data-page="financeiro" onclick="go('financeiro')"><span class="ic">💰</span><span class="lbl">Dashboard Financeiro</span></button>
     <button class="ni admin-only" data-page="faturas" onclick="go('faturas')"><span class="ic">🧾</span><span class="lbl">Gerar Fatura</span></button>
@@ -962,7 +979,32 @@ tr.row-vencido{animation:none!important;}
     </div>
   </div>
 
-  <!-- ROW 5: Admin only — mini financeiro -->
+  <!-- ROW 5: Mapa de calor de cidades -->
+  <div class="card" style="margin-bottom:16px;">
+    <div class="card-hd">
+      <h3>🗺️ Distribuição Geográfica — Mapa de Calor</h3>
+      <div style="display:flex;align-items:center;gap:8px;">
+        <select id="heatmap-filtro" onchange="renderHeatmapDash()" style="font-size:11.5px;padding:4px 8px;background:var(--bg2);border:1px solid var(--br);border-radius:var(--rs);color:var(--tx);">
+          <option value="all">Todas as OS</option>
+          <option value="abertas">Em aberto</option>
+          <option value="vencidas">Vencidas / críticas</option>
+          <option value="finalizadas">Finalizadas</option>
+        </select>
+        <span id="heatmap-count" style="font-size:11px;color:var(--tx3);"></span>
+      </div>
+    </div>
+    <!-- Letreiro ticker acima do mapa -->
+    <div id="heatmap-ticker-wrap" style="
+      width:100%;overflow:hidden;background:linear-gradient(90deg,rgba(255,255,255,1) 0%,rgba(248,250,253,0) 4%,rgba(248,250,253,0) 96%,rgba(255,255,255,1) 100%);
+      border-radius:8px;margin-bottom:8px;height:32px;display:flex;align-items:center;position:relative;border:1px solid rgba(200,215,235,.5);">
+      <div id="heatmap-ticker" style="display:flex;align-items:center;gap:0;white-space:nowrap;will-change:transform;"></div>
+    </div>
+    <div id="brasil-heatmap" style="height:440px;border-radius:10px;overflow:hidden;background:#f0f4f8;position:relative;box-shadow:inset 0 0 0 1px rgba(0,0,0,.06);">
+      <div style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;color:#8898b8;font-size:13px;font-family:Inter,sans-serif;z-index:2;" id="heatmap-loading">Carregando mapa...</div>
+    </div>
+  </div>
+
+  <!-- ROW 6: Admin only — mini financeiro -->
   <div class="admin-only" style="display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin-bottom:16px;">
     <div class="card">
       <div class="card-hd"><h3>💰 Faturamento Mensal</h3></div>
@@ -1754,6 +1796,96 @@ tr.row-vencido{animation:none!important;}
   </div>
 </div>
 
+
+<!-- ═══ DASHBOARD: TENDÊNCIA DE PRAZO ═══ -->
+<div class="page" id="page-dash-tendencia">
+  <div class="stats" style="grid-template-columns:repeat(4,1fr);margin-bottom:16px;">
+    <div class="stat" style="--sc:var(--grn)"><div class="stat-ic">✅</div><div class="stat-lbl">No prazo (últ. 6 meses)</div><div class="stat-val" id="tend-ok">0</div><div class="stat-sub" id="tend-ok-pct">—</div></div>
+    <div class="stat" style="--sc:var(--red)"><div class="stat-ic">⚠️</div><div class="stat-lbl">Vencidas (últ. 6 meses)</div><div class="stat-val" id="tend-venc">0</div><div class="stat-sub" id="tend-venc-pct">—</div></div>
+    <div class="stat" style="--sc:var(--acc)"><div class="stat-ic">📈</div><div class="stat-lbl">Melhor mês</div><div class="stat-val" id="tend-best-pct" style="font-size:18px">—</div><div class="stat-sub" id="tend-best-mes">—</div></div>
+    <div class="stat" style="--sc:var(--org)"><div class="stat-ic">📉</div><div class="stat-lbl">Pior mês</div><div class="stat-val" id="tend-worst-pct" style="font-size:18px">—</div><div class="stat-sub" id="tend-worst-mes">—</div></div>
+  </div>
+  <div style="display:grid;grid-template-columns:2fr 1fr;gap:16px;">
+    <div class="card">
+      <div class="card-hd"><h3>📈 Evolução: No Prazo vs Vencidas por Mês</h3><p>Últimos 12 meses · OS finalizadas</p></div>
+      <div id="tend-chart-wrap" style="padding:8px 0;"></div>
+    </div>
+    <div class="card">
+      <div class="card-hd"><h3>🏆 Taxa por Empresa</h3><p>% de OS finalizadas no prazo</p></div>
+      <div id="tend-emp-taxa"></div>
+    </div>
+  </div>
+  <div style="margin-top:16px;" class="card">
+    <div class="card-hd"><h3>🔮 SLA por Tipo de Serviço</h3><p>Taxa de cumprimento de prazo por categoria</p></div>
+    <div id="tend-tipo-sla" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:12px;margin-top:8px;"></div>
+  </div>
+</div>
+
+<!-- ═══ DASHBOARD: RECEITA EMPRESA × TIPO (admin) ═══ -->
+<div class="page" id="page-dash-receita">
+  <div class="stats" style="grid-template-columns:repeat(4,1fr);margin-bottom:16px;">
+    <div class="stat admin-only" style="--sc:var(--grn)"><div class="stat-ic">💰</div><div class="stat-lbl">Receita total</div><div class="stat-val" id="rec-total" style="font-size:18px">R$ 0</div><div class="stat-sub">todas as OS</div></div>
+    <div class="stat admin-only" style="--sc:var(--acc)"><div class="stat-ic">🏢</div><div class="stat-lbl">Maior empresa</div><div class="stat-val" id="rec-top-emp" style="font-size:16px">—</div><div class="stat-sub" id="rec-top-emp-val">—</div></div>
+    <div class="stat admin-only" style="--sc:var(--sky)"><div class="stat-ic">🏷️</div><div class="stat-lbl">Maior tipo</div><div class="stat-val" id="rec-top-tipo" style="font-size:16px">—</div><div class="stat-sub" id="rec-top-tipo-val">—</div></div>
+    <div class="stat admin-only" style="--sc:var(--yel)"><div class="stat-ic">💵</div><div class="stat-lbl">Ticket médio</div><div class="stat-val" id="rec-ticket" style="font-size:18px">R$ 0</div><div class="stat-sub">por OS</div></div>
+  </div>
+  <div style="display:grid;grid-template-columns:3fr 2fr;gap:16px;">
+    <div class="card admin-only">
+      <div class="card-hd"><h3>💹 Heatmap: Empresa × Tipo de Serviço</h3><p>Valor total (R$) em cada cruzamento — mais escuro = mais valor</p></div>
+      <div id="rec-heatmap" style="overflow-x:auto;margin-top:8px;"></div>
+    </div>
+    <div class="card admin-only">
+      <div class="card-hd"><h3>🥧 Participação por Empresa</h3></div>
+      <canvas id="donut-receita" width="160" height="160" style="display:block;margin:0 auto;"></canvas>
+      <div id="donut-rec-legend" style="margin-top:12px;"></div>
+    </div>
+  </div>
+  <div style="margin-top:16px;display:grid;grid-template-columns:1fr 1fr;gap:16px;">
+    <div class="card admin-only">
+      <div class="card-hd"><h3>📊 Receita por Empresa</h3></div>
+      <div id="rec-emp-bars"></div>
+    </div>
+    <div class="card admin-only">
+      <div class="card-hd"><h3>📊 Receita por Tipo de Serviço</h3></div>
+      <div id="rec-tipo-bars"></div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ DASHBOARD: MAPA DE CIDADES ═══ -->
+<div class="page" id="page-dash-cidades">
+  <div class="stats" style="grid-template-columns:repeat(4,1fr);margin-bottom:16px;">
+    <div class="stat" style="--sc:var(--acc)"><div class="stat-ic">🗺️</div><div class="stat-lbl">Cidades atendidas</div><div class="stat-val" id="cid-total">0</div><div class="stat-sub">com OS cadastradas</div></div>
+    <div class="stat" style="--sc:var(--org)"><div class="stat-ic">📌</div><div class="stat-lbl">Maior concentração</div><div class="stat-val" id="cid-top-count" style="font-size:18px">0</div><div class="stat-sub" id="cid-top-nome">—</div></div>
+    <div class="stat" style="--sc:var(--red)"><div class="stat-ic">⚠️</div><div class="stat-lbl">Cidade com mais vencidas</div><div class="stat-val" id="cid-venc-count" style="font-size:18px">0</div><div class="stat-sub" id="cid-venc-nome">—</div></div>
+    <div class="stat" style="--sc:var(--grn)"><div class="stat-ic">✅</div><div class="stat-lbl">Melhor taxa conclusão</div><div class="stat-val" id="cid-taxa-val" style="font-size:18px">—</div><div class="stat-sub" id="cid-taxa-nome">—</div></div>
+  </div>
+  <div style="display:grid;grid-template-columns:2fr 1fr;gap:16px;">
+    <div class="card">
+      <div class="card-hd">
+        <h3>🗺️ Ranking de Cidades</h3>
+        <div style="display:flex;gap:8px;align-items:center;">
+          <select id="cid-filtro-status" onchange="renderDashCidades()" style="font-size:11.5px;padding:4px 8px;background:var(--bg2);border:1px solid var(--br);border-radius:var(--rs);color:var(--tx);">
+            <option value="all">Todas as OS</option>
+            <option value="abertas">Em aberto</option>
+            <option value="vencidas">Vencidas</option>
+            <option value="finalizadas">Finalizadas</option>
+          </select>
+        </div>
+      </div>
+      <div id="cid-ranking"></div>
+    </div>
+    <div class="card">
+      <div class="card-hd"><h3>📋 Detalhes por Cidade</h3><p>Clique no ranking para ver OS</p></div>
+      <div id="cid-detail" style="font-size:12px;color:var(--tx3);padding:12px 0;text-align:center;">← Selecione uma cidade</div>
+    </div>
+  </div>
+  <div style="margin-top:16px;" class="card">
+    <div class="card-hd"><h3>📊 Top 15 Cidades — Visão Comparativa</h3><p>OS totais, em aberto e vencidas lado a lado</p></div>
+    <div id="cid-comparativo" style="overflow-x:auto;margin-top:8px;"></div>
+  </div>
+</div>
+
 <!-- ═══ CHAT DA EQUIPE ═══ -->
 <!-- ══════════════════════════════════════════════════════════
      CHAT MESSENGER FLUTUANTE — estilo Facebook Messenger
@@ -1934,7 +2066,10 @@ const PAGE_TITLES = {
   financeiro:'Dashboard Financeiro','faturas':'Gerar Fatura',
   roteiro:'Roteirização de Vistorias',
   lixeira:'Lixeira (recuperáveis por 30 dias)',
-  chat:'Chat da Equipe'
+  chat:'Chat da Equipe',
+  'dash-tendencia':'Tendência de Prazo',
+  'dash-receita':'Receita por Empresa × Tipo',
+  'dash-cidades':'Distribuição Geográfica'
 };
 
 let DB = [];
@@ -2193,6 +2328,9 @@ function renderPage(id) {
   else if(id==='faturas') renderFaturas();
   else if(id==='roteiro') renderRoteiro();
   else if(id==='lixeira') renderLixeira();
+  else if(id==='dash-tendencia') renderDashTendencia();
+  else if(id==='dash-receita') renderDashReceita();
+  else if(id==='dash-cidades') renderDashCidades();
   // chat agora é widget flutuante — não há mais page-chat
 }
 
@@ -2437,6 +2575,423 @@ function drawDonut(canvasId, slices) {
   ctx.font='10px Inter,sans-serif';
   ctx.fillStyle='#525880';
   ctx.fillText('total', cx, cy+18);
+}
+
+// ══════════════════════════════════════════════════════════════
+// MAPA DE CALOR DO BRASIL — Leaflet + Leaflet.heat
+// ══════════════════════════════════════════════════════════════
+
+// Coordenadas aproximadas das principais cidades brasileiras
+const CIDADES_COORDS = {
+  // SP
+  'São Paulo':[-23.5505,-46.6333],'Campinas':[-22.9056,-47.0608],'Santos':[-23.9608,-46.3342],
+  'Ribeirão Preto':[-21.1699,-47.8099],'Sorocaba':[-23.5015,-47.4526],'São José dos Campos':[-23.1794,-45.8869],
+  'Osasco':[-23.5324,-46.7919],'Santo André':[-23.6639,-46.5383],'São Bernardo do Campo':[-23.6939,-46.5650],
+  'Guarulhos':[-23.4543,-46.5338],'Mogi das Cruzes':[-23.5229,-46.1875],'Bauru':[-22.3246,-49.0710],
+  'São José do Rio Preto':[-20.8197,-49.3795],'Piracicaba':[-22.7253,-47.6492],'Limeira':[-22.5636,-47.4014],
+  'Jundiaí':[-23.1861,-46.8841],'Franca':[-20.5390,-47.4008],'Taubaté':[-23.0256,-45.5553],
+  'Marília':[-22.2138,-49.9456],'Presidente Prudente':[-22.1208,-51.3882],'Araraquara':[-21.7942,-48.1753],
+  'Americana':[-22.7384,-47.3314],'São Carlos':[-21.9797,-47.8825],'Indaiatuba':[-23.0903,-47.2189],
+  // RJ
+  'Rio de Janeiro':[-22.9068,-43.1729],'Niterói':[-22.8833,-43.1036],'Duque de Caxias':[-22.7856,-43.3117],
+  'Nova Iguaçu':[-22.7592,-43.4511],'São Gonçalo':[-22.8268,-43.0539],'Belford Roxo':[-22.7639,-43.3989],
+  'Campos dos Goytacazes':[-21.7553,-41.3247],'Volta Redonda':[-22.5231,-44.1041],'Petrópolis':[-22.5036,-43.1789],
+  'Macaé':[-22.3765,-41.7868],'Cabo Frio':[-22.8789,-42.0186],
+  // MG
+  'Belo Horizonte':[-19.9167,-43.9345],'Uberlândia':[-18.9186,-48.2772],'Contagem':[-19.9317,-44.0539],
+  'Juiz de Fora':[-21.7608,-43.3504],'Betim':[-19.9678,-44.1980],'Montes Claros':[-16.7277,-43.8617],
+  'Uberaba':[-19.7485,-47.9303],'Governador Valadares':[-18.8511,-41.9494],'Ipatinga':[-19.4675,-42.5364],
+  'Sete Lagoas':[-19.4689,-44.2478],'Ribeirão das Neves':[-19.7642,-44.0869],'Divinópolis':[-20.1389,-44.8836],
+  'Poços de Caldas':[-21.7878,-46.5614],'Teófilo Otoni':[-17.8597,-41.5053],
+  // RS
+  'Porto Alegre':[-30.0346,-51.2177],'Caxias do Sul':[-29.1678,-51.1794],'Canoas':[-29.9177,-51.1839],
+  'Pelotas':[-31.7720,-52.3430],'Santa Maria':[-29.6842,-53.8069],'Gravataí':[-29.9444,-51.0312],
+  'Viamão':[-30.0808,-51.0232],'Novo Hamburgo':[-29.6783,-51.1319],'São Leopoldo':[-29.7600,-51.1492],
+  'Rio Grande':[-32.0346,-52.0986],'Alvorada':[-30.0125,-51.0789],'Passo Fundo':[-28.2620,-52.4068],
+  'Uruguaiana':[-29.7554,-57.0881],'Santa Cruz do Sul':[-29.7178,-52.4249],
+  // SC
+  'Florianópolis':[-27.5954,-48.5480],'Joinville':[-26.3045,-48.8487],'Blumenau':[-26.9194,-49.0661],
+  'São José':[-27.5942,-48.6396],'Criciúma':[-28.6775,-49.3697],'Chapecó':[-27.1004,-52.6151],
+  'Itajaí':[-26.9078,-48.6614],'Jaraguá do Sul':[-26.4854,-49.0715],'Palhoça':[-27.6461,-48.6697],
+  'Lages':[-27.8158,-50.3280],
+  // PR
+  'Curitiba':[-25.4297,-49.2719],'Londrina':[-23.3045,-51.1696],'Maringá':[-23.4250,-51.9386],
+  'Ponta Grossa':[-25.0945,-50.1600],'Cascavel':[-24.9578,-53.4596],'São José dos Pinhais':[-25.5350,-49.2072],
+  'Foz do Iguaçu':[-25.5469,-54.5882],'Colombo':[-25.2928,-49.2239],'Guarapuava':[-25.3908,-51.4628],
+  'Paranaguá':[-25.5162,-48.5203],
+  // BA
+  'Salvador':[-12.9714,-38.5014],'Feira de Santana':[-12.2664,-38.9663],'Vitória da Conquista':[-14.8661,-40.8444],
+  'Camaçari':[-12.6992,-38.3236],'Itabuna':[-14.7857,-39.2800],'Juazeiro':[-9.4281,-40.5028],
+  'Lauro de Freitas':[-12.8972,-38.3231],'Ilhéus':[-14.7869,-39.0478],'Jequié':[-13.8508,-40.0828],
+  'Teixeira de Freitas':[-17.5358,-39.7433],
+  // PE
+  'Recife':[-8.0522,-34.9286],'Caruaru':[-8.2760,-35.9764],'Olinda':[-8.0089,-34.8553],
+  'Petrolina':[-9.3891,-40.5014],'Paulista':[-7.9413,-34.8722],'Cabo de Santo Agostinho':[-8.2892,-35.0261],
+  'Jaboatão dos Guararapes':[-8.1136,-35.0122],'Camaragibe':[-8.0239,-35.0011],
+  // CE
+  'Fortaleza':[-3.7319,-38.5267],'Caucaia':[-3.7397,-38.6567],'Juazeiro do Norte':[-7.2197,-39.3153],
+  'Sobral':[-3.6944,-40.3494],'Maracanaú':[-3.8764,-38.6258],'Crato':[-7.2317,-39.4097],
+  // PA
+  'Belém':[-1.4558,-48.4902],'Ananindeua':[-1.3658,-48.3727],'Santarém':[-2.4422,-54.7080],
+  'Marabá':[-5.3686,-49.1178],'Castanhal':[-1.2976,-47.9265],'Parauapebas':[-6.0694,-49.9002],
+  // AM
+  'Manaus':[-3.1190,-60.0217],'Parintins':[-2.6276,-56.7356],'Itacoatiara':[-3.1431,-58.4442],
+  // GO
+  'Goiânia':[-16.6869,-49.2648],'Aparecida de Goiânia':[-16.8233,-49.2467],'Anápolis':[-16.3278,-48.9542],
+  'Rio Verde':[-17.7981,-50.9258],'Valparaíso de Goiás':[-16.0697,-47.9944],
+  // DF
+  'Brasília':[-15.7801,-47.9292],'Ceilândia':[-15.8111,-48.0975],'Taguatinga':[-15.8307,-48.0569],
+  'Planaltina':[-15.6100,-47.6539],'Samambaia':[-15.8772,-48.0736],
+  // ES
+  'Vitória':[-20.2976,-40.2958],'Serra':[-20.1286,-40.3083],'Vila Velha':[-20.3297,-40.2919],
+  'Cariacica':[-20.2639,-40.4147],'Cachoeiro de Itapemirim':[-20.8497,-41.1131],
+  // RN
+  'Natal':[-5.7793,-35.2009],'Mossoró':[-5.1875,-37.3439],'Parnamirim':[-5.9164,-35.2633],
+  // PB
+  'João Pessoa':[-7.1195,-34.8450],'Campina Grande':[-7.2306,-35.8811],'Santa Rita':[-7.1189,-34.9781],
+  // AL
+  'Maceió':[-9.6658,-35.7350],'Arapiraca':[-9.7522,-36.6611],
+  // SE
+  'Aracaju':[-10.9472,-37.0731],'Nossa Senhora do Socorro':[-10.8561,-37.1267],
+  // PI
+  'Teresina':[-5.0892,-42.8019],'Parnaíba':[-2.9094,-41.7764],
+  // MA
+  'São Luís':[-2.5297,-44.3028],'Imperatriz':[-5.5261,-47.4920],'Timon':[-5.0944,-42.8336],
+  // MT
+  'Cuiabá':[-15.6014,-56.0979],'Várzea Grande':[-15.6467,-56.1322],'Rondonópolis':[-16.4706,-54.6364],
+  // MS
+  'Campo Grande':[-20.4697,-54.6201],'Dourados':[-22.2231,-54.8056],'Três Lagoas':[-20.7556,-51.7039],
+  // RO
+  // RO — Rondônia completo
+  'Porto Velho':[-8.7612,-63.9004],'Ji-Paraná':[-10.8850,-61.9478],
+  'Ariquemes':[-9.9139,-63.0378],'Vilhena':[-12.7406,-60.1458],'Cacoal':[-11.4386,-61.4464],
+  'Rolim de Moura':[-11.7283,-61.7783],'Jaru':[-10.4370,-62.4681],'Ouro Preto do Oeste':[-10.7214,-62.2600],
+  'Guajará-Mirim':[-10.7831,-65.3394],'Espigão do Oeste':[-11.5208,-61.0183],'Pimenta Bueno':[-11.6753,-61.1925],
+  'Colorado do Oeste':[-13.1222,-60.5397],'Nova Mamoré':[-10.4103,-65.3358],'Buritis':[-10.2069,-63.8358],
+  'Cerejeiras':[-13.1897,-60.8172],'Corumbiara':[-13.0928,-59.9172],'São Francisco do Guaporé':[-12.0519,-63.5644],
+  'Alta Floresta do Oeste':[-11.9333,-61.9997],'Alvorada do Oeste':[-11.3458,-62.2097],'Costa Marques':[-12.4500,-64.2300],
+  'Ministro Andreazza':[-11.8069,-61.5197],'Mirante da Serra':[-11.5958,-62.6794],'Monte Negro':[-10.2581,-63.2975],
+  'Nova União':[-10.8819,-62.7697],'Presidente Médici':[-11.1769,-61.9022],'Primavera de Rondônia':[-11.7961,-61.6122],
+  'São Miguel do Guaporé':[-11.6953,-62.7158],'Seringueiras':[-11.7458,-63.0586],'Teixeirópolis':[-10.9639,-62.0575],
+  'Theobroma':[-10.4439,-62.3558],'Urupá':[-11.1253,-62.3614],'Vale do Paraíso':[-11.0247,-61.6983],
+  'Governador Jorge Teixeira':[-10.4097,-62.7558],'Cujubim':[-9.3622,-63.0808],
+  // TO
+  'Palmas':[-10.2491,-48.3243],'Araguaína':[-7.1919,-48.2046],
+  // AP
+  'Macapá':[-0.0356,-51.0705],
+  // AC
+  'Rio Branco':[-9.9746,-67.8099],
+  // RR
+  'Boa Vista':[2.8235,-60.6758],
+};
+
+let _heatmapLeaflet = null;
+let _heatLayer     = null;
+let _markerGroup   = null;
+let _brasilBounds  = null;
+
+// Bounds do Brasil: limita zoom-out e pan fora do país
+const BRASIL_SW = L.latLng(-33.75, -73.99);
+const BRASIL_NE = L.latLng(5.27,   -28.84);
+
+function normCidadeHeat(str) {
+  if (!str) return '';
+  return str.split('/')[0].replace(/\s+/g,' ').trim();
+}
+
+function _normKey(s) {
+  return s.normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().replace(/\s+/g,' ').trim();
+}
+
+function _findCoords(cidade) {
+  if (!cidade) return null;
+  if (CIDADES_COORDS[cidade]) return CIDADES_COORDS[cidade];
+  const nk = _normKey(cidade);
+  for (const [k,v] of Object.entries(CIDADES_COORDS)) {
+    if (_normKey(k) === nk) return v;
+  }
+  for (const [k,v] of Object.entries(CIDADES_COORDS)) {
+    const kn = _normKey(k);
+    if (kn.startsWith(nk) || nk.startsWith(kn)) return v;
+  }
+  return null;
+}
+
+function renderHeatmapDash() {
+  const filtro = document.getElementById('heatmap-filtro')?.value || 'all';
+  const base = filtro==='abertas'    ? DB.filter(isAberto)
+             : filtro==='finalizadas'? DB.filter(os=>!isAberto(os))
+             : filtro==='vencidas'   ? DB.filter(os=>isAberto(os)&&diasAte(os.prazoFatal)!==null&&diasAte(os.prazoFatal)<0)
+             : DB;
+
+  const cidCnt = {};
+  base.forEach(os => {
+    const c = normCidadeHeat(os.cidade);
+    if (c) cidCnt[c] = (cidCnt[c]||0)+1;
+  });
+
+  const countEl = document.getElementById('heatmap-count');
+  if (countEl) countEl.textContent = Object.keys(cidCnt).length + ' cidades · ' + base.length + ' OS';
+
+  const pontos = [];
+  const pontosInfo = [];
+  let matched = 0;
+  for (const [cidade, cnt] of Object.entries(cidCnt)) {
+    const coords = _findCoords(cidade);
+    if (coords) {
+      pontos.push([coords[0], coords[1], cnt]);
+      pontosInfo.push({ lat:coords[0], lng:coords[1], cidade, cnt });
+      matched++;
+    }
+  }
+
+  const container = document.getElementById('brasil-heatmap');
+  const loading   = document.getElementById('heatmap-loading');
+
+  if (!_heatmapLeaflet) {
+    if (typeof L === 'undefined') {
+      if (loading) loading.textContent = '⚠ Aguardando Leaflet...';
+      setTimeout(() => renderHeatmapDash(), 600);
+      return;
+    }
+    if (loading) loading.style.display = 'none';
+
+    _brasilBounds = L.latLngBounds(BRASIL_SW, BRASIL_NE);
+
+    _heatmapLeaflet = L.map('brasil-heatmap', {
+      center: [-14.5, -51.0],
+      zoom: 4,
+      minZoom: 4,
+      maxZoom: 12,
+      maxBounds: _brasilBounds,
+      maxBoundsViscosity: 1.0,
+      zoomControl: false,
+      scrollWheelZoom: true,
+      attributionControl: false,
+    });
+
+    // Zoom control reposicionado
+    L.control.zoom({ position: 'bottomright' }).addTo(_heatmapLeaflet);
+
+    // Attribution discreta
+    L.control.attribution({ position:'bottomright', prefix:false })
+      .addAttribution('<span style="font-size:9px;opacity:.4">© OpenStreetMap © CARTO</span>')
+      .addTo(_heatmapLeaflet);
+
+    // Tile CartoDB Positron — sem labels (nomes embaçados = problema do tile anterior)
+    L.tileLayer('https://{s}.basemaps.cartocdn.com/light_nolabels/{z}/{x}/{y}{r}.png', {
+      subdomains: 'abcd',
+      maxZoom: 19,
+    }).addTo(_heatmapLeaflet);
+
+    // Camada só com labels das cidades por cima do heatmap (nítidos, sem embaçamento)
+    L.tileLayer('https://{s}.basemaps.cartocdn.com/light_only_labels/{z}/{x}/{y}{r}.png', {
+      subdomains: 'abcd',
+      maxZoom: 19,
+      pane: 'shadowPane',
+    }).addTo(_heatmapLeaflet);
+
+    // Tooltip ao hover — div flutuante
+    const tipEl = document.createElement('div');
+    tipEl.id = 'heatmap-tooltip';
+    tipEl.style.cssText = [
+      'position:absolute','z-index:9999','pointer-events:none','display:none',
+      'background:rgba(255,255,255,.97)','border-radius:10px',
+      'padding:9px 14px','font-family:Inter,sans-serif',
+      'box-shadow:0 8px 30px rgba(0,0,0,.14),0 2px 6px rgba(0,0,0,.08)',
+      'border:1px solid rgba(180,195,220,.6)','min-width:130px',
+    ].join(';');
+    container.style.position = 'relative';
+    container.appendChild(tipEl);
+
+    // Hover nos marcadores invisíveis
+    _heatmapLeaflet.on('mousemove', function(e) {
+      // Verificar se está perto de um ponto
+      const zoom = _heatmapLeaflet.getZoom();
+      const threshold = Math.max(0.8, 3.5 - zoom * 0.18);
+      let closest = null, minDist = threshold;
+      for (const p of pontosInfo) {
+        const dist = Math.sqrt(Math.pow(e.latlng.lat - p.lat, 2) + Math.pow(e.latlng.lng - p.lng, 2));
+        if (dist < minDist) { minDist = dist; closest = p; }
+      }
+      if (closest) {
+        const tip = document.getElementById('heatmap-tooltip');
+        const rect = container.getBoundingClientRect();
+        const pt = _heatmapLeaflet.latLngToContainerPoint([closest.lat, closest.lng]);
+        const maxOS = Math.max(...pontosInfo.map(x=>x.cnt));
+        const pct = Math.round(closest.cnt/base.length*100);
+        const cor = closest.cnt >= maxOS*0.7 ? '#e03050'
+                  : closest.cnt >= maxOS*0.4 ? '#f07020'
+                  : closest.cnt >= maxOS*0.15? '#c8a800'
+                  : '#2a9d60';
+        tip.innerHTML = `
+          <div style="font-size:12px;font-weight:700;color:#1a2540;margin-bottom:5px;">${closest.cidade}</div>
+          <div style="display:flex;align-items:baseline;gap:6px;">
+            <span style="font-size:22px;font-weight:800;color:${cor};line-height:1;">${closest.cnt}</span>
+            <span style="font-size:11px;color:#8898b0;">OS · ${pct}% do total</span>
+          </div>`;
+        // Posicionar acima do cursor
+        const tx = Math.min(pt.x + 12, container.offsetWidth - 180);
+        const ty = Math.max(pt.y - 80, 8);
+        tip.style.left = tx + 'px';
+        tip.style.top  = ty + 'px';
+        tip.style.display = 'block';
+        container.style.cursor = 'crosshair';
+      } else {
+        const tip = document.getElementById('heatmap-tooltip');
+        if (tip) tip.style.display = 'none';
+        container.style.cursor = '';
+      }
+    });
+    _heatmapLeaflet.on('mouseout', function() {
+      const tip = document.getElementById('heatmap-tooltip');
+      if (tip) tip.style.display = 'none';
+    });
+
+  } else {
+    if (loading) loading.style.display = 'none';
+    // Atualizar referência de pontosInfo no closure
+  }
+
+  // Remover layers anteriores
+  if (_heatLayer) { _heatmapLeaflet.removeLayer(_heatLayer); _heatLayer = null; }
+  if (_markerGroup) { _heatmapLeaflet.removeLayer(_markerGroup); _markerGroup = null; }
+
+  if (pontos.length > 0) {
+    const maxVal = Math.max(...pontos.map(p=>p[2]));
+    const normalized = pontos.map(([lat,lng,v]) => [lat, lng, Math.pow(v/maxVal, 0.55)]);
+
+    _heatLayer = L.heatLayer(normalized, {
+      radius: 38,
+      blur: 22,
+      maxZoom: 12,
+      max: 1.0,
+      minOpacity: 0.25,
+      gradient: {
+        0.00: 'rgba(180,225,255,0)',
+        0.12: 'rgba(100,210,200,0.45)',
+        0.30: 'rgba(50,200,120,0.65)',
+        0.52: 'rgba(255,215,0,0.78)',
+        0.72: 'rgba(255,110,30,0.88)',
+        1.00: 'rgba(210,20,50,0.94)',
+      }
+    }).addTo(_heatmapLeaflet);
+
+    // Marcadores invisíveis (para o hover funcionar)
+    _markerGroup = L.layerGroup();
+    pontosInfo.forEach(p => {
+      const inv = L.circleMarker([p.lat, p.lng], {
+        radius: 8, opacity: 0, fillOpacity: 0, interactive: true
+      });
+      _markerGroup.addLayer(inv);
+    });
+    _markerGroup.addTo(_heatmapLeaflet);
+  }
+
+  // Legenda clean
+  const oldLeg = container.querySelector('.heatmap-legend');
+  if (oldLeg) oldLeg.remove();
+  const legEl = document.createElement('div');
+  legEl.className = 'heatmap-legend';
+  legEl.style.cssText = [
+    'position:absolute','bottom:36px','left:14px','z-index:1000',
+    'background:rgba(255,255,255,.93)','border-radius:10px',
+    'padding:10px 14px','font-family:Inter,sans-serif',
+    'box-shadow:0 4px 20px rgba(0,0,0,.1)','border:1px solid rgba(190,205,225,.6)',
+  ].join(';');
+  const totCidades = matched;
+  const totOS = base.length;
+  legEl.innerHTML = `
+    <div style="font-size:10px;font-weight:600;color:#8898b8;letter-spacing:.06em;margin-bottom:7px;">CONCENTRAÇÃO DE OS</div>
+    <div style="width:110px;height:7px;border-radius:4px;overflow:hidden;background:linear-gradient(to right,
+      rgba(100,210,200,.5) 0%,
+      rgba(50,200,120,.7) 25%,
+      rgba(255,215,0,.85) 55%,
+      rgba(255,110,30,.92) 78%,
+      rgba(210,20,50,.95) 100%);margin-bottom:4px;"></div>
+    <div style="display:flex;justify-content:space-between;width:110px;">
+      <span style="font-size:9px;color:#b0bbd0;">baixa</span>
+      <span style="font-size:9px;color:#b0bbd0;">alta</span>
+    </div>
+    <div style="margin-top:8px;padding-top:7px;border-top:1px solid rgba(0,0,0,.06);">
+      <span style="font-size:11px;font-weight:700;color:#1a2540;">${totOS}</span>
+      <span style="font-size:10px;color:#8898b8;"> OS · </span>
+      <span style="font-size:11px;font-weight:700;color:#1a2540;">${totCidades}</span>
+      <span style="font-size:10px;color:#8898b8;"> cidades</span>
+    </div>`;
+  container.appendChild(legEl);
+
+  // ── Ticker letreiro ──────────────────────────────────────────
+  _renderHeatTicker(pontosInfo, base.length);
+}
+
+let _tickerRAF = null;
+let _tickerPos = 0;
+let _tickerSpeed = 0.5; // px por frame
+
+function _renderHeatTicker(pontos, totalOS) {
+  const wrap = document.getElementById('heatmap-ticker-wrap');
+  const ticker = document.getElementById('heatmap-ticker');
+  if (!ticker || !pontos.length) return;
+
+  // Parar animação anterior
+  if (_tickerRAF) { cancelAnimationFrame(_tickerRAF); _tickerRAF = null; }
+  _tickerPos = 0;
+
+  // Ordenar por quantidade decrescente
+  const sorted = [...pontos].sort((a,b)=>b.cnt-a.cnt);
+  const maxCnt = sorted[0]?.cnt || 1;
+
+  // Cores por intensidade
+  const cor = (cnt) => {
+    const r = cnt/maxCnt;
+    if (r >= 0.7) return { text:'#c0152e', bg:'rgba(220,20,50,.08)', dot:'#e03050' };
+    if (r >= 0.4) return { text:'#c05800', bg:'rgba(255,110,30,.08)', dot:'#ff7020' };
+    if (r >= 0.15) return { text:'#8a6e00', bg:'rgba(255,215,0,.1)', dot:'#d4a800' };
+    return { text:'#1a7a4a', bg:'rgba(30,180,100,.08)', dot:'#2a9d60' };
+  };
+
+  // Gerar HTML dos itens (duplicado para loop contínuo)
+  const item = (p) => {
+    const c = cor(p.cnt);
+    return `<div style="
+      display:inline-flex;align-items:center;gap:7px;
+      padding:0 18px 0 12px;height:32px;flex-shrink:0;
+      border-right:1px solid rgba(200,215,235,.4);
+    ">
+      <span style="width:7px;height:7px;border-radius:50%;background:${c.dot};flex-shrink:0;"></span>
+      <span style="font-size:12px;font-weight:600;color:#2a3550;letter-spacing:-.2px;">${p.cidade}</span>
+      <span style="
+        font-size:11px;font-weight:800;color:${c.text};
+        background:${c.bg};border-radius:6px;padding:1px 7px;
+        letter-spacing:-.3px;
+      ">${p.cnt} OS</span>
+    </div>`;
+  };
+
+  const html = sorted.map(item).join('');
+  // Duplicar para loop contínuo sem salto
+  ticker.innerHTML = html + html;
+
+  // Medir largura de uma cópia
+  requestAnimationFrame(() => {
+    const totalW = ticker.scrollWidth / 2;
+    let paused = false;
+
+    // Pausar ao hover
+    wrap.onmouseenter = () => { paused = true; };
+    wrap.onmouseleave = () => { paused = false; };
+
+    function animate() {
+      if (!paused) {
+        _tickerPos += _tickerSpeed;
+        if (_tickerPos >= totalW) _tickerPos = 0;
+        ticker.style.transform = `translateX(-${_tickerPos}px)`;
+      }
+      _tickerRAF = requestAnimationFrame(animate);
+    }
+    _tickerRAF = requestAnimationFrame(animate);
+  });
 }
 
 function renderDash() {
@@ -2720,6 +3275,9 @@ function renderDash() {
         </div>
       </div>`;
   }
+
+  // Atualizar mapa de calor
+  setTimeout(() => renderHeatmapDash(), 100);
 }
 
 // ══════════════════════════════════════
@@ -6071,6 +6629,345 @@ try { verificarPacoteCaixaPendente(); } catch(_) {}
 
 // ══════════════════════════════════════════════════════════════
 // 💬 MÓDULO DE CHAT DA EQUIPE COM PRESENÇA ONLINE
+
+// ══════════════════════════════════════════════════════════════
+// NOVOS DASHBOARDS DE ANÁLISE
+// ══════════════════════════════════════════════════════════════
+
+// ── Helpers compartilhados ──
+function _getAnoMesDt(isoStr) {
+  const d = parseDt(isoStr);
+  return d ? { ano: d.getFullYear(), mes: d.getMonth() } : null;
+}
+function _fmtMesAno(mes, ano) { return MESES_ABR[mes] + '/' + String(ano).slice(2); }
+function _hslBar(idx, total) {
+  const hues = [220,160,280,35,195,330,60,10];
+  return 'hsl('+hues[idx%hues.length]+',68%,58%)';
+}
+function _pct(n, total) { return total ? Math.round(n/total*100) : 0; }
+let _avSort = { key:'total', asc:false };
+
+// ══════════════════════════════════════════════════════════════
+// 1. DASHBOARD POR AVALIADOR
+// ══════════════════════════════════════════════════════════════
+function renderDashTendencia() {
+  // Ultimas 12 meses de OS finalizadas
+  const hoje = new Date(); hoje.setHours(0,0,0,0);
+  const meses12 = [];
+  for (let i=11; i>=0; i--) {
+    const d = new Date(hoje.getFullYear(), hoje.getMonth()-i, 1);
+    meses12.push({ ano:d.getFullYear(), mes:d.getMonth(), label:_fmtMesAno(d.getMonth(),d.getFullYear()), ok:0, venc:0 });
+  }
+
+  DB.filter(os => !isAberto(os) && os.dataFechamento).forEach(os => {
+    const d = parseDt(os.dataFechamento); if (!d) return;
+    const bucket = meses12.find(m => m.ano===d.getFullYear() && m.mes===d.getMonth());
+    if (!bucket) return;
+    const prazo = parseDt(os.prazoFatal);
+    const fech  = parseDt(os.dataFechamento);
+    if (prazo && fech && fech <= prazo) bucket.ok++;
+    else bucket.venc++;
+  });
+
+  // KPIs — últimos 6 meses
+  const ult6 = meses12.slice(6);
+  const totOk = ult6.reduce((s,m)=>s+m.ok,0);
+  const totVenc = ult6.reduce((s,m)=>s+m.venc,0);
+  const sv=(id,v)=>{ const el=document.getElementById(id); if(el) el.textContent=v; };
+  sv('tend-ok', totOk);
+  sv('tend-ok-pct', totOk+totVenc>0 ? _pct(totOk,totOk+totVenc)+'% no prazo' : '—');
+  sv('tend-venc', totVenc);
+  sv('tend-venc-pct', totOk+totVenc>0 ? _pct(totVenc,totOk+totVenc)+'% vencidas' : '—');
+
+  const comDados = meses12.filter(m=>m.ok+m.venc>0);
+  if (comDados.length) {
+    const best = comDados.slice().sort((a,b)=>_pct(b.ok,b.ok+b.venc)-_pct(a.ok,a.ok+a.venc))[0];
+    const worst= comDados.slice().sort((a,b)=>_pct(a.ok,a.ok+a.venc)-_pct(b.ok,b.ok+b.venc))[0];
+    sv('tend-best-pct', _pct(best.ok,best.ok+best.venc)+'%');
+    sv('tend-best-mes', best.label);
+    sv('tend-worst-pct', _pct(worst.ok,worst.ok+worst.venc)+'%');
+    sv('tend-worst-mes', worst.label);
+  }
+
+  // Gráfico de barras duplas
+  const maxBar = Math.max(...meses12.map(m=>m.ok+m.venc), 1);
+  document.getElementById('tend-chart-wrap').innerHTML = `
+    <div style="display:flex;align-items:flex-end;gap:6px;height:160px;padding:0 4px 20px;">
+      ${meses12.map(m => {
+        const tot = m.ok+m.venc;
+        const hOk   = Math.max(tot?Math.round(m.ok/maxBar*120):0, m.ok?3:0);
+        const hVenc = Math.max(tot?Math.round(m.venc/maxBar*120):0, m.venc?3:0);
+        return `<div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:0;position:relative;">
+          ${tot===0?'<div style="flex:1"></div>':''}
+          <div style="display:flex;gap:1px;align-items:flex-end;width:100%;">
+            <div title="${m.label}: ${m.ok} no prazo" style="flex:1;background:#18d4a0;border-radius:3px 3px 0 0;height:${hOk}px;transition:height .7s ease;min-height:${m.ok?2:0}px;opacity:.85;"></div>
+            <div title="${m.label}: ${m.venc} vencidas" style="flex:1;background:#ff4466;border-radius:3px 3px 0 0;height:${hVenc}px;transition:height .7s ease;min-height:${m.venc?2:0}px;opacity:.85;"></div>
+          </div>
+          <div style="font-size:8.5px;color:var(--tx3);position:absolute;bottom:-16px;white-space:nowrap;">${m.label}</div>
+        </div>`;
+      }).join('')}
+    </div>
+    <div style="display:flex;gap:16px;margin-top:8px;justify-content:center;">
+      <div style="display:flex;align-items:center;gap:5px;font-size:11px;"><div style="width:10px;height:10px;background:#18d4a0;border-radius:2px;"></div>No prazo</div>
+      <div style="display:flex;align-items:center;gap:5px;font-size:11px;"><div style="width:10px;height:10px;background:#ff4466;border-radius:2px;"></div>Vencidas</div>
+    </div>`;
+
+  // Por empresa
+  const empTaxa = {};
+  DB.filter(os => !isAberto(os) && os.dataFechamento && os.prazoFatal).forEach(os => {
+    const emp = os.empresa||'?';
+    if (!empTaxa[emp]) empTaxa[emp] = { ok:0, venc:0 };
+    const d1=parseDt(os.dataFechamento), d2=parseDt(os.prazoFatal);
+    if (d1&&d2&&d1<=d2) empTaxa[emp].ok++; else empTaxa[emp].venc++;
+  });
+  const empList = Object.entries(empTaxa)
+    .map(([e,v])=>({ emp:e, taxa:_pct(v.ok,v.ok+v.venc), total:v.ok+v.venc }))
+    .filter(e=>e.total>=2)
+    .sort((a,b)=>b.taxa-a.taxa);
+  document.getElementById('tend-emp-taxa').innerHTML = empList.map(e => `
+    <div style="margin-bottom:10px;">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:3px;">
+        <span style="font-size:11.5px;font-weight:600;">${e.emp}</span>
+        <span style="font-size:12px;font-weight:800;color:${e.taxa>=70?'var(--grn)':e.taxa>=40?'var(--yel)':'var(--red)'};">${e.taxa}%</span>
+      </div>
+      <div style="height:8px;background:var(--bg4);border-radius:4px;overflow:hidden;">
+        <div style="height:100%;width:${e.taxa}%;background:${e.taxa>=70?'var(--grn)':e.taxa>=40?'var(--yel)':'var(--red)'};border-radius:4px;transition:width .7s ease;"></div>
+      </div>
+    </div>`).join('') || '<p style="font-size:12px;color:var(--tx3);">Dados insuficientes</p>';
+
+  // Por tipo
+  const tipoTaxa = {};
+  DB.filter(os => !isAberto(os) && os.dataFechamento && os.prazoFatal).forEach(os => {
+    const t = os.tipoServico||'?';
+    if (!tipoTaxa[t]) tipoTaxa[t] = { ok:0, venc:0 };
+    const d1=parseDt(os.dataFechamento), d2=parseDt(os.prazoFatal);
+    if (d1&&d2&&d1<=d2) tipoTaxa[t].ok++; else tipoTaxa[t].venc++;
+  });
+  const TCOLORS=['#4e7bff','#18d4a0','#f0c040','#ff8533','#7c5cff','#38bfff','#ff4466'];
+  const tipoList = Object.entries(tipoTaxa)
+    .map(([t,v])=>({ tipo:t, taxa:_pct(v.ok,v.ok+v.venc), total:v.ok+v.venc }))
+    .sort((a,b)=>b.taxa-a.taxa);
+  document.getElementById('tend-tipo-sla').innerHTML = tipoList.map((t,i) => `
+    <div style="background:var(--bg3);border:1px solid var(--br);border-radius:14px;padding:12px 14px;text-align:center;">
+      <div style="font-size:26px;font-weight:800;color:${t.taxa>=70?'var(--grn)':t.taxa>=40?'var(--yel)':'var(--red)'};">${t.taxa}%</div>
+      <div style="font-size:12px;font-weight:700;margin:4px 0 2px;">${t.tipo}</div>
+      <div style="font-size:10px;color:var(--tx3);">${t.total} OS finalizadas</div>
+      <div style="height:4px;background:var(--bg4);border-radius:2px;margin-top:8px;">
+        <div style="height:100%;width:${t.taxa}%;background:${t.taxa>=70?'var(--grn)':t.taxa>=40?'var(--yel)':'var(--red)'};border-radius:2px;transition:width .7s ease;"></div>
+      </div>
+    </div>`).join('') || '<p style="font-size:12px;color:var(--tx3);padding:8px;">Sem dados suficientes</p>';
+}
+
+// ══════════════════════════════════════════════════════════════
+// 5. DASHBOARD RECEITA EMPRESA × TIPO
+// ══════════════════════════════════════════════════════════════
+function renderDashReceita() {
+  const COLORS = ['#4e7bff','#18d4a0','#f0c040','#ff8533','#7c5cff','#38bfff','#ff4466','#a0c040'];
+  const todos = DB;
+  const totalVal = todos.reduce((s,os)=>s+parsVal(os.valor),0);
+  const sv=(id,v)=>{ const el=document.getElementById(id); if(el) el.textContent=v; };
+  sv('rec-total', fmtVal(totalVal));
+  sv('rec-ticket', fmtVal(todos.length?totalVal/todos.length:0));
+
+  // Por empresa
+  const empVal = {};
+  todos.forEach(os => { const e=os.empresa||'?'; empVal[e]=(empVal[e]||0)+parsVal(os.valor); });
+  const empList = Object.entries(empVal).sort((a,b)=>b[1]-a[1]);
+  if (empList[0]) { sv('rec-top-emp', empList[0][0]); sv('rec-top-emp-val', fmtVal(empList[0][1])); }
+
+  // Por tipo
+  const tipoVal = {};
+  todos.forEach(os => { const t=os.tipoServico||'?'; tipoVal[t]=(tipoVal[t]||0)+parsVal(os.valor); });
+  const tipoList = Object.entries(tipoVal).sort((a,b)=>b[1]-a[1]);
+  if (tipoList[0]) { sv('rec-top-tipo', tipoList[0][0]); sv('rec-top-tipo-val', fmtVal(tipoList[0][1])); }
+
+  // Heatmap empresa × tipo
+  const empresas = empList.map(e=>e[0]).slice(0,10);
+  const tipos    = tipoList.map(t=>t[0]).slice(0,8);
+  const matrix   = {};
+  todos.forEach(os => {
+    const e=os.empresa||'?', t=os.tipoServico||'?';
+    if (!matrix[e]) matrix[e]={};
+    matrix[e][t] = (matrix[e][t]||0)+parsVal(os.valor);
+  });
+  const maxCell = Math.max(...empresas.flatMap(e=>tipos.map(t=>matrix[e]?.[t]||0)), 1);
+  document.getElementById('rec-heatmap').innerHTML = `
+    <table style="width:100%;border-collapse:collapse;font-size:11px;">
+      <thead><tr>
+        <th style="padding:6px 8px;text-align:left;font-weight:700;font-size:10px;color:var(--tx3);min-width:80px;">Empresa</th>
+        ${tipos.map(t=>`<th style="padding:6px 6px;text-align:center;font-weight:700;font-size:10px;color:var(--tx3);max-width:80px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${t}</th>`).join('')}
+        <th style="padding:6px 8px;text-align:right;font-weight:700;font-size:10px;color:var(--tx3);">Total</th>
+      </tr></thead>
+      <tbody>
+        ${empresas.map(e => {
+          const rowTotal = tipos.reduce((s,t)=>s+(matrix[e]?.[t]||0),0);
+          return `<tr>
+            <td style="padding:5px 8px;font-weight:600;border-top:1px solid var(--br);font-size:11px;white-space:nowrap;">${e}</td>
+            ${tipos.map(t => {
+              const v = matrix[e]?.[t]||0;
+              const intensity = v/maxCell;
+              const alpha = v ? (0.12 + intensity*0.7).toFixed(2) : 0;
+              return `<td style="padding:5px 6px;text-align:center;border-top:1px solid var(--br);background:rgba(79,70,229,${alpha});border-radius:4px;">${v?'<span style="font-size:10.5px;font-weight:700;">'+fmtVal(v).replace('R$ ','')+'</span>':'<span style="color:var(--tx4);">—</span>'}</td>`;
+            }).join('')}
+            <td style="padding:5px 8px;text-align:right;font-weight:800;border-top:1px solid var(--br);color:var(--acc);">${fmtVal(rowTotal)}</td>
+          </tr>`;
+        }).join('')}
+      </tbody>
+    </table>`;
+
+  // Donut empresas
+  drawDonut('donut-receita', empList.slice(0,8).map((e,i)=>({ val:e[1], color:COLORS[i%COLORS.length], label:e[0] })));
+  document.getElementById('donut-rec-legend').innerHTML = empList.slice(0,8).map((e,i)=>
+    `<div class="donut-legend-item"><div class="donut-dot" style="background:${COLORS[i%COLORS.length]}"></div><span style="flex:1;color:var(--tx2);font-size:11px;">${e[0]}</span><span style="font-weight:700;font-size:11px;">${fmtVal(e[1]).replace('R$ ','R$')}</span></div>`
+  ).join('');
+
+  // Barras empresa
+  const maxEmp = empList[0]?.[1]||1;
+  document.getElementById('rec-emp-bars').innerHTML = empList.slice(0,8).map((e,i)=>`
+    <div style="margin-bottom:10px;">
+      <div style="display:flex;justify-content:space-between;margin-bottom:3px;">
+        <span style="font-size:11.5px;font-weight:600;">${e[0]}</span>
+        <span style="font-size:11px;font-weight:700;">${fmtVal(e[1])}</span>
+      </div>
+      <div style="height:10px;background:var(--bg4);border-radius:5px;overflow:hidden;">
+        <div style="height:100%;width:${e[1]/maxEmp*100}%;background:${COLORS[i%COLORS.length]};border-radius:5px;transition:width .7s ease;"></div>
+      </div>
+    </div>`).join('');
+
+  // Barras tipo
+  const maxTipo = tipoList[0]?.[1]||1;
+  document.getElementById('rec-tipo-bars').innerHTML = tipoList.slice(0,8).map((t,i)=>`
+    <div style="margin-bottom:10px;">
+      <div style="display:flex;justify-content:space-between;margin-bottom:3px;">
+        <span style="font-size:11.5px;font-weight:600;">${t[0]}</span>
+        <span style="font-size:11px;font-weight:700;">${fmtVal(t[1])}</span>
+      </div>
+      <div style="height:10px;background:var(--bg4);border-radius:5px;overflow:hidden;">
+        <div style="height:100%;width:${t[1]/maxTipo*100}%;background:${COLORS[i%COLORS.length]};border-radius:5px;transition:width .7s ease;"></div>
+      </div>
+    </div>`).join('');
+}
+
+// ══════════════════════════════════════════════════════════════
+// 6. DASHBOARD MAPA DE CIDADES
+// ══════════════════════════════════════════════════════════════
+function renderDashCidades() {
+  const filtro = document.getElementById('cid-filtro-status')?.value || 'all';
+  const base = filtro==='abertas' ? DB.filter(isAberto)
+    : filtro==='finalizadas' ? DB.filter(os=>!isAberto(os))
+    : filtro==='vencidas' ? DB.filter(os=>isAberto(os)&&diasAte(os.prazoFatal)!==null&&diasAte(os.prazoFatal)<0)
+    : DB;
+
+  // Normalizar cidade
+  const normCid = s => s ? s.split('/')[0].replace(/\s+/g,' ').trim() : '?';
+  const cidMap = {};
+  DB.forEach(os => {
+    const c = normCid(os.cidade);
+    if (!cidMap[c]) cidMap[c] = { nome:c, total:0, abertas:0, finalizadas:0, vencidas:0 };
+    cidMap[c].total++;
+    if (!isAberto(os)) cidMap[c].finalizadas++;
+    else {
+      cidMap[c].abertas++;
+      if (diasAte(os.prazoFatal)!==null && diasAte(os.prazoFatal)<0) cidMap[c].vencidas++;
+    }
+  });
+  const baseMap = {};
+  base.forEach(os => {
+    const c = normCid(os.cidade);
+    baseMap[c] = (baseMap[c]||0)+1;
+  });
+
+  const cidades = Object.values(cidMap).sort((a,b)=>b.total-a.total);
+  const sv=(id,v)=>{ const el=document.getElementById(id); if(el) el.textContent=v; };
+  sv('cid-total', cidades.length);
+  if (cidades[0]) { sv('cid-top-count', cidades[0].total); sv('cid-top-nome', cidades[0].nome); }
+  const topVenc = cidades.slice().sort((a,b)=>b.vencidas-a.vencidas)[0];
+  if (topVenc&&topVenc.vencidas>0) { sv('cid-venc-count', topVenc.vencidas); sv('cid-venc-nome', topVenc.nome); }
+  const topTaxa = cidades.filter(c=>c.total>=3).sort((a,b)=>_pct(b.finalizadas,b.total)-_pct(a.finalizadas,a.total))[0];
+  if (topTaxa) { sv('cid-taxa-val', _pct(topTaxa.finalizadas,topTaxa.total)+'%'); sv('cid-taxa-nome', topTaxa.nome); }
+
+  // Ranking com barra
+  const COLORS = ['#4e7bff','#18d4a0','#f0c040','#ff8533','#7c5cff','#38bfff','#ff4466'];
+  const listFiltrada = Object.entries(baseMap).sort((a,b)=>b[1]-a[1]);
+  const maxCnt = listFiltrada[0]?.[1]||1;
+  document.getElementById('cid-ranking').innerHTML = listFiltrada.length ?
+    listFiltrada.map(([c,n],i) => {
+      const info = cidMap[c]||{};
+      return `<div class="dli" onclick="mostrarDetalheCidade('${c}')" style="padding:8px 6px;">
+        <div style="width:28px;height:28px;border-radius:8px;background:${COLORS[i%COLORS.length]};display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:800;color:#fff;flex-shrink:0;">${i+1}</div>
+        <div style="flex:1;min-width:0;">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:3px;">
+            <span style="font-size:12.5px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:140px;">${c}</span>
+            <span style="font-size:13px;font-weight:800;color:${COLORS[i%COLORS.length]};">${n}</span>
+          </div>
+          <div style="height:5px;background:var(--bg4);border-radius:3px;overflow:hidden;">
+            <div style="height:100%;width:${n/maxCnt*100}%;background:${COLORS[i%COLORS.length]};border-radius:3px;transition:width .7s ease;"></div>
+          </div>
+          ${info.vencidas>0?`<div style="font-size:10px;color:var(--red);margin-top:2px;">⚠ ${info.vencidas} vencida${info.vencidas>1?'s':''}</div>`:''}
+        </div>
+      </div>`;
+    }).join('') :
+    '<p style="font-size:12px;color:var(--tx3);padding:16px;text-align:center;">Nenhuma cidade com OS nesse filtro</p>';
+
+  // Comparativo top 15
+  const top15 = cidades.slice(0,15);
+  const maxComp = Math.max(...top15.map(c=>c.total),1);
+  document.getElementById('cid-comparativo').innerHTML = `
+    <table style="width:100%;border-collapse:collapse;font-size:12px;">
+      <thead><tr>
+        <th style="padding:7px 10px;text-align:left;font-size:10px;font-weight:700;color:var(--tx3);">Cidade</th>
+        <th style="padding:7px 8px;text-align:center;font-size:10px;font-weight:700;color:var(--tx3);">Total</th>
+        <th style="padding:7px 8px;text-align:center;font-size:10px;font-weight:700;color:var(--tx3);">Em aberto</th>
+        <th style="padding:7px 8px;text-align:center;font-size:10px;font-weight:700;color:var(--red);">Vencidas</th>
+        <th style="padding:7px 8px;text-align:center;font-size:10px;font-weight:700;color:var(--grn);">Finalizadas</th>
+        <th style="padding:7px 8px;text-align:center;font-size:10px;font-weight:700;color:var(--tx3);">Taxa</th>
+        <th style="padding:7px 10px;min-width:120px;"></th>
+      </tr></thead>
+      <tbody>${top15.map((c,i)=>`
+        <tr onclick="mostrarDetalheCidade('${c.nome}')" style="cursor:pointer;" onmouseover="this.style.background='var(--bg3)'" onmouseout="this.style.background=''">
+          <td style="padding:6px 10px;font-weight:600;border-top:1px solid var(--br);">${c.nome}</td>
+          <td style="padding:6px 8px;text-align:center;border-top:1px solid var(--br);font-weight:700;">${c.total}</td>
+          <td style="padding:6px 8px;text-align:center;border-top:1px solid var(--br);"><span class="badge bg-orange">${c.abertas}</span></td>
+          <td style="padding:6px 8px;text-align:center;border-top:1px solid var(--br);">${c.vencidas>0?`<span class="badge bg-red">${c.vencidas}</span>`:'<span style="color:var(--tx4);">—</span>'}</td>
+          <td style="padding:6px 8px;text-align:center;border-top:1px solid var(--br);"><span class="badge bg-green">${c.finalizadas}</span></td>
+          <td style="padding:6px 8px;text-align:center;border-top:1px solid var(--br);font-weight:700;color:${_pct(c.finalizadas,c.total)>=70?'var(--grn)':_pct(c.finalizadas,c.total)>=40?'var(--yel)':'var(--org)'};">${_pct(c.finalizadas,c.total)}%</td>
+          <td style="padding:6px 10px;border-top:1px solid var(--br);">
+            <div style="height:8px;background:var(--bg4);border-radius:4px;overflow:hidden;">
+              <div style="height:100%;width:${c.total/maxComp*100}%;background:${COLORS[i%COLORS.length]};border-radius:4px;transition:width .7s ease;"></div>
+            </div>
+          </td>
+        </tr>`).join('')}
+      </tbody>
+    </table>`;
+}
+
+function mostrarDetalheCidade(cidade) {
+  const normCid = s => s ? s.split('/')[0].replace(/\s+/g,' ').trim() : '?';
+  const osCity = DB.filter(os => normCid(os.cidade)===cidade).sort((a,b)=>{
+    const da=diasAte(a.prazoFatal)??(isAberto(a)?Infinity:9999);
+    const db=diasAte(b.prazoFatal)??(isAberto(b)?Infinity:9999);
+    return da-db;
+  });
+  document.getElementById('cid-detail').innerHTML = `
+    <div style="font-size:12.5px;font-weight:700;margin-bottom:10px;padding-bottom:8px;border-bottom:1px solid var(--br);">📍 ${cidade} — ${osCity.length} OS</div>
+    ${osCity.slice(0,10).map(os => {
+      const dias = diasAte(os.prazoFatal);
+      const [bc,bl] = statusBadge(os);
+      return `<div class="dli" onclick="abrirDetalhe('${os.id}')" style="padding:6px 4px;">
+        <div style="flex:1;min-width:0;">
+          <div style="font-size:11.5px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${os.empresa||'—'}</div>
+          <div style="font-size:10px;color:var(--tx3);">${os.tipoServico||''} ${os.cliente?'· '+os.cliente.split(' ')[0]:''}</div>
+        </div>
+        <div style="display:flex;flex-direction:column;align-items:flex-end;gap:3px;flex-shrink:0;">
+          <span class="badge ${bc}" style="font-size:10px;">${bl}</span>
+          ${dias!==null?diasBadge(dias):''}
+        </div>
+      </div>`;
+    }).join('')}
+    ${osCity.length>10?`<div style="font-size:11px;color:var(--tx3);text-align:center;padding:8px;">+${osCity.length-10} OS a mais</div>`:''}`;
+}
+
+// ══════════════════════════════════════════════════════════════
 // Usa Firestore: /chat_mensagens e /chat_presenca
 // ══════════════════════════════════════════════════════════════
 
