@@ -767,9 +767,15 @@ tr.row-vencido{animation:none!important;}
     <button class="ni" data-page="finalizadas" onclick="go('finalizadas')"><span class="ic">✅</span><span class="lbl">Finalizadas</span><span class="cnt green" id="nb-fin">0</span></button>
 
     <div class="sb-sec">Análises</div>
+    <button class="ni" data-page="dash-saude" onclick="go('dash-saude')"><span class="ic">🎯</span><span class="lbl">Saúde da Operação</span></button>
+    <button class="ni" data-page="dash-calendario" onclick="go('dash-calendario')"><span class="ic">📅</span><span class="lbl">Calendário de OS</span></button>
+    <button class="ni" data-page="dash-timeline" onclick="go('dash-timeline')"><span class="ic">⏱️</span><span class="lbl">Timeline Crítica</span></button>
     <button class="ni" data-page="dash-tendencia" onclick="go('dash-tendencia')"><span class="ic">📈</span><span class="lbl">Tendência de Prazo</span></button>
     <button class="ni admin-only" data-page="dash-receita" onclick="go('dash-receita')"><span class="ic">💹</span><span class="lbl">Receita Empresa × Tipo</span></button>
     <button class="ni" data-page="dash-cidades" onclick="go('dash-cidades')"><span class="ic">🗺️</span><span class="lbl">Mapa de Cidades</span></button>
+    <button class="ni admin-only" data-page="dash-metas" onclick="go('dash-metas')"><span class="ic">🏆</span><span class="lbl">Metas e SLA</span></button>
+    <button class="ni" data-page="dash-feed" onclick="go('dash-feed')"><span class="ic">⚡</span><span class="lbl">Feed de Atividade</span></button>
+    <button class="ni admin-only" data-page="dash-comparativo" onclick="go('dash-comparativo')"><span class="ic">📊</span><span class="lbl">Comparativo Anual</span></button>
 
     <div class="sb-sec admin-only">Financeiro</div>
     <button class="ni admin-only" data-page="financeiro" onclick="go('financeiro')"><span class="ic">💰</span><span class="lbl">Dashboard Financeiro</span></button>
@@ -1886,6 +1892,168 @@ tr.row-vencido{animation:none!important;}
   </div>
 </div>
 
+<!-- ═══ DASHBOARD: SAÚDE DA OPERAÇÃO ═══ -->
+<div class="page" id="page-dash-saude">
+  <div class="stats" style="grid-template-columns:repeat(4,1fr);margin-bottom:16px;">
+    <div class="stat" style="--sc:var(--grn)"><div class="stat-ic">🎯</div><div class="stat-lbl">SLA Global</div><div class="stat-val" id="sd-sla">0%</div><div class="stat-sub">OS no prazo</div></div>
+    <div class="stat" style="--sc:var(--acc)"><div class="stat-ic">📋</div><div class="stat-lbl">Em andamento</div><div class="stat-val" id="sd-and">0</div><div class="stat-sub">OS abertas</div></div>
+    <div class="stat" style="--sc:var(--red)"><div class="stat-ic">⚠️</div><div class="stat-lbl">Críticas</div><div class="stat-val" id="sd-crit">0</div><div class="stat-sub">vencidas ou hoje</div></div>
+    <div class="stat" style="--sc:var(--org)"><div class="stat-ic">⏱️</div><div class="stat-lbl">Idade média</div><div class="stat-val" id="sd-idade">—</div><div class="stat-sub">dias em aberto</div></div>
+  </div>
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px;">
+    <div class="card">
+      <div class="card-hd"><h3>🔄 Progresso do Funil</h3><p>% de OS que completaram cada etapa</p></div>
+      <div id="sd-funil" style="padding:8px 0;"></div>
+    </div>
+    <div class="card">
+      <div class="card-hd"><h3>📊 Velocímetro por Empresa</h3><p>Taxa de finalização no prazo</p></div>
+      <div id="sd-velocimetros" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:14px;padding:8px 0;"></div>
+    </div>
+  </div>
+  <div class="card">
+    <div class="card-hd"><h3>🧭 Radar de Etapas</h3><p>Completude de cada fase — todas as OS</p></div>
+    <div id="sd-radar-wrap" style="display:flex;align-items:center;justify-content:center;padding:16px 0;gap:40px;flex-wrap:wrap;"></div>
+  </div>
+</div>
+
+<!-- ═══ DASHBOARD: CALENDÁRIO HEATMAP ═══ -->
+<div class="page" id="page-dash-calendario">
+  <div style="display:grid;grid-template-columns:1fr auto;align-items:center;margin-bottom:14px;gap:12px;">
+    <div></div>
+    <select id="cal-ano" onchange="renderDashCalendario()" style="padding:6px 12px;font-size:12px;background:var(--bg2);border:1px solid var(--br);border-radius:var(--rs);color:var(--tx);">
+      <option>2024</option><option selected>2026</option><option>2025</option><option>2027</option>
+    </select>
+  </div>
+  <div class="card" style="margin-bottom:16px;">
+    <div class="card-hd"><h3>📅 OS Abertas por Dia do Ano</h3><p id="cal-sub">Passe o mouse em um dia para ver detalhes</p></div>
+    <div id="cal-heatmap" style="overflow-x:auto;padding:8px 0;"></div>
+    <div style="display:flex;align-items:center;gap:8px;margin-top:12px;padding-top:10px;border-top:1px solid var(--br);">
+      <span style="font-size:11px;color:var(--tx3);">menos</span>
+      <div id="cal-legend-cells" style="display:flex;gap:3px;"></div>
+      <span style="font-size:11px;color:var(--tx3);">mais</span>
+    </div>
+  </div>
+  <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:16px;">
+    <div class="card"><div class="card-hd"><h3>🏆 Dia mais produtivo</h3></div><div id="cal-top-dia"></div></div>
+    <div class="card"><div class="card-hd"><h3>📆 Mês mais produtivo</h3></div><div id="cal-top-mes"></div></div>
+    <div class="card"><div class="card-hd"><h3>📊 Média diária</h3></div><div id="cal-media-dia"></div></div>
+  </div>
+</div>
+
+<!-- ═══ DASHBOARD: TIMELINE CRÍTICA ═══ -->
+<div class="page" id="page-dash-timeline">
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:14px;" id="tl-stats"></div>
+  <div style="display:grid;grid-template-columns:2fr 1fr;gap:16px;">
+    <div class="card">
+      <div class="card-hd">
+        <h3>⏱️ Timeline de Prazos</h3>
+        <select id="tl-filtro-emp" onchange="renderDashTimeline()" style="font-size:11.5px;padding:4px 8px;background:var(--bg2);border:1px solid var(--br);border-radius:var(--rs);color:var(--tx);">
+          <option value="">Todas as empresas</option>
+        </select>
+      </div>
+      <div id="tl-list" style="overflow-y:auto;max-height:500px;"></div>
+    </div>
+    <div class="card">
+      <div class="card-hd"><h3>🔥 Urgência por empresa</h3></div>
+      <div id="tl-emp-urgencia"></div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ DASHBOARD: METAS E SLA ═══ -->
+<div class="page" id="page-dash-metas">
+  <div class="stats" style="grid-template-columns:repeat(3,1fr);margin-bottom:16px;">
+    <div class="stat" style="--sc:var(--grn)"><div class="stat-ic">🏆</div><div class="stat-lbl">Empresas na meta</div><div class="stat-val" id="mt-ok">0</div><div class="stat-sub" id="mt-ok-sub">de 0</div></div>
+    <div class="stat" style="--sc:var(--red)"><div class="stat-ic">⚠️</div><div class="stat-lbl">Abaixo da meta</div><div class="stat-val" id="mt-fail">0</div><div class="stat-sub">precisam atenção</div></div>
+    <div class="stat" style="--sc:var(--acc)"><div class="stat-ic">🎯</div><div class="stat-lbl">Meta global</div><div class="stat-val" id="mt-meta-val">80%</div><div class="stat-sub">ajustável abaixo</div></div>
+  </div>
+  <div class="card" style="margin-bottom:16px;">
+    <div class="card-hd">
+      <h3>🎯 SLA por Empresa — Meta de Prazo</h3>
+      <div style="display:flex;align-items:center;gap:10px;">
+        <label style="font-size:12px;color:var(--tx3);">Meta:</label>
+        <input type="range" id="mt-meta-slider" min="50" max="100" value="80" step="5"
+          oninput="document.getElementById('mt-meta-pct').textContent=this.value+'%';document.getElementById('mt-meta-val').textContent=this.value+'%';renderDashMetas()"
+          style="width:100px;">
+        <span id="mt-meta-pct" style="font-size:12px;font-weight:700;color:var(--acc);min-width:32px;">80%</span>
+      </div>
+    </div>
+    <div id="mt-bars"></div>
+  </div>
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;">
+    <div class="card">
+      <div class="card-hd"><h3>📊 SLA por Tipo de Serviço</h3></div>
+      <div id="mt-tipo-bars"></div>
+    </div>
+    <div class="card">
+      <div class="card-hd"><h3>📅 Evolução do SLA — últimos 6 meses</h3></div>
+      <div id="mt-evolucao"></div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ DASHBOARD: FEED DE ATIVIDADE ═══ -->
+<div class="page" id="page-dash-feed">
+  <div style="display:grid;grid-template-columns:2fr 1fr;gap:16px;">
+    <div class="card">
+      <div class="card-hd">
+        <h3>⚡ Atividade Recente da Equipe</h3>
+        <div style="display:flex;align-items:center;gap:8px;">
+          <div id="feed-live-dot" style="width:7px;height:7px;border-radius:50%;background:var(--grn);box-shadow:0 0 6px var(--grn);animation:pulse 2s infinite;"></div>
+          <span style="font-size:11px;color:var(--tx3);">ao vivo</span>
+          <select id="feed-filtro" onchange="renderDashFeed()" style="font-size:11.5px;padding:4px 8px;background:var(--bg2);border:1px solid var(--br);border-radius:var(--rs);color:var(--tx);">
+            <option value="all">Todas as ações</option>
+            <option value="abertura">Abertura</option>
+            <option value="finalizacao">Finalização</option>
+            <option value="atualizacao">Atualização</option>
+          </select>
+        </div>
+      </div>
+      <div id="feed-list" style="overflow-y:auto;max-height:520px;"></div>
+    </div>
+    <div style="display:flex;flex-direction:column;gap:16px;">
+      <div class="card">
+        <div class="card-hd"><h3>👤 Mais ativos hoje</h3></div>
+        <div id="feed-top-users"></div>
+      </div>
+      <div class="card">
+        <div class="card-hd"><h3>📊 Ações por tipo</h3></div>
+        <div id="feed-tipo-chart"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ DASHBOARD: COMPARATIVO ANUAL ═══ -->
+<div class="page" id="page-dash-comparativo">
+  <div style="display:flex;align-items:center;gap:12px;margin-bottom:16px;flex-wrap:wrap;">
+    <label style="font-size:12px;color:var(--tx3);">Ano A:</label>
+    <select id="cmp-ano-a" onchange="renderDashComparativo()" style="padding:6px 12px;font-size:12px;background:var(--bg2);border:1px solid var(--br);border-radius:var(--rs);color:var(--tx);">
+      <option>2024</option><option>2025</option><option selected>2026</option>
+    </select>
+    <label style="font-size:12px;color:var(--tx3);">vs Ano B:</label>
+    <select id="cmp-ano-b" onchange="renderDashComparativo()" style="padding:6px 12px;font-size:12px;background:var(--bg2);border:1px solid var(--br);border-radius:var(--rs);color:var(--tx);">
+      <option>2024</option><option selected>2025</option><option>2026</option>
+    </select>
+    <div id="cmp-resumo" style="font-size:12px;color:var(--tx3);margin-left:8px;"></div>
+  </div>
+  <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:16px;" id="cmp-kpis"></div>
+  <div style="display:grid;grid-template-columns:2fr 1fr;gap:16px;margin-bottom:16px;">
+    <div class="card">
+      <div class="card-hd"><h3>📊 OS por Mês — Comparativo</h3></div>
+      <div id="cmp-barras-wrap" style="padding:8px 0;"></div>
+    </div>
+    <div class="card">
+      <div class="card-hd"><h3>📈 Variação por Empresa</h3></div>
+      <div id="cmp-emp-delta"></div>
+    </div>
+  </div>
+  <div class="card">
+    <div class="card-hd"><h3>🏷️ Variação por Tipo de Serviço</h3></div>
+    <div id="cmp-tipo-delta" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:12px;padding:8px 0;"></div>
+  </div>
+</div>
+
 <!-- ═══ CHAT DA EQUIPE ═══ -->
 <!-- ══════════════════════════════════════════════════════════
      CHAT MESSENGER FLUTUANTE — estilo Facebook Messenger
@@ -2069,7 +2237,13 @@ const PAGE_TITLES = {
   chat:'Chat da Equipe',
   'dash-tendencia':'Tendência de Prazo',
   'dash-receita':'Receita por Empresa × Tipo',
-  'dash-cidades':'Distribuição Geográfica'
+  'dash-cidades':'Distribuição Geográfica',
+  'dash-saude':'Saúde da Operação',
+  'dash-calendario':'Calendário de OS — Heatmap',
+  'dash-timeline':'Timeline de OS Críticas',
+  'dash-metas':'Metas e SLA por Empresa',
+  'dash-feed':'Feed de Atividade em Tempo Real',
+  'dash-comparativo':'Comparativo Anual'
 };
 
 let DB = [];
@@ -2331,6 +2505,12 @@ function renderPage(id) {
   else if(id==='dash-tendencia') renderDashTendencia();
   else if(id==='dash-receita') renderDashReceita();
   else if(id==='dash-cidades') renderDashCidades();
+  else if(id==='dash-saude') renderDashSaude();
+  else if(id==='dash-calendario') renderDashCalendario();
+  else if(id==='dash-timeline') renderDashTimeline();
+  else if(id==='dash-metas') renderDashMetas();
+  else if(id==='dash-feed') renderDashFeed();
+  else if(id==='dash-comparativo') renderDashComparativo();
   // chat agora é widget flutuante — não há mais page-chat
 }
 
@@ -6650,6 +6830,566 @@ let _avSort = { key:'total', asc:false };
 // ══════════════════════════════════════════════════════════════
 // 1. DASHBOARD POR AVALIADOR
 // ══════════════════════════════════════════════════════════════
+
+// ══════════════════════════════════════════════════════════════
+// DASHBOARD 1 — SAÚDE DA OPERAÇÃO
+// ══════════════════════════════════════════════════════════════
+function renderDashSaude() {
+  const sv = (id,v) => { const el=document.getElementById(id); if(el) el.textContent=v; };
+  const abertos = DB.filter(isAberto);
+  const hojeMs  = new Date(); hojeMs.setHours(0,0,0,0);
+  const criticas = abertos.filter(os => {
+    const d = diasAte(os.prazoFatal);
+    return d !== null && d <= 0;
+  });
+  const idades = abertos.map(os => {
+    const d = parseDt(os.dataAbertura); if(!d) return null;
+    return Math.max(0, Math.round((hojeMs-d)/86400000));
+  }).filter(v=>v!==null);
+  const idadeMedia = idades.length ? Math.round(idades.reduce((a,b)=>a+b,0)/idades.length) : 0;
+  const finalizadas = DB.filter(os=>!isAberto(os)&&os.prazoFatal&&os.dataFechamento);
+  const sla = finalizadas.length ? Math.round(finalizadas.filter(os=>{
+    const d1=parseDt(os.dataFechamento),d2=parseDt(os.prazoFatal);
+    return d1&&d2&&d1<=d2;
+  }).length/finalizadas.length*100) : 0;
+
+  sv('sd-sla', sla+'%');
+  sv('sd-and', abertos.length);
+  sv('sd-crit', criticas.length);
+  sv('sd-idade', idadeMedia+'d');
+
+  // Funil
+  const total = DB.length||1;
+  const etapas = [
+    {ic:'🔍',lbl:'Vistoriadas',  n:DB.filter(o=>o.vistoria==='Imóvel vistoriado').length,            c:'#18d4a0'},
+    {ic:'✍️',lbl:'Preenchidas',  n:DB.filter(o=>['Preenchido','Sem necessidade','Copiar'].includes(o.preenchimento)).length, c:'#4e7bff'},
+    {ic:'📊',lbl:'Avaliação OK', n:DB.filter(o=>['Avaliação Pronta','Sem necessidade'].includes(o.avaliacao)).length, c:'#38bfff'},
+    {ic:'🔐',lbl:'Conferidas',   n:DB.filter(o=>['Conferido','Sem necessidade'].includes(o.conferencia)).length, c:'#f0c040'},
+    {ic:'📄',lbl:'Laudo emitido',n:DB.filter(o=>o.finalizacao==='Laudo Finalizado').length,            c:'#ff8533'},
+    {ic:'📋',lbl:'Fichas feitas',n:DB.filter(o=>['Realizada','Sem necessidade'].includes(o.fichas)).length, c:'#7c5cff'},
+  ];
+  document.getElementById('sd-funil').innerHTML = etapas.map(e => {
+    const pct = Math.round(e.n/total*100);
+    return `<div style="margin-bottom:12px;">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;">
+        <span style="font-size:12.5px;font-weight:600;">${e.ic} ${e.lbl}</span>
+        <span style="font-size:12px;font-weight:800;color:${e.c};">${pct}% <span style="font-size:11px;font-weight:400;color:var(--tx3);">(${e.n})</span></span>
+      </div>
+      <div style="height:12px;background:var(--bg4);border-radius:6px;overflow:hidden;">
+        <div style="height:100%;width:${pct}%;background:${e.c};border-radius:6px;transition:width .8s cubic-bezier(.34,1.56,.64,1);"></div>
+      </div>
+    </div>`;
+  }).join('');
+
+  // Velocímetros por empresa (SVG arc)
+  const empMap = {};
+  DB.filter(os=>!isAberto(os)&&os.prazoFatal&&os.dataFechamento).forEach(os=>{
+    const e=os.empresa||'?';
+    if(!empMap[e]) empMap[e]={ok:0,total:0};
+    empMap[e].total++;
+    const d1=parseDt(os.dataFechamento),d2=parseDt(os.prazoFatal);
+    if(d1&&d2&&d1<=d2) empMap[e].ok++;
+  });
+  const emps = Object.entries(empMap).filter(([,v])=>v.total>=3).sort((a,b)=>b[1].total-a[1].total).slice(0,6);
+  document.getElementById('sd-velocimetros').innerHTML = emps.map(([emp,v])=>{
+    const pct=Math.round(v.ok/v.total*100);
+    const angle = pct/100*180; // 0–180
+    const RAD = Math.PI/180;
+    // Arc do velocímetro (semicírculo)
+    const r=46, cx=60, cy=60;
+    const startX=cx-r, startY=cy;
+    const endX=cx+r*Math.cos((180-angle)*RAD), endY=cy-r*Math.sin((180-angle)*RAD);
+    const lg = angle > 180 ? 1 : 0;
+    const cor = pct>=80?'#18d4a0':pct>=60?'#f0c040':'#ff4466';
+    return `<div style="text-align:center;">
+      <svg width="120" height="72" viewBox="0 0 120 72">
+        <path d="M14,60 A46,46 0 0,1 106,60" fill="none" stroke="var(--bg4)" stroke-width="10" stroke-linecap="round"/>
+        <path d="M14,60 A46,46 0 ${lg},1 ${endX.toFixed(1)},${endY.toFixed(1)}" fill="none" stroke="${cor}" stroke-width="10" stroke-linecap="round" style="transition:all .8s ease;"/>
+        <text x="60" y="58" text-anchor="middle" font-size="15" font-weight="800" fill="${cor}">${pct}%</text>
+      </svg>
+      <div style="font-size:11px;font-weight:600;color:var(--tx2);margin-top:-4px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:120px;">${emp}</div>
+      <div style="font-size:10px;color:var(--tx3);">${v.total} OS</div>
+    </div>`;
+  }).join('') || '<p style="font-size:12px;color:var(--tx3);padding:12px;">Dados insuficientes (mín. 3 OS por empresa)</p>';
+
+  // Radar de etapas (círculos radiais grandes)
+  document.getElementById('sd-radar-wrap').innerHTML = etapas.map(e=>{
+    const pct=Math.round(e.n/total*100);
+    const dash=`${pct} 100`;
+    return `<div style="text-align:center;">
+      <div style="position:relative;width:90px;height:90px;margin:0 auto;">
+        <svg viewBox="0 0 36 36" style="transform:rotate(-90deg);width:90px;height:90px;">
+          <circle cx="18" cy="18" r="15.9" fill="none" stroke="var(--bg4)" stroke-width="3.5"/>
+          <circle cx="18" cy="18" r="15.9" fill="none" stroke="${e.c}" stroke-width="3.5"
+            stroke-dasharray="${dash}" stroke-linecap="round"
+            style="transition:stroke-dasharray 1s ease;filter:drop-shadow(0 0 4px ${e.c}55)"/>
+        </svg>
+        <div style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:16px;font-weight:800;color:${e.c};">${pct}%</div>
+      </div>
+      <div style="font-size:20px;margin:6px 0 2px;">${e.ic}</div>
+      <div style="font-size:11px;font-weight:600;color:var(--tx2);">${e.lbl}</div>
+      <div style="font-size:10px;color:var(--tx3);">${e.n} de ${total}</div>
+    </div>`;
+  }).join('');
+}
+
+// ══════════════════════════════════════════════════════════════
+// DASHBOARD 2 — CALENDÁRIO HEATMAP
+// ══════════════════════════════════════════════════════════════
+function renderDashCalendario() {
+  const anoSel = parseInt(document.getElementById('cal-ano')?.value||new Date().getFullYear());
+  const DIAS_SEMANA = ['D','S','T','Q','Q','S','S'];
+  const MESES = ['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
+
+  // Contar OS por dia
+  const cnt = {};
+  DB.forEach(os=>{
+    const d=parseDt(os.dataAbertura); if(!d||d.getFullYear()!==anoSel) return;
+    const k=`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+    cnt[k]=(cnt[k]||0)+1;
+  });
+  const vals=Object.values(cnt).filter(v=>v>0);
+  const maxV=Math.max(...vals,1);
+
+  // Paleta de 5 intensidades
+  const PALETTE=['#E1F5EE','#9FE1CB','#5DCAA5','#1D9E75','#085041'];
+  function cor(n){ if(!n) return 'var(--bg3)'; const i=Math.min(4,Math.floor(n/maxV*4.99)); return PALETTE[i]; }
+
+  // Legenda
+  const legCells=document.getElementById('cal-legend-cells');
+  if(legCells) legCells.innerHTML=PALETTE.map((c,i)=>`<div style="width:12px;height:12px;border-radius:2px;background:${c};"></div>`).join('');
+
+  // Construir grid tipo GitHub — semanas como colunas
+  const jan1=new Date(anoSel,0,1);
+  const dec31=new Date(anoSel,11,31);
+  const startDow=jan1.getDay(); // dia da semana de 1/Jan
+
+  let html=`<div style="display:flex;gap:3px;min-width:max-content;">`;
+  // Labels dos meses
+  html+=`<div style="display:flex;flex-direction:column;gap:3px;margin-right:4px;">
+    <div style="height:16px;"></div>
+    ${DIAS_SEMANA.map(d=>`<div style="height:13px;font-size:9px;color:var(--tx3);line-height:13px;">${d}</div>`).join('')}
+  </div>`;
+
+  // Semanas
+  const totalDias=Math.ceil((dec31-jan1)/86400000)+1;
+  const totalSemanas=Math.ceil((startDow+totalDias)/7);
+  let mesAtual=-1;
+
+  for(let sem=0;sem<totalSemanas;sem++){
+    let mesLabel='';
+    let colHtml='';
+    for(let dow=0;dow<7;dow++){
+      const dayIdx=sem*7+dow-startDow;
+      if(dayIdx<0||dayIdx>=totalDias){ colHtml+=`<div style="width:13px;height:13px;"></div>`; continue; }
+      const d=new Date(anoSel,0,1+dayIdx);
+      if(d.getMonth()!==mesAtual){ mesAtual=d.getMonth(); mesLabel=MESES[mesAtual].slice(0,3); }
+      const k=`${anoSel}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+      const n=cnt[k]||0;
+      const bg=cor(n);
+      const title=`${d.toLocaleDateString('pt-BR')}: ${n} OS`;
+      colHtml+=`<div title="${title}" style="width:13px;height:13px;border-radius:2px;background:${bg};cursor:${n?'pointer':'default'};" onclick="calDiaClick('${k}',${n})"></div>`;
+    }
+    html+=`<div style="display:flex;flex-direction:column;gap:3px;">
+      <div style="height:16px;font-size:9px;color:var(--tx3);line-height:16px;white-space:nowrap;">${mesLabel}</div>
+      ${colHtml}
+    </div>`;
+  }
+  html+='</div>';
+  document.getElementById('cal-heatmap').innerHTML=html;
+
+  // KPIs
+  const sorted=Object.entries(cnt).sort((a,b)=>b[1]-a[1]);
+  if(sorted[0]){
+    const [k,n]=sorted[0];
+    const d=new Date(k);
+    document.getElementById('cal-top-dia').innerHTML=`<div style="font-size:24px;font-weight:800;color:var(--grn);">${n}</div><div style="font-size:12px;color:var(--tx3);">${d.toLocaleDateString('pt-BR',{weekday:'long',day:'numeric',month:'long'})}</div>`;
+  }
+  // Mês mais produtivo
+  const mesCnt=Array(12).fill(0);
+  Object.entries(cnt).forEach(([k,n])=>{ mesCnt[parseInt(k.split('-')[1])-1]+=n; });
+  const topMes=mesCnt.indexOf(Math.max(...mesCnt));
+  document.getElementById('cal-top-mes').innerHTML=`<div style="font-size:24px;font-weight:800;color:var(--acc);">${mesCnt[topMes]}</div><div style="font-size:12px;color:var(--tx3);">OS em ${MESES[topMes]}</div>`;
+  // Média
+  const diasComOS=vals.length;
+  const media=diasComOS?Math.round(vals.reduce((a,b)=>a+b,0)/diasComOS*10)/10:0;
+  document.getElementById('cal-media-dia').innerHTML=`<div style="font-size:24px;font-weight:800;color:var(--org);">${media}</div><div style="font-size:12px;color:var(--tx3);">OS por dia ativo (${diasComOS} dias)</div>`;
+}
+function calDiaClick(k,n){
+  if(!n) return;
+  const d=new Date(k);
+  const lbl=d.toLocaleDateString('pt-BR',{weekday:'long',day:'numeric',month:'long',year:'numeric'});
+  document.getElementById('cal-sub').textContent=`${lbl} — ${n} OS abertas`;
+}
+
+// ══════════════════════════════════════════════════════════════
+// DASHBOARD 3 — TIMELINE CRÍTICA
+// ══════════════════════════════════════════════════════════════
+function renderDashTimeline() {
+  const filtroEmp=document.getElementById('tl-filtro-emp')?.value||'';
+  const abertos=DB.filter(isAberto).map(os=>({...os,_dias:diasAte(os.prazoFatal)}));
+
+  // Popular select de empresas
+  const sel=document.getElementById('tl-filtro-emp');
+  if(sel&&sel.options.length<=1){
+    [...new Set(DB.map(o=>o.empresa).filter(Boolean))].sort().forEach(e=>{
+      const opt=document.createElement('option'); opt.value=e; opt.textContent=e; sel.appendChild(opt);
+    });
+  }
+
+  const filtrados=filtroEmp?abertos.filter(o=>o.empresa===filtroEmp):abertos;
+  const sorted=filtrados.filter(o=>o._dias!==null).sort((a,b)=>a._dias-b._dias).slice(0,40);
+
+  // Stats
+  const venc=sorted.filter(o=>o._dias<0).length;
+  const hoje=sorted.filter(o=>o._dias===0).length;
+  const amanha=sorted.filter(o=>o._dias===1).length;
+  const sem=sorted.filter(o=>o._dias>=2&&o._dias<=7).length;
+  document.getElementById('tl-stats').innerHTML=[
+    [venc,'Vencidas','var(--red)','bg-red'],
+    [hoje,'Vencem hoje','var(--red)','bg-red'],
+    [amanha,'Vencem amanhã','var(--org)','bg-orange'],
+    [sem,'Em 2–7 dias','var(--yel)','bg-yellow'],
+  ].map(([n,lbl,c])=>`<div class="stat" style="--sc:${c}"><div class="stat-val">${n}</div><div class="stat-lbl">${lbl}</div></div>`).join('');
+
+  // Timeline list
+  document.getElementById('tl-list').innerHTML=sorted.length?sorted.map(os=>{
+    const d=os._dias;
+    const [bg,tx]=d<0?['rgba(255,68,102,.1)','var(--red)']:d===0?['rgba(255,68,102,.08)','var(--red)']:d<=2?['rgba(255,119,51,.08)','var(--org)']:d<=5?['rgba(240,192,64,.08)','var(--yel)']:['var(--bg3)','var(--tx3)'];
+    const bar=d<0?100:Math.max(4,100-d/30*100);
+    const [bc,bl]=statusBadge(os);
+    return `<div onclick="abrirDetalhe('${os.id}')" style="display:flex;align-items:center;gap:12px;padding:10px 12px;border-bottom:1px solid var(--br);cursor:pointer;transition:background .15s;" onmouseover="this.style.background='var(--bg3)'" onmouseout="this.style.background=''">
+      <div style="width:52px;flex-shrink:0;text-align:center;background:${bg};border-radius:8px;padding:6px 4px;">
+        <div style="font-size:18px;font-weight:900;color:${tx};line-height:1;">${d<0?'⚠':d}</div>
+        <div style="font-size:9px;color:${tx};font-weight:600;">${d<0?'venc.':d===0?'hoje':d===1?'amanhã':'dias'}</div>
+      </div>
+      <div style="flex:1;min-width:0;">
+        <div style="font-size:12.5px;font-weight:700;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${os.empresa||'—'}</div>
+        <div style="font-size:11px;color:var(--tx3);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${os.tipoServico||''} · ${os.cliente||''} · ${os.cidade||''}</div>
+        <div style="height:3px;background:var(--bg4);border-radius:2px;margin-top:5px;overflow:hidden;">
+          <div style="height:100%;width:${bar}%;background:${tx};border-radius:2px;transition:width .7s ease;"></div>
+        </div>
+      </div>
+      <div style="flex-shrink:0;"><span class="badge ${bc}" style="font-size:10px;">${bl}</span></div>
+    </div>`;
+  }).join(''):'<div style="padding:24px;text-align:center;font-size:13px;color:var(--grn);">✅ Nenhuma OS com prazo próximo</div>';
+
+  // Urgência por empresa
+  const empUrg={};
+  sorted.forEach(os=>{
+    const e=os.empresa||'?';
+    if(!empUrg[e]) empUrg[e]={venc:0,crit:0,total:0};
+    empUrg[e].total++;
+    if(os._dias<0) empUrg[e].venc++;
+    else if(os._dias<=2) empUrg[e].crit++;
+  });
+  const urgList=Object.entries(empUrg).sort((a,b)=>(b[1].venc+b[1].crit)-(a[1].venc+a[1].crit));
+  document.getElementById('tl-emp-urgencia').innerHTML=urgList.map(([e,v])=>`
+    <div style="margin-bottom:12px;">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;">
+        <span style="font-size:12px;font-weight:600;">${e}</span>
+        <div style="display:flex;gap:4px;">
+          ${v.venc?`<span class="badge bg-red">${v.venc} venc.</span>`:''}
+          ${v.crit?`<span class="badge bg-orange">${v.crit} crit.</span>`:''}
+        </div>
+      </div>
+      <div style="height:8px;background:var(--bg4);border-radius:4px;overflow:hidden;display:flex;">
+        <div style="height:100%;width:${v.venc/v.total*100}%;background:var(--red);transition:width .7s ease;"></div>
+        <div style="height:100%;width:${v.crit/v.total*100}%;background:var(--org);transition:width .7s ease;"></div>
+      </div>
+    </div>`).join('')||'<p style="font-size:12px;color:var(--tx3);padding:8px;">Sem urgências</p>';
+}
+
+// ══════════════════════════════════════════════════════════════
+// DASHBOARD 4 — METAS E SLA
+// ══════════════════════════════════════════════════════════════
+function renderDashMetas() {
+  const meta=parseInt(document.getElementById('mt-meta-slider')?.value||80);
+  const sv=(id,v)=>{ const el=document.getElementById(id); if(el) el.textContent=v; };
+  const COLORS=['#4e7bff','#18d4a0','#f0c040','#ff8533','#7c5cff','#38bfff','#ff4466','#a0c040'];
+
+  // Por empresa
+  const empTaxa={};
+  DB.filter(os=>!isAberto(os)&&os.prazoFatal&&os.dataFechamento).forEach(os=>{
+    const e=os.empresa||'?';
+    if(!empTaxa[e]) empTaxa[e]={ok:0,total:0};
+    empTaxa[e].total++;
+    const d1=parseDt(os.dataFechamento),d2=parseDt(os.prazoFatal);
+    if(d1&&d2&&d1<=d2) empTaxa[e].ok++;
+  });
+  const empList=Object.entries(empTaxa).map(([e,v])=>({emp:e,taxa:Math.round(v.ok/v.total*100),total:v.total,ok:v.ok})).filter(e=>e.total>=2).sort((a,b)=>b.taxa-a.taxa);
+  const nOk=empList.filter(e=>e.taxa>=meta).length;
+  sv('mt-ok',nOk); sv('mt-ok-sub',`de ${empList.length} empresas`); sv('mt-fail',empList.length-nOk);
+
+  document.getElementById('mt-bars').innerHTML=empList.map((e,i)=>{
+    const ok=e.taxa>=meta;
+    const cor=ok?'var(--grn)':e.taxa>=meta-15?'var(--org)':'var(--red)';
+    return `<div style="padding:10px 0;border-bottom:1px solid var(--br);">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
+        <span style="font-size:13px;font-weight:600;">${e.emp}</span>
+        <div style="display:flex;align-items:center;gap:8px;">
+          <span style="font-size:11px;color:var(--tx3);">${e.ok}/${e.total} OS</span>
+          <span style="font-size:14px;font-weight:800;color:${cor};">${e.taxa}%</span>
+          ${ok?'<span class="badge bg-green">✓ meta</span>':'<span class="badge bg-red">✗ abaixo</span>'}
+        </div>
+      </div>
+      <div style="height:14px;background:var(--bg4);border-radius:7px;overflow:hidden;position:relative;">
+        <div style="height:100%;width:${e.taxa}%;background:${cor};border-radius:7px;transition:width .8s ease;"></div>
+        <div style="position:absolute;top:0;left:${meta}%;width:2px;height:100%;background:rgba(0,0,0,.25);"></div>
+      </div>
+    </div>`;
+  }).join('')||'<p style="font-size:12px;color:var(--tx3);padding:12px;">Sem dados suficientes</p>';
+
+  // Por tipo
+  const tipoTaxa={};
+  DB.filter(os=>!isAberto(os)&&os.prazoFatal&&os.dataFechamento).forEach(os=>{
+    const t=os.tipoServico||'?';
+    if(!tipoTaxa[t]) tipoTaxa[t]={ok:0,total:0};
+    tipoTaxa[t].total++;
+    const d1=parseDt(os.dataFechamento),d2=parseDt(os.prazoFatal);
+    if(d1&&d2&&d1<=d2) tipoTaxa[t].ok++;
+  });
+  const tipoList=Object.entries(tipoTaxa).map(([t,v])=>({tipo:t,taxa:Math.round(v.ok/v.total*100),total:v.total})).sort((a,b)=>b.taxa-a.taxa);
+  document.getElementById('mt-tipo-bars').innerHTML=tipoList.map((t,i)=>{
+    const cor=t.taxa>=meta?'var(--grn)':t.taxa>=meta-15?'var(--org)':'var(--red)';
+    return `<div style="margin-bottom:10px;">
+      <div style="display:flex;justify-content:space-between;margin-bottom:4px;">
+        <span style="font-size:12px;font-weight:600;">${t.tipo}</span>
+        <span style="font-size:12px;font-weight:800;color:${cor};">${t.taxa}%</span>
+      </div>
+      <div style="height:10px;background:var(--bg4);border-radius:5px;overflow:hidden;position:relative;">
+        <div style="height:100%;width:${t.taxa}%;background:${cor};border-radius:5px;transition:width .8s ease;"></div>
+        <div style="position:absolute;top:0;left:${meta}%;width:1.5px;height:100%;background:rgba(0,0,0,.2);"></div>
+      </div>
+    </div>`;
+  }).join('')||'<p style="font-size:12px;color:var(--tx3);">Sem dados</p>';
+
+  // Evolução últimos 6 meses
+  const hoje=new Date(); hoje.setHours(0,0,0,0);
+  const meses6=[];
+  for(let i=5;i>=0;i--){ const d=new Date(hoje.getFullYear(),hoje.getMonth()-i,1); meses6.push({ano:d.getFullYear(),mes:d.getMonth(),lbl:MESES_ABR[d.getMonth()]+'/'+String(d.getFullYear()).slice(2),ok:0,total:0}); }
+  DB.filter(os=>!isAberto(os)&&os.dataFechamento&&os.prazoFatal).forEach(os=>{
+    const d=parseDt(os.dataFechamento); if(!d) return;
+    const b=meses6.find(m=>m.ano===d.getFullYear()&&m.mes===d.getMonth()); if(!b) return;
+    b.total++;
+    const d1=parseDt(os.dataFechamento),d2=parseDt(os.prazoFatal);
+    if(d1&&d2&&d1<=d2) b.ok++;
+  });
+  const maxBar=Math.max(...meses6.map(m=>m.total),1);
+  document.getElementById('mt-evolucao').innerHTML=`<div style="display:flex;align-items:flex-end;gap:8px;height:120px;padding-bottom:20px;position:relative;">
+    ${meses6.map(m=>{
+      const taxa=m.total?Math.round(m.ok/m.total*100):0;
+      const hOk=m.total?Math.round(m.ok/maxBar*90):0;
+      const hFail=m.total?Math.round((m.total-m.ok)/maxBar*90):0;
+      const corT=taxa>=meta?'var(--grn)':taxa>=meta-15?'var(--org)':'var(--red)';
+      return `<div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:0;position:relative;">
+        <div style="font-size:9.5px;font-weight:700;color:${corT};margin-bottom:3px;">${m.total?taxa+'%':''}</div>
+        <div style="display:flex;gap:1px;align-items:flex-end;width:100%;">
+          <div style="flex:1;background:var(--grn);border-radius:3px 3px 0 0;height:${hOk}px;opacity:.8;transition:height .7s ease;min-height:${m.ok?2:0}px;"></div>
+          <div style="flex:1;background:var(--red);border-radius:3px 3px 0 0;height:${hFail}px;opacity:.8;transition:height .7s ease;min-height:${m.total-m.ok?2:0}px;"></div>
+        </div>
+        <div style="font-size:9px;color:var(--tx3);position:absolute;bottom:-16px;white-space:nowrap;">${m.lbl}</div>
+      </div>`;
+    }).join('')}
+  </div>`;
+}
+
+// ══════════════════════════════════════════════════════════════
+// DASHBOARD 5 — FEED DE ATIVIDADE
+// ══════════════════════════════════════════════════════════════
+function renderDashFeed() {
+  const filtro=document.getElementById('feed-filtro')?.value||'all';
+  const hojeMs=new Date(); hojeMs.setHours(0,0,0,0);
+
+  // Usar updatedAt dos registros como proxy de atividade
+  const COLORS=['#4e7bff','#18d4a0','#f0c040','#ff8533','#7c5cff','#38bfff','#ff4466'];
+
+  const eventos=[];
+  DB.forEach(os=>{
+    let ts=null, tipo='', desc='', ic='📝';
+    // Tenta usar updatedAt (Firestore Timestamp ou string)
+    if(os.updatedAt) {
+      try { ts=os.updatedAt.toDate?os.updatedAt.toDate():new Date(os.updatedAt); } catch(e){}
+    }
+    if(!ts && os.dataFechamento && !isAberto(os)) { ts=parseDt(os.dataFechamento); tipo='finalizacao'; ic='✅'; desc='finalizou OS'; }
+    else if(ts) { tipo=isAberto(os)?'atualizacao':'finalizacao'; ic=isAberto(os)?'📝':'✅'; desc=isAberto(os)?'atualizou OS':'finalizou OS'; }
+    if(!ts) return;
+    if(filtro!=='all'&&tipo!==filtro) return;
+    const autor=os.updatedByNome||os.updatedBy||os.createdByNome||'Usuário';
+    eventos.push({ts,tipo,ic,desc,autor,os});
+  });
+
+  // Ordenar por mais recente
+  eventos.sort((a,b)=>b.ts-a.ts);
+
+  // Top users hoje
+  const userCnt={};
+  eventos.forEach(e=>{
+    if(e.ts>=hojeMs) { userCnt[e.autor]=(userCnt[e.autor]||0)+1; }
+  });
+  const topUsers=Object.entries(userCnt).sort((a,b)=>b[1]-a[1]).slice(0,5);
+  document.getElementById('feed-top-users').innerHTML=topUsers.length?topUsers.map(([nome,n],i)=>{
+    const initials=nome.split(' ').map(p=>p[0]).join('').slice(0,2).toUpperCase();
+    return `<div style="display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid var(--br);">
+      <div style="width:32px;height:32px;border-radius:50%;background:${COLORS[i%COLORS.length]}22;border:1.5px solid ${COLORS[i%COLORS.length]}44;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;color:${COLORS[i%COLORS.length]};flex-shrink:0;">${initials}</div>
+      <div style="flex:1;font-size:12.5px;font-weight:600;">${nome.split(' ')[0]}</div>
+      <span class="badge bg-blue">${n}</span>
+    </div>`;
+  }).join(''):'<p style="font-size:12px;color:var(--tx3);padding:8px;">Sem atividade hoje</p>';
+
+  // Chart por tipo
+  const tipoCnt={abertura:0,atualizacao:0,finalizacao:0};
+  eventos.forEach(e=>{ if(tipoCnt[e.tipo]!==undefined) tipoCnt[e.tipo]++; });
+  const maxTipo=Math.max(...Object.values(tipoCnt),1);
+  const tipoLabels={abertura:'Aberturas',atualizacao:'Atualizações',finalizacao:'Finalizações'};
+  const tipoCores={abertura:'#4e7bff',atualizacao:'#f0c040',finalizacao:'#18d4a0'};
+  document.getElementById('feed-tipo-chart').innerHTML=Object.entries(tipoCnt).map(([t,n])=>`
+    <div style="margin-bottom:10px;">
+      <div style="display:flex;justify-content:space-between;margin-bottom:4px;">
+        <span style="font-size:12px;font-weight:600;">${tipoLabels[t]}</span>
+        <span style="font-size:12px;font-weight:800;color:${tipoCores[t]};">${n}</span>
+      </div>
+      <div style="height:8px;background:var(--bg4);border-radius:4px;overflow:hidden;">
+        <div style="height:100%;width:${Math.round(n/maxTipo*100)}%;background:${tipoCores[t]};border-radius:4px;transition:width .7s ease;"></div>
+      </div>
+    </div>`).join('');
+
+  // Feed principal
+  function relTime(ts){
+    const diff=Math.round((Date.now()-ts)/1000);
+    if(diff<60) return 'agora mesmo';
+    if(diff<3600) return Math.floor(diff/60)+'min atrás';
+    if(diff<86400) return Math.floor(diff/3600)+'h atrás';
+    return Math.floor(diff/86400)+'d atrás';
+  }
+  document.getElementById('feed-list').innerHTML=eventos.slice(0,60).map((ev,i)=>{
+    const initials=(ev.autor||'?').split(' ').map(p=>p[0]).join('').slice(0,2).toUpperCase();
+    const ci=i%COLORS.length;
+    const [bc,bl]=statusBadge(ev.os);
+    return `<div onclick="abrirDetalhe('${ev.os.id}')" style="display:flex;gap:12px;padding:12px 14px;border-bottom:1px solid var(--br);cursor:pointer;transition:background .15s;align-items:flex-start;" onmouseover="this.style.background='var(--bg3)'" onmouseout="this.style.background=''">
+      <div style="width:34px;height:34px;border-radius:50%;background:${COLORS[ci]}1a;border:1.5px solid ${COLORS[ci]}44;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;color:${COLORS[ci]};flex-shrink:0;">${initials}</div>
+      <div style="flex:1;min-width:0;">
+        <div style="font-size:12.5px;color:var(--tx);margin-bottom:2px;">
+          <span style="font-weight:700;">${ev.autor.split(' ')[0]}</span>
+          <span style="color:var(--tx3);"> ${ev.desc} </span>
+          <span style="font-weight:600;color:var(--acc);">#${ev.os.numeroOS||ev.os.id.slice(-6)}</span>
+        </div>
+        <div style="font-size:11px;color:var(--tx3);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${ev.os.empresa||''} · ${ev.os.tipoServico||''} · ${ev.os.cidade||''}</div>
+      </div>
+      <div style="flex-shrink:0;display:flex;flex-direction:column;align-items:flex-end;gap:4px;">
+        <span style="font-size:10px;color:var(--tx4);">${relTime(ev.ts)}</span>
+        <span class="badge ${bc}" style="font-size:10px;">${bl}</span>
+      </div>
+    </div>`;
+  }).join('')||'<div style="padding:40px;text-align:center;color:var(--tx3);font-size:13px;">Nenhuma atividade registrada</div>';
+}
+
+// ══════════════════════════════════════════════════════════════
+// DASHBOARD 6 — COMPARATIVO ANUAL
+// ══════════════════════════════════════════════════════════════
+function renderDashComparativo() {
+  const anoA=parseInt(document.getElementById('cmp-ano-a')?.value||2026);
+  const anoB=parseInt(document.getElementById('cmp-ano-b')?.value||2025);
+  const COLORS=['#4e7bff','#18d4a0','#f0c040','#ff8533','#7c5cff','#38bfff','#ff4466'];
+
+  const byAno=(ano)=>DB.filter(os=>{
+    const d=parseDt(os.dataAbertura); return d&&d.getFullYear()===ano;
+  });
+  const setA=byAno(anoA), setB=byAno(anoB);
+
+  function delta(a,b){ if(!b) return null; return Math.round((a-b)/b*100); }
+  function sla(set){ const fin=set.filter(o=>!isAberto(o)&&o.prazoFatal&&o.dataFechamento); if(!fin.length) return null; return Math.round(fin.filter(o=>{ const d1=parseDt(o.dataFechamento),d2=parseDt(o.prazoFatal); return d1&&d2&&d1<=d2; }).length/fin.length*100); }
+
+  const kpis=[
+    {lbl:'OS Abertas',a:setA.length,b:setB.length,fmt:v=>v},
+    {lbl:'Finalizadas',a:setA.filter(o=>!isAberto(o)).length,b:setB.filter(o=>!isAberto(o)).length,fmt:v=>v},
+    {lbl:'SLA',a:sla(setA),b:sla(setB),fmt:v=>v!==null?v+'%':'—'},
+    {lbl:'Valor total',a:setA.reduce((s,o)=>s+parsVal(o.valor),0),b:setB.reduce((s,o)=>s+parsVal(o.valor),0),fmt:v=>fmtVal(v)},
+  ];
+
+  const sv=(id,v)=>{const el=document.getElementById(id);if(el)el.textContent=v;};
+  const totDelta=delta(setA.length,setB.length);
+  sv('cmp-resumo',`${anoA}: ${setA.length} OS vs ${anoB}: ${setB.length} OS ${totDelta!==null?(totDelta>=0?'(+':'')+totDelta+'%)':''}`);
+
+  document.getElementById('cmp-kpis').innerHTML=kpis.map(k=>{
+    const d=k.a!==null&&k.b!==null?delta(k.a,k.b):null;
+    const cor=d===null?'var(--tx3)':d>0?'var(--grn)':d<0?'var(--red)':'var(--tx3)';
+    return `<div class="stat" style="--sc:var(--acc)">
+      <div class="stat-lbl">${k.lbl}</div>
+      <div style="display:flex;align-items:baseline;gap:8px;justify-content:center;flex-wrap:wrap;">
+        <div style="text-align:center;">
+          <div style="font-size:11px;color:var(--tx3);margin-bottom:2px;">${anoA}</div>
+          <div class="stat-val" style="font-size:20px;">${k.a!==null?k.fmt(k.a):'—'}</div>
+        </div>
+        ${d!==null?`<div style="font-size:13px;font-weight:800;color:${cor};">${d>=0?'+':''}${d}%</div>`:''}
+        <div style="text-align:center;opacity:.6;">
+          <div style="font-size:11px;color:var(--tx3);margin-bottom:2px;">${anoB}</div>
+          <div style="font-size:16px;font-weight:700;">${k.b!==null?k.fmt(k.b):'—'}</div>
+        </div>
+      </div>
+    </div>`;
+  }).join('');
+
+  // Barras mensais comparativas
+  const cntA=Array(12).fill(0), cntB=Array(12).fill(0);
+  setA.forEach(os=>{const d=parseDt(os.dataAbertura);if(d)cntA[d.getMonth()]++;});
+  setB.forEach(os=>{const d=parseDt(os.dataAbertura);if(d)cntB[d.getMonth()]++;});
+  const maxBar=Math.max(...cntA,...cntB,1);
+  document.getElementById('cmp-barras-wrap').innerHTML=`
+    <div style="display:flex;gap:3px;align-items:flex-end;height:140px;padding-bottom:20px;">
+      ${MESES_ABR.map((m,i)=>{
+        const ha=Math.round(cntA[i]/maxBar*110), hb=Math.round(cntB[i]/maxBar*110);
+        return `<div style="flex:1;display:flex;flex-direction:column;align-items:center;position:relative;">
+          <div style="display:flex;gap:1px;align-items:flex-end;width:100%;">
+            <div title="${anoA} ${m}: ${cntA[i]}" style="flex:1;background:#4e7bff;border-radius:3px 3px 0 0;height:${ha}px;opacity:.85;min-height:${cntA[i]?2:0}px;transition:height .7s ease;"></div>
+            <div title="${anoB} ${m}: ${cntB[i]}" style="flex:1;background:#18d4a0;border-radius:3px 3px 0 0;height:${hb}px;opacity:.7;min-height:${cntB[i]?2:0}px;transition:height .7s ease;"></div>
+          </div>
+          <div style="font-size:8.5px;color:var(--tx3);position:absolute;bottom:-16px;">${m}</div>
+        </div>`;
+      }).join('')}
+    </div>
+    <div style="display:flex;gap:16px;justify-content:center;margin-top:8px;">
+      <div style="display:flex;align-items:center;gap:5px;font-size:11px;"><div style="width:10px;height:10px;background:#4e7bff;border-radius:2px;"></div>${anoA}</div>
+      <div style="display:flex;align-items:center;gap:5px;font-size:11px;"><div style="width:10px;height:10px;background:#18d4a0;border-radius:2px;"></div>${anoB}</div>
+    </div>`;
+
+  // Delta por empresa
+  const empA={},empB={};
+  setA.forEach(os=>{const e=os.empresa||'?';empA[e]=(empA[e]||0)+1;});
+  setB.forEach(os=>{const e=os.empresa||'?';empB[e]=(empB[e]||0)+1;});
+  const emps=[...new Set([...Object.keys(empA),...Object.keys(empB)])].sort();
+  document.getElementById('cmp-emp-delta').innerHTML=emps.map(e=>{
+    const a=empA[e]||0,b=empB[e]||0;
+    const d=delta(a,b);
+    const cor=d===null?'var(--tx3)':d>0?'var(--grn)':d<0?'var(--red)':'var(--tx3)';
+    return `<div style="display:flex;align-items:center;gap:8px;padding:7px 0;border-bottom:1px solid var(--br);">
+      <div style="flex:1;font-size:12px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${e}</div>
+      <span style="font-size:11px;color:var(--tx3);flex-shrink:0;">${a} vs ${b}</span>
+      ${d!==null?`<span style="font-size:11px;font-weight:800;color:${cor};min-width:38px;text-align:right;">${d>=0?'+':''}${d}%</span>`:'<span style="font-size:11px;color:var(--tx4);min-width:38px;text-align:right;">novo</span>'}
+    </div>`;
+  }).join('');
+
+  // Delta por tipo
+  const tipoA={},tipoB={};
+  setA.forEach(os=>{const t=os.tipoServico||'?';tipoA[t]=(tipoA[t]||0)+1;});
+  setB.forEach(os=>{const t=os.tipoServico||'?';tipoB[t]=(tipoB[t]||0)+1;});
+  const tipos=[...new Set([...Object.keys(tipoA),...Object.keys(tipoB)])].sort();
+  document.getElementById('cmp-tipo-delta').innerHTML=tipos.map((t,i)=>{
+    const a=tipoA[t]||0,b=tipoB[t]||0;
+    const d=delta(a,b);
+    const cor=d===null?'var(--acc)':d>0?'#18d4a0':d<0?'#ff4466':'var(--tx3)';
+    return `<div style="background:var(--bg3);border:1px solid var(--br);border-radius:14px;padding:14px 16px;">
+      <div style="font-size:11px;font-weight:700;color:var(--tx2);margin-bottom:8px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${t}</div>
+      <div style="display:flex;align-items:baseline;gap:6px;">
+        <span style="font-size:22px;font-weight:800;color:${cor};">${a}</span>
+        <span style="font-size:11px;color:var(--tx3);">${anoA}</span>
+      </div>
+      <div style="font-size:11px;color:var(--tx3);margin:2px 0;">${b} em ${anoB}</div>
+      ${d!==null?`<div style="font-size:13px;font-weight:800;color:${cor};margin-top:4px;">${d>=0?'+':''}${d}%</div>`:'<div style="font-size:11px;color:var(--tx4);margin-top:4px;">novo</div>'}
+    </div>`;
+  }).join('');
+}
+
 function renderDashTendencia() {
   // Ultimas 12 meses de OS finalizadas
   const hoje = new Date(); hoje.setHours(0,0,0,0);
