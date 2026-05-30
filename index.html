@@ -785,13 +785,15 @@ tr.row-vencido{animation:none!important;}
     <button class="ni" data-page="finalizadas" onclick="go('finalizadas')"><span class="ic">✅</span><span class="lbl">Finalizadas</span><span class="cnt green" id="nb-fin">0</span></button>
 
     <div class="sb-sec">Análises</div>
-    <button class="ni" data-page="dash-saude" onclick="go('dash-saude')"><span class="ic">🎯</span><span class="lbl">Saúde da Operação</span></button>
-    <button class="ni" data-page="dash-calendario" onclick="go('dash-calendario')"><span class="ic">📅</span><span class="lbl">Calendário de OS</span></button>
-    <button class="ni" data-page="dash-timeline" onclick="go('dash-timeline')"><span class="ic">⏱️</span><span class="lbl">Timeline Crítica</span></button>
-    <button class="ni" data-page="dash-tendencia" onclick="go('dash-tendencia')"><span class="ic">📈</span><span class="lbl">Tendência de Prazo</span></button>
+    <button class="ni" data-page="dash-recebimentos" onclick="go('dash-recebimentos')"><span class="ic">💳</span><span class="lbl">Recebimentos</span></button>
+    <button class="ni" data-page="dash-produtividade" onclick="go('dash-produtividade')"><span class="ic">⚡</span><span class="lbl">Produtividade</span></button>
+    
+    
+    
+    
     <button class="ni admin-only" data-page="dash-receita" onclick="go('dash-receita')"><span class="ic">💹</span><span class="lbl">Receita Empresa × Tipo</span></button>
     <button class="ni" data-page="dash-cidades" onclick="go('dash-cidades')"><span class="ic">🗺️</span><span class="lbl">Mapa de Cidades</span></button>
-    <button class="ni admin-only" data-page="dash-metas" onclick="go('dash-metas')"><span class="ic">🏆</span><span class="lbl">Metas e SLA</span></button>
+    
     <button class="ni" data-page="dash-feed" onclick="go('dash-feed')"><span class="ic">⚡</span><span class="lbl">Feed de Atividade</span></button>
     <button class="ni admin-only" data-page="dash-comparativo" onclick="go('dash-comparativo')"><span class="ic">📊</span><span class="lbl">Comparativo Anual</span></button>
 
@@ -1357,11 +1359,11 @@ tr.row-vencido{animation:none!important;}
           </select>
         </div>
         <div class="fld">
-          <span class="flabel">Data fechamento início</span>
+          <span class="flabel">Data início</span>
           <input type="date" id="fat-de" onchange="filtrarFaturas()">
         </div>
         <div class="fld">
-          <span class="flabel">Data fechamento fim</span>
+          <span class="flabel">Data fim</span>
           <input type="date" id="fat-ate" onchange="filtrarFaturas()">
         </div>
         <div class="fld">
@@ -5164,8 +5166,7 @@ function filtrarFaturas() {
     if(status === 'finalizado' && isAberto(os)) return false;
     if(status === 'aberto' && !isAberto(os)) return false;
     if(de || ate) {
-      const d = (os.dataFechamento || os.fechamento || '').split('T')[0];
-      if(!d) return false;
+      const d = os.dataAbertura ? os.dataAbertura.split('T')[0] : '';
       if(de && d < de) return false;
       if(ate && d > ate) return false;
     }
@@ -5214,7 +5215,7 @@ function renderFaturaList() {
         </div>
         <div class="mono" style="font-size:11px;margin-top:3px;color:var(--tx3);">${os.numeroOS}</div>
         <div style="font-size:11.5px;color:var(--tx2);margin-top:3px;">
-          ${os.cliente||''} ${os.cidade?' · '+os.cidade:''} · Fechamento: ${fmtDate(os.dataFechamento || os.fechamento)}
+          ${os.cliente||''} ${os.cidade?' · '+os.cidade:''} · Abertura: ${fmtDate(os.dataAbertura)}
         </div>
       </div>
       <div style="text-align:right;flex-shrink:0;">
@@ -5406,6 +5407,32 @@ tr.row-vencido{animation:none!important;}
   <div class="footer">Documento gerado em ${new Date().toLocaleString('pt-BR')} · Sistema de Controle OS</div>
 </div>
 <scr\ipt>window.onload=()=>window.print();</scr\ipt>
+
+<section class="page" id="dash-recebimentos" style="display:none;padding:20px">
+<h2>💳 Painel de Recebimentos</h2>
+<p>Nova área preparada para indicadores financeiros baseados em OS fechadas.</p>
+<ul>
+<li>Total a receber no próximo mês</li>
+<li>OS fechadas no mês</li>
+<li>Histórico dos últimos 6 meses</li>
+<li>Ranking por empresa</li>
+<li>Tabela de OS fechadas por período</li>
+</ul>
+</section>
+
+<section class="page" id="dash-produtividade" style="display:none;padding:20px">
+<h2>⚡ Produtividade</h2>
+<p>Nova área preparada para indicadores operacionais.</p>
+<ul>
+<li>Recebidas x Fechadas</li>
+<li>Tempo médio de fechamento</li>
+<li>Taxa de conclusão</li>
+<li>Histórico 6 meses</li>
+<li>Tempo médio por empresa</li>
+<li>Volume por tipo de serviço</li>
+</ul>
+</section>
+
 </body></html>`;
 
   const win = window.open('','_blank');
