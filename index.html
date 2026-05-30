@@ -5037,7 +5037,7 @@ function gerarFaturaPDF() {
 
   // ── SVG helpers ────────────────────────────────────────────────
   const AZUL=['#1e3a8a','#1d4ed8','#2563eb','#3b82f6','#60a5fa','#93c5fd','#bfdbfe','#dbeafe'];
-  const VERDE=['#14532d','#166534','#15803d','#16a34a','#22c55e','#4ade80'];
+  const VERDE=['#1e3a8a','#0369a1','#0f766e','#15803d','#a16207','#b91c1c','#7e22ce','#c2410c','#0e7490','#166534'];
 
   function barras(items, maxW, getLabel, getVal, getRight, cor) {
     const BH=20, G=7, PAD=8;
@@ -5343,7 +5343,19 @@ thead th:last-child{text-align:right;}
   </tr>
 </table>
 
-${obsF?`<div class="obs"><div class="obs-ttl">💳 Instruções de Pagamento</div>${obsF}</div>`:''}
+${obsF?`<div class="obs"><div class="obs-ttl">📝 Observações</div>${obsF}</div>`:''}
+
+<div class="obs" style="background:#f0f9ff;border-color:#bae6fd;">
+  <div class="obs-ttl" style="color:#0369a1;">💳 Informações para Pagamento</div>
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px 32px;font-size:11px;color:#1e3a8a;line-height:1.9;">
+    <div><span style="color:#64748b;">Banco:</span> <strong>Caixa Econômica Federal</strong></div>
+    <div><span style="color:#64748b;">Razão Social:</span> <strong>LC Rissati Engenharia Ltda</strong></div>
+    <div><span style="color:#64748b;">Agência:</span> <strong>1610</strong></div>
+    <div><span style="color:#64748b;">Conta Corrente:</span> <strong>579045854-4</strong></div>
+    <div><span style="color:#64748b;">Operação:</span> <strong>1292</strong></div>
+    <div><span style="color:#64748b;">Chave PIX:</span> <strong style="font-family:monospace;font-size:10.5px;">ce4f4e77-662d-4144-b35c-028a09c365f9</strong></div>
+  </div>
+</div>
 
 <!-- ══ ASSINATURAS ═════════════════════════════════════════════ -->
 <div class="assinaturas">
