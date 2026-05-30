@@ -4991,324 +4991,388 @@ function gerarFaturaPDF() {
   const selecionadas = fatOsFiltradas.filter(os=>fatSelecionadas.has(os.id));
   if(!selecionadas.length) { toast('Selecione ao menos uma OS!','err'); return; }
 
-  const num     = document.getElementById('fat-num')?.value || 'FAT-001';
-  const dest    = document.getElementById('fat-dest')?.value || '';
-  const destCNPJ= document.getElementById('fat-dest-cnpj')?.value || '';
-  const data    = document.getElementById('fat-data')?.value || '';
-  const venc    = document.getElementById('fat-venc')?.value || '';
-  const obsF    = document.getElementById('fat-obs-fatura')?.value || '';
-  const total   = selecionadas.reduce((a,os)=>a+parsVal(os.valor),0);
+  const num      = document.getElementById('fat-num')?.value || 'FAT-001';
+  const dest     = document.getElementById('fat-dest')?.value || '';
+  const destCNPJ = document.getElementById('fat-dest-cnpj')?.value || '';
+  const data     = document.getElementById('fat-data')?.value || '';
+  const venc     = document.getElementById('fat-venc')?.value || '';
+  const obsF     = document.getElementById('fat-obs-fatura')?.value || '';
+  const total    = selecionadas.reduce((a,os)=>a+parsVal(os.valor),0);
 
-  // ── Análises para os gráficos ──────────────────────────────────
-  // Por empresa
-  const empMap = {};
-  selecionadas.forEach(os=>{
-    const e=os.empresa||'Sem empresa';
-    if(!empMap[e]) empMap[e]={cnt:0,val:0};
-    empMap[e].cnt++; empMap[e].val+=parsVal(os.valor);
-  });
-  const empArr = Object.entries(empMap).sort((a,b)=>b[1].val-a[1].val);
+  // ── helpers ────────────────────────────────────────────────────
+  const _fmtDate = s => {
+    if(!s) return '—';
+    const d = new Date(s.includes('T')?s:s+'T00:00');
+    return isNaN(d)?'—':d.toLocaleDateString('pt-BR');
+  };
+  const _fmtMoeda = v => 'R$ ' + v.toFixed(2).replace('.',',').replace(/\B(?=(\d{3})+(?!\d))/g,'.');
+  const _diasEntre = (a,b) => {
+    if(!a||!b) return null;
+    const da=new Date(a.includes('T')?a:a+'T00:00'), db=new Date(b.includes('T')?b:b+'T00:00');
+    return Math.max(0,Math.round((db-da)/86400000));
+  };
 
-  // Por tipo
-  const tipoMap = {};
+  // ── agregações ─────────────────────────────────────────────────
+  const empMap={}, tipoMap={};
   selecionadas.forEach(os=>{
-    const t=os.tipoServico||'—';
-    if(!tipoMap[t]) tipoMap[t]={cnt:0,val:0};
-    tipoMap[t].cnt++; tipoMap[t].val+=parsVal(os.valor);
+    const e=os.empresa||'Sem empresa', t=os.tipoServico||'—', v=parsVal(os.valor);
+    if(!empMap[e])  empMap[e]  ={cnt:0,val:0};
+    if(!tipoMap[t]) tipoMap[t] ={cnt:0,val:0};
+    empMap[e].cnt++;  empMap[e].val+=v;
+    tipoMap[t].cnt++; tipoMap[t].val+=v;
   });
+  const empArr  = Object.entries(empMap).sort((a,b)=>b[1].val-a[1].val);
   const tipoArr = Object.entries(tipoMap).sort((a,b)=>b[1].cnt-a[1].cnt);
 
-  // Prazo de fechamento (dias entre abertura e fechamento)
-  const tempos = selecionadas.filter(os=>os.dataAbertura&&os.dataFechamento).map(os=>{
-    const a=new Date(os.dataAbertura.includes('T')?os.dataAbertura:os.dataAbertura+'T00:00');
-    const f=new Date(os.dataFechamento.includes('T')?os.dataFechamento:os.dataFechamento+'T00:00');
-    return Math.max(0,Math.round((f-a)/(1000*60*60*24)));
-  });
-  const tmedFech = tempos.length ? Math.round(tempos.reduce((s,x)=>s+x,0)/tempos.length) : null;
+  const tempos = selecionadas
+    .map(os=>_diasEntre(os.dataAbertura,os.dataFechamento))
+    .filter(d=>d!==null);
+  const tmed = tempos.length ? Math.round(tempos.reduce((s,x)=>s+x,0)/tempos.length) : null;
   const tmin = tempos.length ? Math.min(...tempos) : null;
   const tmax = tempos.length ? Math.max(...tempos) : null;
 
-  // Paleta de cores para gráficos
-  const CORES = ['#1a3a8f','#2563eb','#3b82f6','#60a5fa','#93c5fd','#bfdbfe','#1e40af','#1d4ed8'];
-  const CORES_TIPO = ['#065f46','#047857','#059669','#10b981','#34d399','#6ee7b7'];
+  const cidMap={};
+  selecionadas.forEach(os=>{ const c=os.cidade||'—'; cidMap[c]=(cidMap[c]||0)+1; });
+  const cidArr=Object.entries(cidMap).sort((a,b)=>b[1]-a[1]).slice(0,5);
 
-  // ── SVG: Gráfico de barras por empresa (valor) ──────────────────
-  function svgBarrasEmpresa() {
-    const W=520, H=180, PAD=10, BAR_H=22, GAP=8;
-    const maxVal = empArr[0]?.[1].val || 1;
-    const LABEL_W = 170;
-    const BAR_W = W - LABEL_W - 80 - PAD*2;
-    const items = empArr.slice(0,7);
-    const totalH = items.length*(BAR_H+GAP)+PAD*2;
-    return `<svg width="${W}" height="${totalH}" xmlns="http://www.w3.org/2000/svg" font-family="Segoe UI,Arial,sans-serif">
-      ${items.map((([emp,d],i)=>{
-        const bw = Math.max(4, Math.round(d.val/maxVal*BAR_W));
-        const y = PAD + i*(BAR_H+GAP);
-        const pct = Math.round(d.val/total*100);
-        return `
-          <text x="${LABEL_W-6}" y="${y+BAR_H/2+4}" text-anchor="end" font-size="11" fill="#374151" font-weight="600">${emp.length>22?emp.slice(0,20)+'…':emp}</text>
-          <rect x="${LABEL_W}" y="${y}" width="${BAR_W}" height="${BAR_H}" rx="4" fill="#f1f5f9"/>
-          <rect x="${LABEL_W}" y="${y}" width="${bw}" height="${BAR_H}" rx="4" fill="${CORES[i%CORES.length]}"/>
-          <text x="${LABEL_W+bw+6}" y="${y+BAR_H/2+4}" font-size="10.5" fill="#1e3a8a" font-weight="700">${d.cnt} OS · ${pct}%</text>`;
-      })).join('')}
-    </svg>`;
-  }
+  // ── SVG helpers ────────────────────────────────────────────────
+  const AZUL=['#1e3a8a','#1d4ed8','#2563eb','#3b82f6','#60a5fa','#93c5fd','#bfdbfe','#dbeafe'];
+  const VERDE=['#14532d','#166534','#15803d','#16a34a','#22c55e','#4ade80'];
 
-  // ── SVG: Donut por tipo de serviço ────────────────────────────
-  function svgDonutTipo() {
-    const R=70, r=42, CX=90, CY=90;
-    let start=0;
-    const totalCnt = tipoArr.reduce((s,[,d])=>s+d.cnt,0)||1;
-    const slices = tipoArr.map(([tipo,d],i)=>{
-      const frac=d.cnt/totalCnt;
-      const angle=frac*2*Math.PI;
-      const x1=CX+R*Math.sin(start), y1=CY-R*Math.cos(start);
-      start+=angle;
-      const x2=CX+R*Math.sin(start), y2=CY-R*Math.cos(start);
-      const xi1=CX+r*Math.sin(start-angle), yi1=CY-r*Math.cos(start-angle);
-      const xi2=CX+r*Math.sin(start), yi2=CY-r*Math.cos(start);
-      const lg=frac>0.5?1:0;
-      return {tipo,d,path:`M${x1},${y1} A${R},${R} 0 ${lg},1 ${x2},${y2} L${xi2},${yi2} A${r},${r} 0 ${lg},0 ${xi1},${yi1} Z`,cor:CORES_TIPO[i%CORES_TIPO.length]};
-    });
-    const legend = tipoArr.map(([tipo,d],i)=>
-      `<text x="195" y="${20+i*18}" font-size="11" fill="#374151"><tspan fill="${CORES_TIPO[i%CORES_TIPO.length]}" font-size="14">■ </tspan>${tipo} — ${d.cnt} OS</text>`
-    ).join('');
-    return `<svg width="400" height="180" xmlns="http://www.w3.org/2000/svg" font-family="Segoe UI,Arial,sans-serif">
-      ${slices.map(s=>`<path d="${s.path}" fill="${s.cor}" stroke="#fff" stroke-width="2"/>`).join('')}
-      <text x="${CX}" y="${CY-6}" text-anchor="middle" font-size="22" font-weight="800" fill="#1a3a8f">${totalCnt}</text>
-      <text x="${CX}" y="${CY+12}" text-anchor="middle" font-size="10" fill="#6b7280">OS</text>
-      ${legend}
-    </svg>`;
-  }
-
-  // ── SVG: Distribuição de prazo de fechamento ───────────────────
-  function svgPrazoFechamento() {
-    if(!tempos.length) return '<p style="color:#999;font-size:12px;text-align:center;padding:20px 0;">Sem dados de fechamento disponíveis</p>';
-    const buckets=[{l:'0–5d',min:0,max:5},{l:'6–10d',min:6,max:10},{l:'11–20d',min:11,max:20},{l:'21–30d',min:21,max:30},{l:'>30d',min:31,max:9999}];
-    const counts=buckets.map(b=>tempos.filter(t=>t>=b.min&&t<=b.max).length);
-    const maxC=Math.max(...counts,1);
-    const W=380, BAR_W=50, GAP=12, PAD_L=20, H=120, PAD_B=30;
-    return `<svg width="${W}" height="${H+PAD_B}" xmlns="http://www.w3.org/2000/svg" font-family="Segoe UI,Arial,sans-serif">
-      ${counts.map((c,i)=>{
-        const bh=Math.max(4,Math.round(c/maxC*(H-20)));
-        const x=PAD_L+i*(BAR_W+GAP);
-        return `
-          <rect x="${x}" y="${H-bh}" width="${BAR_W}" height="${bh}" rx="5" fill="${c===Math.max(...counts)?'#2563eb':'#93c5fd'}"/>
-          <text x="${x+BAR_W/2}" y="${H-bh-5}" text-anchor="middle" font-size="12" font-weight="700" fill="#1e3a8a">${c}</text>
-          <text x="${x+BAR_W/2}" y="${H+16}" text-anchor="middle" font-size="10" fill="#6b7280">${buckets[i].l}</text>`;
+  function barras(items, maxW, getLabel, getVal, getRight, cor) {
+    const BH=20, G=7, PAD=8;
+    const LW=160, VW=60;
+    const BW=maxW-LW-VW-PAD*2;
+    const maxV=items[0]?.[1]||1;
+    const H=items.length*(BH+G)+PAD*2;
+    return `<svg width="${maxW}" height="${H}" xmlns="http://www.w3.org/2000/svg" font-family="'Segoe UI',Arial,sans-serif">
+      ${items.map(([k,v],i)=>{
+        const bw=Math.max(3,Math.round(getVal(v)/maxV*BW));
+        const y=PAD+i*(BH+G);
+        const lbl=k.length>24?k.slice(0,22)+'…':k;
+        return `<text x="${LW-5}" y="${y+BH/2+4}" text-anchor="end" font-size="10.5" fill="#374151" font-weight="600">${lbl}</text>
+          <rect x="${LW}" y="${y}" width="${BW}" height="${BH}" rx="3" fill="#f1f5f9"/>
+          <rect x="${LW}" y="${y}" width="${bw}" height="${BH}" rx="3" fill="${cor[i%cor.length]}"/>
+          <text x="${LW+bw+5}" y="${y+BH/2+4}" font-size="10" fill="${cor[0]}" font-weight="700">${getRight(v)}</text>`;
       }).join('')}
     </svg>`;
   }
 
-  // ── Linhas da tabela ──────────────────────────────────────────
-  // Agrupadas por empresa
-  let linhas = '';
-  empArr.forEach(([empresa, ed])=>{
-    const osEmp = selecionadas.filter(os=>(os.empresa||'Sem empresa')===empresa);
-    const subtotal = osEmp.reduce((s,os)=>s+parsVal(os.valor),0);
-    linhas += `<tr><td colspan="6" style="padding:8px 12px;background:#1a3a8f;color:#fff;font-size:10.5px;font-weight:700;letter-spacing:.5px;border:none;">🏢 ${empresa} &nbsp;·&nbsp; ${osEmp.length} OS &nbsp;·&nbsp; Subtotal: ${fmtVal(subtotal)}</td><td style="padding:8px 12px;background:#1a3a8f;color:#fff;font-weight:800;font-size:12px;text-align:right;border:none;">${fmtVal(subtotal)}</td></tr>`;
-    osEmp.forEach((os,i)=>{
-      const dias = (os.dataAbertura&&os.dataFechamento) ? Math.max(0,Math.round((new Date(os.dataFechamento.includes('T')?os.dataFechamento:os.dataFechamento+'T00:00')-new Date(os.dataAbertura.includes('T')?os.dataAbertura:os.dataAbertura+'T00:00'))/(1000*60*60*24))) : null;
-      linhas += `<tr style="background:${i%2===0?'#f8faff':'#ffffff'};">
-        <td style="padding:7px 10px;font-size:10.5px;border:1px solid #e5e9f5;font-family:monospace;color:#374151;">${os.numeroOS||'—'}</td>
-        <td style="padding:7px 10px;font-size:10.5px;border:1px solid #e5e9f5;">${os.tipoServico||'—'}</td>
-        <td style="padding:7px 10px;font-size:10.5px;border:1px solid #e5e9f5;">${os.cliente||'—'}</td>
-        <td style="padding:7px 10px;font-size:10.5px;border:1px solid #e5e9f5;">${os.cidade||'—'}</td>
-        <td style="padding:7px 10px;font-size:10.5px;border:1px solid #e5e9f5;">${fmtDate(os.dataFechamento)}</td>
-        <td style="padding:7px 10px;font-size:10.5px;border:1px solid #e5e9f5;text-align:center;">${dias!==null?dias+'d':'—'}</td>
-        <td style="padding:7px 10px;font-size:11px;border:1px solid #e5e9f5;font-weight:700;text-align:right;color:#15803d;">${os.valor?fmtVal(parsVal(os.valor)):'—'}</td>
+  function donut(items, R, r, CX, CY, W, H, getLabel, getVal) {
+    const tot=items.reduce((s,[,v])=>s+getVal(v),0)||1;
+    let ang=0;
+    const slices=items.map(([k,v],i)=>{
+      const frac=getVal(v)/tot, a=frac*Math.PI*2;
+      const x1=CX+R*Math.sin(ang), y1=CY-R*Math.cos(ang); ang+=a;
+      const x2=CX+R*Math.sin(ang), y2=CY-R*Math.cos(ang);
+      const xi1=CX+r*Math.sin(ang-a), yi1=CY-r*Math.cos(ang-a);
+      const xi2=CX+r*Math.sin(ang),   yi2=CY-r*Math.cos(ang);
+      return {k,v,path:`M${x1},${y1} A${R},${R} 0 ${frac>.5?1:0},1 ${x2},${y2} L${xi2},${yi2} A${r},${r} 0 ${frac>.5?1:0},0 ${xi1},${yi1} Z`,c:VERDE[i%VERDE.length],pct:Math.round(frac*100)};
+    });
+    const leg=items.map(([k,v],i)=>{
+      const pct=Math.round(getVal(v)/tot*100);
+      return `<text x="${CX*2+16}" y="${20+i*19}" font-size="10.5" fill="#374151">
+        <tspan fill="${VERDE[i%VERDE.length]}" font-size="13" font-weight="900">● </tspan>${getLabel(k,v)} <tspan fill="${VERDE[i%VERDE.length]}" font-weight="700">${pct}%</tspan></text>`;
+    }).join('');
+    return `<svg width="${W}" height="${H}" xmlns="http://www.w3.org/2000/svg" font-family="'Segoe UI',Arial,sans-serif">
+      ${slices.map(s=>`<path d="${s.path}" fill="${s.c}" stroke="#fff" stroke-width="2.5"/>`).join('')}
+      <text x="${CX}" y="${CY-6}" text-anchor="middle" font-size="20" font-weight="900" fill="#1e3a8a">${items.reduce((s,[,v])=>s+getVal(v),0)}</text>
+      <text x="${CX}" y="${CY+10}" text-anchor="middle" font-size="9" fill="#6b7280" letter-spacing="1">OS</text>
+      ${leg}
+    </svg>`;
+  }
+
+  function histograma(tempos) {
+    if(!tempos.length) return `<div style="color:#9ca3af;font-size:12px;padding:20px 0;text-align:center;">Sem dados de prazo disponíveis</div>`;
+    const bks=[{l:'0–5d',a:0,b:5},{l:'6–10d',a:6,b:10},{l:'11–20d',a:11,b:20},{l:'21–30d',a:21,b:30},{l:'>30d',a:31,b:9999}];
+    const cnts=bks.map(bk=>tempos.filter(t=>t>=bk.a&&t<=bk.b).length);
+    const mx=Math.max(...cnts,1), BW=52, G=10, PL=10, H=100, PB=24, W=bks.length*(BW+G)+PL*2;
+    return `<svg width="${W}" height="${H+PB}" xmlns="http://www.w3.org/2000/svg" font-family="'Segoe UI',Arial,sans-serif">
+      ${cnts.map((c,i)=>{
+        const bh=Math.max(4,Math.round(c/mx*(H-14)));
+        const x=PL+i*(BW+G), isBest=c===Math.max(...cnts);
+        return `<rect x="${x}" y="${H-bh}" width="${BW}" height="${bh}" rx="5"
+          fill="${isBest?'#1d4ed8':'#93c5fd'}" opacity="${isBest?1:.75}"/>
+          <text x="${x+BW/2}" y="${H-bh-5}" text-anchor="middle" font-size="11" font-weight="800"
+            fill="${isBest?'#1e3a8a':'#64748b'}">${c||''}</text>
+          <text x="${x+BW/2}" y="${H+16}" text-anchor="middle" font-size="9.5" fill="#6b7280">${bks[i].l}</text>`;
+      }).join('')}
+    </svg>`;
+  }
+
+  // ── tabela de OS agrupada por empresa ─────────────────────────
+  let linhas='';
+  empArr.forEach(([emp])=>{
+    const osE=selecionadas.filter(os=>(os.empresa||'Sem empresa')===emp);
+    const sub=osE.reduce((s,os)=>s+parsVal(os.valor),0);
+    linhas+=`<tr>
+      <td colspan="6" style="padding:7px 12px;background:#1e3a8a;color:#fff;font-size:10px;font-weight:700;letter-spacing:.4px;">
+        🏢 ${emp} &nbsp;·&nbsp; ${osE.length} OS &nbsp;·&nbsp; Subtotal: ${_fmtMoeda(sub)}
+      </td>
+      <td style="padding:7px 12px;background:#1e3a8a;color:#fff;font-weight:800;font-size:11px;text-align:right;">${_fmtMoeda(sub)}</td>
+    </tr>`;
+    osE.forEach((os,i)=>{
+      const dias=_diasEntre(os.dataAbertura,os.dataFechamento);
+      linhas+=`<tr style="background:${i%2===0?'#f8faff':'#ffffff'}">
+        <td style="padding:7px 9px;font-size:10px;font-family:monospace;border:1px solid #e5e9f5;color:#374151;">${os.numeroOS||'—'}</td>
+        <td style="padding:7px 9px;font-size:10px;border:1px solid #e5e9f5;">${os.tipoServico||'—'}</td>
+        <td style="padding:7px 9px;font-size:10px;border:1px solid #e5e9f5;">${os.cliente||'—'}</td>
+        <td style="padding:7px 9px;font-size:10px;border:1px solid #e5e9f5;">${os.cidade||'—'}</td>
+        <td style="padding:7px 9px;font-size:10px;border:1px solid #e5e9f5;">${_fmtDate(os.dataFechamento)}</td>
+        <td style="padding:7px 9px;font-size:10px;border:1px solid #e5e9f5;text-align:center;color:${dias!==null&&dias>20?'#b45309':dias!==null&&dias<=5?'#15803d':'#374151'};font-weight:600;">${dias!==null?dias+'d':'—'}</td>
+        <td style="padding:7px 9px;font-size:11px;border:1px solid #e5e9f5;font-weight:700;text-align:right;color:#15803d;">${os.valor?_fmtMoeda(parsVal(os.valor)):'—'}</td>
       </tr>`;
     });
   });
 
-  const html = `<!DOCTYPE html><html lang="pt-BR"><head><meta charset="UTF-8">
-<title>Fatura ${num}</title>
+  // ── HTML final ─────────────────────────────────────────────────
+  const html=`<!DOCTYPE html><html lang="pt-BR"><head><meta charset="UTF-8"><title>Fatura ${num}</title>
 <style>
-  *{box-sizing:border-box;margin:0;padding:0;}
-  body{font-family:'Segoe UI',system-ui,Arial,sans-serif;color:#111827;background:#fff;}
-  .page{max-width:960px;margin:0 auto;padding:48px 44px;}
+*{box-sizing:border-box;margin:0;padding:0;}
+body{font-family:'Segoe UI',system-ui,Arial,sans-serif;color:#111827;background:#fff;font-size:12px;}
+.page{max-width:980px;margin:0 auto;padding:48px 44px;}
 
-  /* ── HEADER ── */
-  .header{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:40px;padding-bottom:28px;border-bottom:3px solid #1a3a8f;}
-  .logo-area{}
-  .logo-tag{display:inline-block;background:#e8f0fe;color:#1a3a8f;font-size:9px;font-weight:700;letter-spacing:1px;text-transform:uppercase;padding:3px 9px;border-radius:20px;margin-bottom:10px;}
-  .logo-area h1{font-size:26px;font-weight:900;color:#1a3a8f;letter-spacing:-0.8px;line-height:1;}
-  .logo-area p{font-size:12px;color:#6b7280;margin-top:5px;}
-  .fat-badge{background:linear-gradient(135deg,#1a3a8f,#2563eb);color:#fff;padding:14px 22px;border-radius:12px;text-align:center;min-width:140px;box-shadow:0 4px 15px rgba(26,58,143,.3);}
-  .fat-badge .lbl{font-size:9px;opacity:.75;letter-spacing:1.2px;text-transform:uppercase;margin-bottom:5px;}
-  .fat-badge .num{font-size:20px;font-weight:900;letter-spacing:-0.5px;}
-  .fat-badge .dt{font-size:10px;opacity:.7;margin-top:5px;}
+/* HEADER */
+.hdr{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:36px;padding-bottom:28px;border-bottom:3px solid #1e3a8a;}
+.hdr-left{}
+.hdr-tag{display:inline-flex;align-items:center;gap:6px;background:#dbeafe;color:#1e40af;font-size:9px;font-weight:700;letter-spacing:1.2px;text-transform:uppercase;padding:4px 10px;border-radius:20px;margin-bottom:10px;}
+.hdr-tag::before{content:'';width:6px;height:6px;border-radius:50%;background:#1d4ed8;}
+.hdr-left h1{font-size:28px;font-weight:900;color:#1e3a8a;letter-spacing:-1px;line-height:1.1;}
+.hdr-left p{font-size:11.5px;color:#6b7280;margin-top:5px;}
+.fat-num{background:linear-gradient(135deg,#1e3a8a 0%,#2563eb 100%);color:#fff;padding:16px 24px;border-radius:14px;text-align:center;min-width:150px;box-shadow:0 6px 20px rgba(30,58,138,.35);}
+.fat-num .fn-lbl{font-size:8.5px;opacity:.7;letter-spacing:1.4px;text-transform:uppercase;margin-bottom:6px;}
+.fat-num .fn-val{font-size:22px;font-weight:900;letter-spacing:-0.5px;}
+.fat-num .fn-dt{font-size:9.5px;opacity:.65;margin-top:6px;}
 
-  /* ── PARTES ── */
-  .partes{display:grid;grid-template-columns:1fr 1fr;gap:20px;margin-bottom:28px;}
-  .parte-box{border:1.5px solid #e5e9f5;border-radius:12px;padding:18px;background:#fafbff;}
-  .parte-box .lbl-sec{font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:#9ca3af;margin-bottom:10px;}
-  .parte-box .nome{font-size:16px;font-weight:800;color:#1a3a8f;margin-bottom:5px;}
-  .parte-box .detalhe{font-size:11.5px;color:#4b5563;line-height:1.7;}
-  .parte-box.destaque{background:linear-gradient(135deg,#eff6ff,#f0f4ff);border-color:#bfdbfe;}
+/* PARTES */
+.partes{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:24px;}
+.parte{border:1.5px solid #e2e8f0;border-radius:12px;padding:18px 20px;background:#fafbff;}
+.parte.emit{background:linear-gradient(135deg,#eff6ff,#eef2ff);border-color:#c7d7f5;}
+.parte .p-lbl{font-size:8.5px;font-weight:700;letter-spacing:1.2px;text-transform:uppercase;color:#94a3b8;margin-bottom:8px;}
+.parte .p-nome{font-size:15px;font-weight:800;color:#1e3a8a;margin-bottom:4px;}
+.parte .p-det{font-size:11px;color:#4b5563;line-height:1.8;}
 
-  /* ── KPIs ── */
-  .kpis{display:grid;grid-template-columns:repeat(5,1fr);gap:12px;margin-bottom:32px;}
-  .kpi{background:#f8faff;border:1.5px solid #e5e9f5;border-radius:10px;padding:14px 12px;text-align:center;}
-  .kpi.destaque{background:linear-gradient(135deg,#1a3a8f,#2563eb);border:none;color:#fff;}
-  .kpi .kpi-lbl{font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.8px;color:#9ca3af;margin-bottom:6px;}
-  .kpi.destaque .kpi-lbl{color:rgba(255,255,255,.7);}
-  .kpi .kpi-val{font-size:22px;font-weight:900;color:#1a3a8f;}
-  .kpi.destaque .kpi-val{color:#fff;font-size:20px;}
-  .kpi .kpi-sub{font-size:10px;color:#6b7280;margin-top:3px;}
-  .kpi.destaque .kpi-sub{color:rgba(255,255,255,.65);}
+/* KPIS */
+.kpis{display:grid;grid-template-columns:repeat(5,1fr);gap:10px;margin-bottom:28px;}
+.kpi{background:#f8faff;border:1.5px solid #e2e8f0;border-radius:10px;padding:14px 10px;text-align:center;}
+.kpi.hi{background:linear-gradient(135deg,#1e3a8a,#2563eb);border:none;box-shadow:0 4px 14px rgba(30,58,138,.3);}
+.kpi .k-lbl{font-size:8.5px;font-weight:700;letter-spacing:.8px;text-transform:uppercase;color:#94a3b8;margin-bottom:5px;}
+.kpi.hi .k-lbl{color:rgba(255,255,255,.65);}
+.kpi .k-val{font-size:21px;font-weight:900;color:#1e3a8a;line-height:1.1;}
+.kpi.hi .k-val{color:#fff;font-size:18px;}
+.kpi .k-sub{font-size:9.5px;color:#6b7280;margin-top:3px;}
+.kpi.hi .k-sub{color:rgba(255,255,255,.6);}
 
-  /* ── SEÇÃO ANÁLISE ── */
-  .sec-title{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.8px;color:#4b5563;margin-bottom:12px;padding-bottom:6px;border-bottom:2px solid #e5e9f5;}
-  .analises{display:grid;grid-template-columns:1fr 1fr;gap:20px;margin-bottom:28px;}
-  .analise-box{border:1.5px solid #e5e9f5;border-radius:12px;padding:18px;background:#fafbff;}
-  .analise-box.full{grid-column:1/-1;}
+/* SEÇÕES */
+.sec-ttl{font-size:9.5px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:#475569;margin-bottom:10px;padding-bottom:6px;border-bottom:2px solid #e2e8f0;display:flex;align-items:center;gap:6px;}
+.sec-ttl::before{content:'';display:block;width:3px;height:14px;background:#2563eb;border-radius:2px;}
+.cards2{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px;}
+.cards3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:16px;margin-bottom:16px;}
+.card{border:1.5px solid #e2e8f0;border-radius:12px;padding:18px;background:#fafbff;}
+.card-full{grid-column:1/-1;}
 
-  /* ── TABELA ── */
-  table{width:100%;border-collapse:collapse;margin-bottom:24px;font-size:11px;}
-  thead th{background:#1a3a8f;color:#fff;padding:10px 10px;font-size:9.5px;text-align:left;font-weight:700;letter-spacing:.5px;}
-  thead th:last-child{text-align:right;}
-  .total-row td{padding:13px 10px;background:#e8f0fe;font-size:13px;font-weight:800;border:1.5px solid #bfdbfe;}
-  .total-row td:last-child{font-size:16px;color:#15803d;text-align:right;}
+/* PRAZO strip */
+.prazo-strip{display:flex;gap:0;margin-bottom:16px;border-radius:10px;overflow:hidden;border:1.5px solid #e2e8f0;}
+.ps-item{flex:1;padding:14px 12px;text-align:center;background:#fafbff;border-right:1px solid #e2e8f0;}
+.ps-item:last-child{border-right:none;}
+.ps-item.hi{background:linear-gradient(135deg,#ecfdf5,#d1fae5);}
+.ps-lbl{font-size:8.5px;font-weight:700;letter-spacing:.8px;text-transform:uppercase;color:#94a3b8;margin-bottom:4px;}
+.ps-val{font-size:20px;font-weight:900;color:#15803d;}
+.ps-val.warn{color:#b45309;}
+.ps-val.neu{color:#1e3a8a;}
+.ps-sub{font-size:9.5px;color:#6b7280;margin-top:2px;}
 
-  /* ── RODAPÉ ── */
-  .obs-box{background:#fffbeb;border:1.5px solid #fde68a;border-radius:10px;padding:16px;margin-bottom:28px;font-size:11.5px;white-space:pre-line;line-height:1.7;}
-  .obs-box .obs-title{font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.8px;color:#92400e;margin-bottom:8px;}
-  .assinatura{display:grid;grid-template-columns:1fr 1fr;gap:60px;margin-top:40px;}
-  .assin-box{text-align:center;padding-top:44px;border-top:1.5px solid #374151;}
-  .assin-box .assin-nome{font-size:12px;font-weight:700;color:#1a3a8f;margin-top:5px;}
-  .assin-box .assin-sub{font-size:10.5px;color:#6b7280;margin-top:2px;}
-  .footer{text-align:center;padding-top:24px;border-top:1px solid #f3f4f6;margin-top:32px;font-size:10px;color:#9ca3af;}
-  .badge-tipo{display:inline-block;background:#eff6ff;color:#1d4ed8;border-radius:4px;padding:1px 7px;font-size:9.5px;font-weight:700;border:1px solid #bfdbfe;}
-  @media print{.page{padding:24px 28px;} body{-webkit-print-color-adjust:exact;print-color-adjust:exact;}}
+/* TABELA */
+table{width:100%;border-collapse:collapse;margin-bottom:20px;}
+thead th{background:#1e3a8a;color:#fff;padding:9px 10px;font-size:9.5px;font-weight:700;letter-spacing:.5px;text-align:left;}
+thead th:last-child{text-align:right;}
+.grp-row td{background:#1e3a8a;color:#fff;font-size:10px;font-weight:700;padding:7px 10px;letter-spacing:.3px;}
+.grp-row td:last-child{text-align:right;}
+.tot-row td{background:#dbeafe;font-weight:800;font-size:13px;padding:12px 10px;border:1.5px solid #bfdbfe;}
+.tot-row td:last-child{font-size:16px;color:#15803d;text-align:right;}
+
+/* RODAPÉ */
+.obs{background:#fffbeb;border:1.5px solid #fde68a;border-radius:10px;padding:16px;margin-bottom:24px;font-size:11px;line-height:1.8;white-space:pre-line;}
+.obs-ttl{font-size:8.5px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:#92400e;margin-bottom:6px;}
+.assinaturas{display:grid;grid-template-columns:1fr 1fr;gap:60px;margin-top:40px;}
+.assin{text-align:center;padding-top:44px;border-top:1.5px solid #374151;}
+.assin .assin-nome{font-size:12px;font-weight:700;color:#1e3a8a;margin-top:6px;}
+.assin .assin-cargo{font-size:10px;color:#6b7280;margin-top:2px;}
+.footer{text-align:center;padding-top:20px;border-top:1px solid #f1f5f9;margin-top:28px;font-size:9.5px;color:#9ca3af;line-height:1.7;}
+@media print{
+  .page{padding:24px 28px;}
+  body{-webkit-print-color-adjust:exact;print-color-adjust:exact;}
+}
 </style>
 </head><body><div class="page">
 
-  <!-- HEADER -->
-  <div class="header">
-    <div class="logo-area">
-      <div class="logo-tag">Documento Fiscal</div>
-      <h1>FATURA DE SERVIÇOS</h1>
-      <p>Engenharia · Avaliações · Caixa Econômica Federal</p>
-    </div>
-    <div class="fat-badge">
-      <div class="lbl">Fatura Nº</div>
-      <div class="num">${num}</div>
-      <div class="dt">Emitida em ${fmtDate(data)||new Date().toLocaleDateString('pt-BR')}</div>
-    </div>
+<!-- ══ HEADER ══════════════════════════════════════════════════ -->
+<div class="hdr">
+  <div class="hdr-left">
+    <div class="hdr-tag">Documento Fiscal · Serviços de Engenharia</div>
+    <h1>FATURA DE SERVIÇOS</h1>
+    <p>Caixa Econômica Federal — Ordens de Serviço de Engenharia e Avaliações</p>
   </div>
+  <div class="fat-num">
+    <div class="fn-lbl">Fatura Nº</div>
+    <div class="fn-val">${num}</div>
+    <div class="fn-dt">Emissão: ${_fmtDate(data)||new Date().toLocaleDateString('pt-BR')}</div>
+  </div>
+</div>
 
-  <!-- PARTES -->
-  <div class="partes">
-    <div class="parte-box destaque">
-      <div class="lbl-sec">📤 Prestador de Serviços</div>
-      <div class="nome">LC Rissati Engenharia Ltda</div>
-      <div class="detalhe">
-        CNPJ: 49.910.739/0001-20<br>
-        São José do Rio Preto — SP
+<!-- ══ PARTES ══════════════════════════════════════════════════ -->
+<div class="partes">
+  <div class="parte emit">
+    <div class="p-lbl">📤 Prestador de Serviços</div>
+    <div class="p-nome">LC Rissati Engenharia Ltda</div>
+    <div class="p-det">CNPJ: 49.910.739/0001-20<br>São José do Rio Preto — SP</div>
+  </div>
+  <div class="parte">
+    <div class="p-lbl">📥 Destinatário / Tomador</div>
+    <div class="p-nome">${dest||'—'}</div>
+    <div class="p-det">${destCNPJ?'CNPJ: '+destCNPJ:''}</div>
+  </div>
+</div>
+
+<!-- ══ KPIs ══════════════════════════════════════════════════ -->
+<div class="kpis">
+  <div class="kpi">
+    <div class="k-lbl">Data da Fatura</div>
+    <div class="k-val" style="font-size:15px;">${_fmtDate(data)||'—'}</div>
+  </div>
+  <div class="kpi">
+    <div class="k-lbl">Vencimento</div>
+    <div class="k-val" style="font-size:15px;color:${venc?'#b45309':'#1e3a8a'};">${_fmtDate(venc)||'—'}</div>
+  </div>
+  <div class="kpi">
+    <div class="k-lbl">Total de OS</div>
+    <div class="k-val">${selecionadas.length}</div>
+    <div class="k-sub">${empArr.length} empresa${empArr.length!==1?'s':''}</div>
+  </div>
+  <div class="kpi">
+    <div class="k-lbl">Prazo médio</div>
+    <div class="k-val">${tmed!==null?tmed+'d':'—'}</div>
+    <div class="k-sub">${tmin!==null?'mín '+tmin+'d · máx '+tmax+'d':'sem dados'}</div>
+  </div>
+  <div class="kpi hi">
+    <div class="k-lbl">Valor Total</div>
+    <div class="k-val">${_fmtMoeda(total)}</div>
+    <div class="k-sub">a receber</div>
+  </div>
+</div>
+
+<!-- ══ PRAZO STRIP ═════════════════════════════════════════════ -->
+<div class="prazo-strip">
+  <div class="ps-item hi">
+    <div class="ps-lbl">Prazo Médio</div>
+    <div class="ps-val">${tmed!==null?tmed+'d':'—'}</div>
+    <div class="ps-sub">dias até fechamento</div>
+  </div>
+  <div class="ps-item">
+    <div class="ps-lbl">Mais Rápida</div>
+    <div class="ps-val">${tmin!==null?tmin+'d':'—'}</div>
+    <div class="ps-sub">menor prazo</div>
+  </div>
+  <div class="ps-item">
+    <div class="ps-lbl">Mais Lenta</div>
+    <div class="ps-val warn">${tmax!==null?tmax+'d':'—'}</div>
+    <div class="ps-sub">maior prazo</div>
+  </div>
+  <div class="ps-item">
+    <div class="ps-lbl">Com Data Registrada</div>
+    <div class="ps-val neu">${tempos.length}</div>
+    <div class="ps-sub">de ${selecionadas.length} OS</div>
+  </div>
+  <div class="ps-item">
+    <div class="ps-lbl">Ticket Médio</div>
+    <div class="ps-val neu" style="font-size:15px;">${selecionadas.length?_fmtMoeda(total/selecionadas.length):'—'}</div>
+    <div class="ps-sub">por OS</div>
+  </div>
+</div>
+
+<!-- ══ GRÁFICOS ════════════════════════════════════════════════ -->
+<div class="cards2">
+  <div class="card">
+    <div class="sec-ttl">Valor Faturado por Empresa</div>
+    ${barras(empArr, 440, ([,d])=>d.val, d=>d.val, d=>`${d.cnt} OS · ${Math.round(d.val/total*100)}%`, AZUL)}
+  </div>
+  <div class="card">
+    <div class="sec-ttl">OS por Tipo de Serviço</div>
+    ${donut(tipoArr, 72, 44, 80, 82, 370, 165, (k,v)=>`${k} (${v.cnt})`, v=>v.cnt)}
+  </div>
+</div>
+
+<div class="cards2">
+  <div class="card">
+    <div class="sec-ttl">Distribuição do Prazo de Fechamento</div>
+    <div style="display:flex;gap:20px;align-items:flex-start;margin-top:6px;">
+      ${histograma(tempos)}
+      <div style="font-size:10.5px;color:#374151;line-height:1.9;padding-top:4px;">
+        <div>⬛ <b>0–5d</b> entregas imediatas</div>
+        <div>🟦 <b>6–10d</b> prazo normal</div>
+        <div>🟦 <b>11–20d</b> atenção moderada</div>
+        <div>🟦 <b>21–30d</b> prazo longo</div>
+        <div>🟦 <b>>30d</b> crítico</div>
       </div>
     </div>
-    <div class="parte-box">
-      <div class="lbl-sec">📥 Destinatário</div>
-      <div class="nome">${dest||'—'}</div>
-      <div class="detalhe">${destCNPJ?'CNPJ: '+destCNPJ+'<br>':''}</div>
-    </div>
   </div>
-
-  <!-- KPIs -->
-  <div class="kpis">
-    <div class="kpi">
-      <div class="kpi-lbl">Data da Fatura</div>
-      <div class="kpi-val" style="font-size:16px;">${fmtDate(data)||'—'}</div>
-    </div>
-    <div class="kpi">
-      <div class="kpi-lbl">Vencimento</div>
-      <div class="kpi-val" style="font-size:16px;color:${venc?'#b45309':'#1a3a8f'};">${fmtDate(venc)||'—'}</div>
-    </div>
-    <div class="kpi">
-      <div class="kpi-lbl">Total de OS</div>
-      <div class="kpi-val">${selecionadas.length}</div>
-      <div class="kpi-sub">${empArr.length} empresa${empArr.length!==1?'s':''}</div>
-    </div>
-    <div class="kpi">
-      <div class="kpi-lbl">Prazo médio</div>
-      <div class="kpi-val">${tmedFech!==null?tmedFech+'d':'—'}</div>
-      <div class="kpi-sub">${tmin!==null?'min '+tmin+'d · max '+tmax+'d':'sem dados'}</div>
-    </div>
-    <div class="kpi destaque">
-      <div class="kpi-lbl">Valor Total</div>
-      <div class="kpi-val">${fmtVal(total)}</div>
-      <div class="kpi-sub">a receber</div>
-    </div>
+  <div class="card">
+    <div class="sec-ttl">Top Municípios</div>
+    ${barras(cidArr, 380, ([,n])=>n, n=>n, n=>`${n} OS`, VERDE)}
+    ${cidArr.length===0?'<div style="color:#9ca3af;font-size:11px;padding:12px 0;text-align:center;">Sem dados de cidade</div>':''}
   </div>
+</div>
 
-  <!-- ANÁLISE VISUAL -->
-  <div class="analises">
-    <div class="analise-box">
-      <div class="sec-title">📊 Valor por Empresa</div>
-      ${svgBarrasEmpresa()}
-    </div>
-    <div class="analise-box" style="display:flex;flex-direction:column;gap:16px;">
-      <div>
-        <div class="sec-title">🏷️ OS por Tipo de Serviço</div>
-        ${svgDonutTipo()}
-      </div>
-    </div>
-    <div class="analise-box full">
-      <div class="sec-title">⏱️ Prazo de Fechamento — Distribuição das OS</div>
-      <div style="display:flex;align-items:center;gap:32px;">
-        ${svgPrazoFechamento()}
-        <div style="font-size:11px;color:#374151;line-height:2;">
-          <div>📌 <strong>Prazo médio:</strong> ${tmedFech!==null?tmedFech+' dias':'—'}</div>
-          <div>🟢 <strong>Mais rápida:</strong> ${tmin!==null?tmin+' dias':'—'}</div>
-          <div>🔴 <strong>Mais lenta:</strong> ${tmax!==null?tmax+' dias':'—'}</div>
-          <div style="margin-top:8px;color:#6b7280;">Calculado sobre ${tempos.length} OS com data<br>de abertura e fechamento registradas.</div>
-        </div>
-      </div>
-    </div>
-  </div>
-
-  <!-- TABELA DE OS -->
-  <div class="sec-title" style="margin-bottom:10px;">📋 Detalhamento das Ordens de Serviço</div>
-  <table>
-    <thead><tr>
-      <th>Referência OS</th><th>Tipo</th><th>Cliente</th>
-      <th>Cidade</th><th>Fechamento</th><th style="text-align:center;">Prazo</th>
+<!-- ══ TABELA ══════════════════════════════════════════════════ -->
+<div class="sec-ttl" style="margin-bottom:10px;">Detalhamento das Ordens de Serviço</div>
+<table>
+  <thead>
+    <tr>
+      <th>Referência OS</th><th>Tipo</th><th>Cliente / Mutuário</th>
+      <th>Município</th><th>Fechamento</th>
+      <th style="text-align:center;">Prazo</th>
       <th style="text-align:right;">Valor</th>
-    </tr></thead>
-    <tbody>${linhas}</tbody>
-    <tr class="total-row">
-      <td colspan="6" style="border:1.5px solid #bfdbfe;padding:13px 10px;letter-spacing:.2px;">TOTAL GERAL &nbsp;·&nbsp; ${selecionadas.length} Ordem(ns) de Serviço &nbsp;·&nbsp; ${empArr.length} Empresa${empArr.length!==1?'s':''}</td>
-      <td style="border:1.5px solid #bfdbfe;">${fmtVal(total)}</td>
     </tr>
-  </table>
+  </thead>
+  <tbody>${linhas}</tbody>
+  <tr class="tot-row">
+    <td colspan="6" style="border:1.5px solid #bfdbfe;">
+      TOTAL GERAL &nbsp;·&nbsp; ${selecionadas.length} Ordem(ns) &nbsp;·&nbsp; ${empArr.length} Empresa${empArr.length!==1?'s':''}
+    </td>
+    <td style="border:1.5px solid #bfdbfe;">${_fmtMoeda(total)}</td>
+  </tr>
+</table>
 
-  ${obsF?`<div class="obs-box"><div class="obs-title">💳 Informações para Pagamento</div>${obsF}</div>`:''}
+${obsF?`<div class="obs"><div class="obs-ttl">💳 Instruções de Pagamento</div>${obsF}</div>`:''}
 
-  <!-- ASSINATURAS -->
-  <div class="assinatura">
-    <div class="assin-box">
-      <div class="assin-nome">LC Rissati Engenharia Ltda</div>
-      <div class="assin-sub">Prestador de Serviços</div>
-    </div>
-    <div class="assin-box">
-      <div class="assin-nome">${dest||'___________________________'}</div>
-      <div class="assin-sub">Destinatário · Aprovação</div>
-    </div>
+<!-- ══ ASSINATURAS ═════════════════════════════════════════════ -->
+<div class="assinaturas">
+  <div class="assin">
+    <div class="assin-nome">LC Rissati Engenharia Ltda</div>
+    <div class="assin-cargo">Prestador de Serviços · CNPJ 49.910.739/0001-20</div>
   </div>
-
-  <div class="footer">
-    Documento gerado em ${new Date().toLocaleString('pt-BR')} &nbsp;·&nbsp; Sistema de Controle OS — Caixa Econômica Federal &nbsp;·&nbsp; LC Rissati Engenharia Ltda
+  <div class="assin">
+    <div class="assin-nome">${dest||'___________________________'}</div>
+    <div class="assin-cargo">Destinatário · Aprovação</div>
   </div>
+</div>
+
+<div class="footer">
+  Documento gerado em ${new Date().toLocaleString('pt-BR')} &nbsp;·&nbsp;
+  Sistema de Controle OS — Caixa Econômica Federal &nbsp;·&nbsp;
+  LC Rissati Engenharia Ltda &nbsp;·&nbsp; CNPJ 49.910.739/0001-20
+</div>
 
 </div>
-<scr\ipt>window.onload=()=>window.print();</scr\ipt>
+<scr\ipt>window.onload=()=>setTimeout(()=>window.print(),400);</scr\ipt>
 </body></html>`;
 
-  const win = window.open('','_blank');
+  const win = window.open('', '_blank');
+  if(!win) { toast('Permita pop-ups para gerar a fatura', 'err'); return; }
   win.document.write(html);
   win.document.close();
 }
+
 
 
 
@@ -8386,7 +8450,7 @@ function renderComissaoPaulo() {
           <th style="padding:8px 10px;text-align:left;font-weight:700;color:var(--tx2);">Tipo</th>
           <th style="padding:8px 10px;text-align:left;font-weight:700;color:var(--tx2);">Cidade</th>
           <th style="padding:8px 10px;text-align:right;font-weight:700;color:var(--tx2);">Fechamento</th>
-          ${isAdmin() ? '<th style="padding:8px 10px;text-align:right;font-weight:700;color:var(--tx2);">Val. OS</th>' : ''}
+
           <th style="padding:8px 10px;text-align:right;font-weight:700;color:var(--grn);">Comissão</th>
         </tr></thead>
         <tbody>
@@ -8397,11 +8461,11 @@ function renderComissaoPaulo() {
               <td style="padding:7px 10px;">${os.tipoServico||'—'}</td>
               <td style="padding:7px 10px;color:var(--tx2);">${os.cidade||'—'}</td>
               <td style="padding:7px 10px;text-align:right;">${fmtDate(os.dataFechamento)}</td>
-              ${isAdmin() ? `<td style="padding:7px 10px;text-align:right;color:var(--tx2);">${os.valor?fmtVal(parsVal(os.valor)):'—'}</td>` : ''}
+
               <td style="padding:7px 10px;text-align:right;font-weight:800;color:var(--grn);">${fmtVal(os.comissao)}</td>
             </tr>`).join('')}
           <tr style="background:var(--bg3);font-weight:800;border-top:2px solid var(--br);">
-            <td colspan="${isAdmin()?6:5}" style="padding:10px 10px;font-size:13px;">TOTAL</td>
+            <td colspan="5" style="padding:10px 10px;font-size:13px;">TOTAL</td>
             <td style="padding:10px 10px;text-align:right;font-size:15px;color:var(--grn);">${fmtVal(totalComissao)}</td>
           </tr>
         </tbody>
