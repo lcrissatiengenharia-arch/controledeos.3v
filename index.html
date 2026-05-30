@@ -767,15 +767,13 @@ tr.row-vencido{animation:none!important;}
     <button class="ni" data-page="finalizadas" onclick="go('finalizadas')"><span class="ic">✅</span><span class="lbl">Finalizadas</span><span class="cnt green" id="nb-fin">0</span></button>
 
     <div class="sb-sec">Análises</div>
-    <button class="ni" data-page="dash-saude" onclick="go('dash-saude')"><span class="ic">🎯</span><span class="lbl">Saúde da Operação</span></button>
-    <button class="ni" data-page="dash-calendario" onclick="go('dash-calendario')"><span class="ic">📅</span><span class="lbl">Calendário de OS</span></button>
-    <button class="ni" data-page="dash-timeline" onclick="go('dash-timeline')"><span class="ic">⏱️</span><span class="lbl">Timeline Crítica</span></button>
-    <button class="ni" data-page="dash-tendencia" onclick="go('dash-tendencia')"><span class="ic">📈</span><span class="lbl">Tendência de Prazo</span></button>
+
     <button class="ni admin-only" data-page="dash-receita" onclick="go('dash-receita')"><span class="ic">💹</span><span class="lbl">Receita Empresa × Tipo</span></button>
     <button class="ni" data-page="dash-cidades" onclick="go('dash-cidades')"><span class="ic">🗺️</span><span class="lbl">Mapa de Cidades</span></button>
-    <button class="ni admin-only" data-page="dash-metas" onclick="go('dash-metas')"><span class="ic">🏆</span><span class="lbl">Metas e SLA</span></button>
     <button class="ni" data-page="dash-feed" onclick="go('dash-feed')"><span class="ic">⚡</span><span class="lbl">Feed de Atividade</span></button>
     <button class="ni admin-only" data-page="dash-comparativo" onclick="go('dash-comparativo')"><span class="ic">📊</span><span class="lbl">Comparativo Anual</span></button>
+    <button class="ni admin-only" data-page="dash-recebimentos" onclick="go('dash-recebimentos')"><span class="ic">💳</span><span class="lbl">Painel de Recebimentos</span></button>
+    <button class="ni" data-page="dash-produtividade" onclick="go('dash-produtividade')"><span class="ic">⚡</span><span class="lbl">Produtividade</span></button>
 
     <div class="sb-sec admin-only">Financeiro</div>
     <button class="ni admin-only" data-page="financeiro" onclick="go('financeiro')"><span class="ic">💰</span><span class="lbl">Dashboard Financeiro</span></button>
@@ -1805,28 +1803,7 @@ tr.row-vencido{animation:none!important;}
 
 
 <!-- ═══ DASHBOARD: TENDÊNCIA DE PRAZO ═══ -->
-<div class="page" id="page-dash-tendencia">
-  <div class="stats" style="grid-template-columns:repeat(4,1fr);margin-bottom:16px;">
-    <div class="stat" style="--sc:var(--grn)"><div class="stat-ic">✅</div><div class="stat-lbl">No prazo (últ. 6 meses)</div><div class="stat-val" id="tend-ok">0</div><div class="stat-sub" id="tend-ok-pct">—</div></div>
-    <div class="stat" style="--sc:var(--red)"><div class="stat-ic">⚠️</div><div class="stat-lbl">Vencidas (últ. 6 meses)</div><div class="stat-val" id="tend-venc">0</div><div class="stat-sub" id="tend-venc-pct">—</div></div>
-    <div class="stat" style="--sc:var(--acc)"><div class="stat-ic">📈</div><div class="stat-lbl">Melhor mês</div><div class="stat-val" id="tend-best-pct" style="font-size:18px">—</div><div class="stat-sub" id="tend-best-mes">—</div></div>
-    <div class="stat" style="--sc:var(--org)"><div class="stat-ic">📉</div><div class="stat-lbl">Pior mês</div><div class="stat-val" id="tend-worst-pct" style="font-size:18px">—</div><div class="stat-sub" id="tend-worst-mes">—</div></div>
-  </div>
-  <div style="display:grid;grid-template-columns:2fr 1fr;gap:16px;">
-    <div class="card">
-      <div class="card-hd"><h3>📈 Evolução: No Prazo vs Vencidas por Mês</h3><p>Últimos 12 meses · OS finalizadas</p></div>
-      <div id="tend-chart-wrap" style="padding:8px 0;"></div>
-    </div>
-    <div class="card">
-      <div class="card-hd"><h3>🏆 Taxa por Empresa</h3><p>% de OS finalizadas no prazo</p></div>
-      <div id="tend-emp-taxa"></div>
-    </div>
-  </div>
-  <div style="margin-top:16px;" class="card">
-    <div class="card-hd"><h3>🔮 SLA por Tipo de Serviço</h3><p>Taxa de cumprimento de prazo por categoria</p></div>
-    <div id="tend-tipo-sla" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:12px;margin-top:8px;"></div>
-  </div>
-</div>
+
 
 <!-- ═══ DASHBOARD: RECEITA EMPRESA × TIPO (admin) ═══ -->
 <div class="page" id="page-dash-receita">
@@ -1893,105 +1870,10 @@ tr.row-vencido{animation:none!important;}
   </div>
 </div>
 
-<!-- ═══ DASHBOARD: SAÚDE DA OPERAÇÃO ═══ -->
-<div class="page" id="page-dash-saude">
-  <div class="stats" style="grid-template-columns:repeat(4,1fr);margin-bottom:16px;">
-    <div class="stat" style="--sc:var(--grn)"><div class="stat-ic">🎯</div><div class="stat-lbl">SLA Global</div><div class="stat-val" id="sd-sla">0%</div><div class="stat-sub">OS no prazo</div></div>
-    <div class="stat" style="--sc:var(--acc)"><div class="stat-ic">📋</div><div class="stat-lbl">Em andamento</div><div class="stat-val" id="sd-and">0</div><div class="stat-sub">OS abertas</div></div>
-    <div class="stat" style="--sc:var(--red)"><div class="stat-ic">⚠️</div><div class="stat-lbl">Críticas</div><div class="stat-val" id="sd-crit">0</div><div class="stat-sub">vencidas ou hoje</div></div>
-    <div class="stat" style="--sc:var(--org)"><div class="stat-ic">⏱️</div><div class="stat-lbl">Idade média</div><div class="stat-val" id="sd-idade">—</div><div class="stat-sub">dias em aberto</div></div>
-  </div>
-  <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px;">
-    <div class="card">
-      <div class="card-hd"><h3>🔄 Progresso do Funil</h3><p>% de OS que completaram cada etapa</p></div>
-      <div id="sd-funil" style="padding:8px 0;"></div>
-    </div>
-    <div class="card">
-      <div class="card-hd"><h3>📊 Velocímetro por Empresa</h3><p>Taxa de finalização no prazo</p></div>
-      <div id="sd-velocimetros" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:14px;padding:8px 0;"></div>
-    </div>
-  </div>
-  <div class="card">
-    <div class="card-hd"><h3>🧭 Radar de Etapas</h3><p>Completude de cada fase — todas as OS</p></div>
-    <div id="sd-radar-wrap" style="display:flex;align-items:center;justify-content:center;padding:16px 0;gap:40px;flex-wrap:wrap;"></div>
-  </div>
-</div>
 
-<!-- ═══ DASHBOARD: CALENDÁRIO HEATMAP ═══ -->
-<div class="page" id="page-dash-calendario">
-  <div style="display:grid;grid-template-columns:1fr auto;align-items:center;margin-bottom:14px;gap:12px;">
-    <div></div>
-    <select id="cal-ano" onchange="renderDashCalendario()" style="padding:6px 12px;font-size:12px;background:var(--bg2);border:1px solid var(--br);border-radius:var(--rs);color:var(--tx);">
-      <option>2024</option><option selected>2026</option><option>2025</option><option>2027</option>
-    </select>
-  </div>
-  <div class="card" style="margin-bottom:16px;">
-    <div class="card-hd"><h3>📅 OS Abertas por Dia do Ano</h3><p id="cal-sub">Passe o mouse em um dia para ver detalhes</p></div>
-    <div id="cal-heatmap" style="overflow-x:auto;padding:8px 0;"></div>
-    <div style="display:flex;align-items:center;gap:8px;margin-top:12px;padding-top:10px;border-top:1px solid var(--br);">
-      <span style="font-size:11px;color:var(--tx3);">menos</span>
-      <div id="cal-legend-cells" style="display:flex;gap:3px;"></div>
-      <span style="font-size:11px;color:var(--tx3);">mais</span>
-    </div>
-  </div>
-  <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:16px;">
-    <div class="card"><div class="card-hd"><h3>🏆 Dia mais produtivo</h3></div><div id="cal-top-dia"></div></div>
-    <div class="card"><div class="card-hd"><h3>📆 Mês mais produtivo</h3></div><div id="cal-top-mes"></div></div>
-    <div class="card"><div class="card-hd"><h3>📊 Média diária</h3></div><div id="cal-media-dia"></div></div>
-  </div>
-</div>
 
-<!-- ═══ DASHBOARD: TIMELINE CRÍTICA ═══ -->
-<div class="page" id="page-dash-timeline">
-  <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:14px;" id="tl-stats"></div>
-  <div style="display:grid;grid-template-columns:2fr 1fr;gap:16px;">
-    <div class="card">
-      <div class="card-hd">
-        <h3>⏱️ Timeline de Prazos</h3>
-        <select id="tl-filtro-emp" onchange="renderDashTimeline()" style="font-size:11.5px;padding:4px 8px;background:var(--bg2);border:1px solid var(--br);border-radius:var(--rs);color:var(--tx);">
-          <option value="">Todas as empresas</option>
-        </select>
-      </div>
-      <div id="tl-list" style="overflow-y:auto;max-height:500px;"></div>
-    </div>
-    <div class="card">
-      <div class="card-hd"><h3>🔥 Urgência por empresa</h3></div>
-      <div id="tl-emp-urgencia"></div>
-    </div>
-  </div>
-</div>
 
-<!-- ═══ DASHBOARD: METAS E SLA ═══ -->
-<div class="page" id="page-dash-metas">
-  <div class="stats" style="grid-template-columns:repeat(3,1fr);margin-bottom:16px;">
-    <div class="stat" style="--sc:var(--grn)"><div class="stat-ic">🏆</div><div class="stat-lbl">Empresas na meta</div><div class="stat-val" id="mt-ok">0</div><div class="stat-sub" id="mt-ok-sub">de 0</div></div>
-    <div class="stat" style="--sc:var(--red)"><div class="stat-ic">⚠️</div><div class="stat-lbl">Abaixo da meta</div><div class="stat-val" id="mt-fail">0</div><div class="stat-sub">precisam atenção</div></div>
-    <div class="stat" style="--sc:var(--acc)"><div class="stat-ic">🎯</div><div class="stat-lbl">Meta global</div><div class="stat-val" id="mt-meta-val">80%</div><div class="stat-sub">ajustável abaixo</div></div>
-  </div>
-  <div class="card" style="margin-bottom:16px;">
-    <div class="card-hd">
-      <h3>🎯 SLA por Empresa — Meta de Prazo</h3>
-      <div style="display:flex;align-items:center;gap:10px;">
-        <label style="font-size:12px;color:var(--tx3);">Meta:</label>
-        <input type="range" id="mt-meta-slider" min="50" max="100" value="80" step="5"
-          oninput="document.getElementById('mt-meta-pct').textContent=this.value+'%';document.getElementById('mt-meta-val').textContent=this.value+'%';renderDashMetas()"
-          style="width:100px;">
-        <span id="mt-meta-pct" style="font-size:12px;font-weight:700;color:var(--acc);min-width:32px;">80%</span>
-      </div>
-    </div>
-    <div id="mt-bars"></div>
-  </div>
-  <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;">
-    <div class="card">
-      <div class="card-hd"><h3>📊 SLA por Tipo de Serviço</h3></div>
-      <div id="mt-tipo-bars"></div>
-    </div>
-    <div class="card">
-      <div class="card-hd"><h3>📅 Evolução do SLA — últimos 6 meses</h3></div>
-      <div id="mt-evolucao"></div>
-    </div>
-  </div>
-</div>
+
 
 <!-- ═══ DASHBOARD: FEED DE ATIVIDADE ═══ -->
 <div class="page" id="page-dash-feed">
@@ -2052,6 +1934,62 @@ tr.row-vencido{animation:none!important;}
   <div class="card">
     <div class="card-hd"><h3>🏷️ Variação por Tipo de Serviço</h3></div>
     <div id="cmp-tipo-delta" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:12px;padding:8px 0;"></div>
+  </div>
+</div>
+
+<!-- ═══ DASHBOARD: PAINEL DE RECEBIMENTOS ═══ -->
+<div class="page" id="page-dash-recebimentos">
+  <div class="stats" style="grid-template-columns:repeat(4,1fr);margin-bottom:16px;">
+    <div class="stat" style="--sc:var(--grn)"><div class="stat-ic">💳</div><div class="stat-lbl">A receber (próx. mês)</div><div class="stat-val" id="rec2-prox" style="font-size:18px">R$ 0</div><div class="stat-sub" id="rec2-prox-cnt">0 OS fechadas este mês</div></div>
+    <div class="stat" style="--sc:var(--acc)"><div class="stat-ic">📋</div><div class="stat-lbl">Fechadas este mês</div><div class="stat-val" id="rec2-mes-cnt">0</div><div class="stat-sub" id="rec2-mes-label">—</div></div>
+    <div class="stat" style="--sc:var(--sky)"><div class="stat-ic">📊</div><div class="stat-lbl">Média mensal recebida</div><div class="stat-val" id="rec2-media" style="font-size:18px">R$ 0</div><div class="stat-sub">últimos 6 meses</div></div>
+    <div class="stat" style="--sc:var(--org)"><div class="stat-ic">⏳</div><div class="stat-lbl">OS em aberto (sem fecha.)</div><div class="stat-val" id="rec2-abertas">0</div><div class="stat-sub" id="rec2-abertas-val">valor estimado pendente</div></div>
+  </div>
+  <div style="display:grid;grid-template-columns:2fr 1fr;gap:16px;margin-bottom:16px;">
+    <div class="card">
+      <div class="card-hd"><h3>📅 Histórico de Recebimentos por Mês</h3><p>Valor das OS fechadas em cada mês (recebidas no mês seguinte)</p></div>
+      <div id="rec2-barras" style="padding:8px 0;"></div>
+    </div>
+    <div class="card">
+      <div class="card-hd"><h3>🏢 Valor a Receber por Empresa</h3><p>Fechamentos do mês atual</p></div>
+      <div id="rec2-emp-lista" style="padding:8px 0;"></div>
+    </div>
+  </div>
+  <div class="card">
+    <div class="card-hd">
+      <h3>📋 OS Fechadas este Mês</h3>
+      <select id="rec2-filtro-mes" onchange="renderDashRecebimentos()" style="font-size:11.5px;padding:4px 8px;background:var(--bg2);border:1px solid var(--br);border-radius:var(--rs);color:var(--tx);">
+        <option value="0">Mês atual</option>
+        <option value="1">Mês anterior</option>
+        <option value="2">2 meses atrás</option>
+        <option value="3">3 meses atrás</option>
+      </select>
+    </div>
+    <div id="rec2-os-lista" style="margin-top:8px;"></div>
+  </div>
+</div>
+
+<!-- ═══ DASHBOARD: PRODUTIVIDADE ═══ -->
+<div class="page" id="page-dash-produtividade">
+  <div class="stats" style="grid-template-columns:repeat(4,1fr);margin-bottom:16px;">
+    <div class="stat" style="--sc:var(--acc)"><div class="stat-ic">📥</div><div class="stat-lbl">Recebidas este mês</div><div class="stat-val" id="prod-receb">0</div><div class="stat-sub">OS abertas no mês</div></div>
+    <div class="stat" style="--sc:var(--grn)"><div class="stat-ic">✅</div><div class="stat-lbl">Fechadas este mês</div><div class="stat-val" id="prod-fech">0</div><div class="stat-sub" id="prod-fech-sub">—</div></div>
+    <div class="stat" style="--sc:var(--sky)"><div class="stat-ic">⏱️</div><div class="stat-lbl">Tempo médio fechamento</div><div class="stat-val" id="prod-tmed" style="font-size:18px">—</div><div class="stat-sub">dias · OS do mês</div></div>
+    <div class="stat" style="--sc:var(--org)"><div class="stat-ic">🔁</div><div class="stat-lbl">Taxa de conclusão</div><div class="stat-val" id="prod-taxa" style="font-size:18px">—</div><div class="stat-sub">fechadas / abertas mês</div></div>
+  </div>
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px;">
+    <div class="card">
+      <div class="card-hd"><h3>📊 OS Abertas vs Fechadas por Mês</h3><p>Últimos 6 meses</p></div>
+      <div id="prod-barras" style="padding:8px 0;"></div>
+    </div>
+    <div class="card">
+      <div class="card-hd"><h3>⏱️ Tempo Médio de Fechamento por Empresa</h3><p>Dias entre abertura e fechamento</p></div>
+      <div id="prod-tempo-emp" style="padding:8px 0;"></div>
+    </div>
+  </div>
+  <div class="card">
+    <div class="card-hd"><h3>🏷️ Volume de OS por Tipo de Serviço</h3><p>Distribuição das OS finalizadas</p></div>
+    <div id="prod-tipo-barras" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:12px;padding:8px 0;"></div>
   </div>
 </div>
 
@@ -2242,15 +2180,12 @@ const PAGE_TITLES = {
   roteiro:'Roteirização de Vistorias',
   lixeira:'Lixeira (recuperáveis por 30 dias)',
   chat:'Chat da Equipe',
-  'dash-tendencia':'Tendência de Prazo',
   'dash-receita':'Receita por Empresa × Tipo',
   'dash-cidades':'Distribuição Geográfica',
-  'dash-saude':'Saúde da Operação',
-  'dash-calendario':'Calendário de OS — Heatmap',
-  'dash-timeline':'Timeline de OS Críticas',
-  'dash-metas':'Metas e SLA por Empresa',
   'dash-feed':'Feed de Atividade em Tempo Real',
-  'dash-comparativo':'Comparativo Anual'
+  'dash-comparativo':'Comparativo Anual',
+  'dash-recebimentos':'Painel de Recebimentos',
+  'dash-produtividade':'Produtividade'
 };
 
 let DB = [];
@@ -2531,15 +2466,12 @@ function renderPage(id) {
   else if(id==='faturas') renderFaturas();
   else if(id==='roteiro') renderRoteiro();
   else if(id==='lixeira') renderLixeira();
-  else if(id==='dash-tendencia') renderDashTendencia();
   else if(id==='dash-receita') renderDashReceita();
   else if(id==='dash-cidades') renderDashCidades();
-  else if(id==='dash-saude') renderDashSaude();
-  else if(id==='dash-calendario') renderDashCalendario();
-  else if(id==='dash-timeline') renderDashTimeline();
-  else if(id==='dash-metas') renderDashMetas();
   else if(id==='dash-feed') renderDashFeed();
   else if(id==='dash-comparativo') renderDashComparativo();
+  else if(id==='dash-recebimentos') renderDashRecebimentos();
+  else if(id==='dash-produtividade') renderDashProdutividade();
   // chat agora é widget flutuante — não há mais page-chat
 }
 
@@ -8019,6 +7951,276 @@ function chatTyping() {
 
 // Finalizar listeners ao fazer logout
 const _origLogout = window.logout;
+window.logout = async function() {
+  if(_chatUnsub)   { try { _chatUnsub(); } catch(e){} }
+  if(_presencaUnsub){ try { _presencaUnsub(); } catch(e){} }
+  await _marcarPresenca('offline');
+  _chatIniciado = false;
+  _chatUnsub = null;
+  _presencaUnsub = null;
+  if(_origLogout) await _origLogout();
+};
+
+// ═══ PAINEL DE RECEBIMENTOS ═══
+function renderDashRecebimentos() {
+  const now = new Date();
+  const anoAtual = now.getFullYear();
+  const mesAtual = now.getMonth(); // 0-indexed
+
+  // helper: extrai ano/mes de uma data string
+  function ymOf(dateStr) {
+    if(!dateStr) return null;
+    const d = new Date(dateStr.includes('T') ? dateStr : dateStr + 'T00:00');
+    if(isNaN(d)) return null;
+    return { y: d.getFullYear(), m: d.getMonth() };
+  }
+
+  // OS com fechamento no mês atual
+  const fechadasEsteMes = DB.filter(os => {
+    const ym = ymOf(os.dataFechamento);
+    return ym && ym.y === anoAtual && ym.m === mesAtual;
+  });
+
+  const totalProx = fechadasEsteMes.reduce((s, os) => s + parsVal(os.valor||0), 0);
+  const el = id => document.getElementById(id);
+
+  const mLabel = now.toLocaleDateString('pt-BR',{month:'long',year:'numeric'});
+
+  if(el('rec2-prox'))       el('rec2-prox').textContent       = fmtVal(totalProx);
+  if(el('rec2-prox-cnt'))   el('rec2-prox-cnt').textContent   = `${fechadasEsteMes.length} OS fechadas em ${mLabel}`;
+  if(el('rec2-mes-cnt'))    el('rec2-mes-cnt').textContent    = fechadasEsteMes.length;
+  if(el('rec2-mes-label'))  el('rec2-mes-label').textContent  = mLabel;
+
+  // OS abertas sem fechamento
+  const abertas = DB.filter(os => isAberto(os));
+  const valorAbertas = abertas.reduce((s, os) => s + parsVal(os.valor||0), 0);
+  if(el('rec2-abertas'))    el('rec2-abertas').textContent    = abertas.length;
+  if(el('rec2-abertas-val'))el('rec2-abertas-val').textContent= `≈ ${fmtVal(valorAbertas)} pendente`;
+
+  // Histórico últimos 6 meses
+  const meses = [];
+  for(let i = 5; i >= 0; i--) {
+    const d = new Date(anoAtual, mesAtual - i, 1);
+    meses.push({ y: d.getFullYear(), m: d.getMonth(), label: d.toLocaleDateString('pt-BR',{month:'short',year:'2-digit'}) });
+  }
+  const valPorMes = meses.map(mes => {
+    const total = DB.filter(os => {
+      const ym = ymOf(os.dataFechamento);
+      return ym && ym.y === mes.y && ym.m === mes.m;
+    }).reduce((s, os) => s + parsVal(os.valor||0), 0);
+    return { ...mes, total };
+  });
+
+  const media6 = valPorMes.reduce((s,x)=>s+x.total,0) / (valPorMes.filter(x=>x.total>0).length||1);
+  if(el('rec2-media')) el('rec2-media').textContent = fmtVal(media6);
+
+  // Barras do histórico
+  const maxBar = Math.max(...valPorMes.map(x=>x.total), 1);
+  const barWrap = el('rec2-barras');
+  if(barWrap) {
+    barWrap.innerHTML = `<div style="display:flex;align-items:flex-end;gap:8px;height:130px;padding:0 4px;">
+      ${valPorMes.map((x,i) => {
+        const pct = Math.round((x.total/maxBar)*100);
+        const isCurrentMonth = i === 5;
+        return `<div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:4px;">
+          <div style="font-size:9px;color:var(--tx3);font-weight:600;">${fmtVal(x.total,true)}</div>
+          <div style="width:100%;background:${isCurrentMonth?'var(--acc)':'var(--sky)'};border-radius:4px 4px 0 0;height:${Math.max(pct,3)}%;opacity:${isCurrentMonth?1:0.65};transition:height .3s;"></div>
+          <div style="font-size:9px;color:var(--tx3);text-align:center;">${x.label}</div>
+        </div>`;
+      }).join('')}
+    </div>`;
+  }
+
+  // Por empresa — mês atual
+  const empMap = {};
+  fechadasEsteMes.forEach(os => {
+    if(!os.empresa) return;
+    empMap[os.empresa] = (empMap[os.empresa]||0) + parsVal(os.valor||0);
+  });
+  const empLista = el('rec2-emp-lista');
+  if(empLista) {
+    const sorted = Object.entries(empMap).sort((a,b)=>b[1]-a[1]);
+    if(!sorted.length) {
+      empLista.innerHTML = '<div style="color:var(--tx3);font-size:12px;text-align:center;padding:20px 0;">Nenhuma OS fechada este mês</div>';
+    } else {
+      const maxEmp = sorted[0][1];
+      empLista.innerHTML = sorted.map(([emp,val])=>`
+        <div style="margin-bottom:10px;">
+          <div style="display:flex;justify-content:space-between;font-size:12px;margin-bottom:3px;">
+            <span style="font-weight:600;">${emp}</span>
+            <span style="color:var(--grn);font-weight:700;">${fmtVal(val)}</span>
+          </div>
+          <div style="background:var(--bg3);border-radius:4px;height:6px;overflow:hidden;">
+            <div style="width:${Math.round(val/maxEmp*100)}%;height:100%;background:var(--acc);border-radius:4px;"></div>
+          </div>
+        </div>`).join('');
+    }
+  }
+
+  // Lista de OS fechadas — com filtro de mês
+  const sel = el('rec2-filtro-mes');
+  const offset = sel ? parseInt(sel.value)||0 : 0;
+  const targetD = new Date(anoAtual, mesAtual - offset, 1);
+  const ty = targetD.getFullYear(), tm = targetD.getMonth();
+  const osFiltradas = DB.filter(os => {
+    const ym = ymOf(os.dataFechamento);
+    return ym && ym.y === ty && ym.m === tm;
+  }).sort((a,b)=>(b.dataFechamento||'').localeCompare(a.dataFechamento||''));
+
+  const listaEl = el('rec2-os-lista');
+  if(listaEl) {
+    if(!osFiltradas.length) {
+      listaEl.innerHTML = '<div style="color:var(--tx3);font-size:12px;text-align:center;padding:20px 0;">Nenhuma OS encontrada para o período selecionado</div>';
+    } else {
+      listaEl.innerHTML = `
+        <table style="width:100%;border-collapse:collapse;font-size:12px;">
+          <thead><tr style="background:var(--bg3);">
+            <th style="padding:8px 10px;text-align:left;font-weight:700;color:var(--tx2);">OS</th>
+            <th style="padding:8px 10px;text-align:left;font-weight:700;color:var(--tx2);">Empresa</th>
+            <th style="padding:8px 10px;text-align:left;font-weight:700;color:var(--tx2);">Tipo</th>
+            <th style="padding:8px 10px;text-align:right;font-weight:700;color:var(--tx2);">Fechamento</th>
+            <th style="padding:8px 10px;text-align:right;font-weight:700;color:var(--tx2);">Valor</th>
+          </tr></thead>
+          <tbody>
+            ${osFiltradas.map((os,i)=>`
+              <tr style="border-bottom:1px solid var(--br);background:${i%2===0?'transparent':'var(--bg2)'};">
+                <td style="padding:7px 10px;" class="mono">${os.numeroOS||'—'}</td>
+                <td style="padding:7px 10px;">${os.empresa||'—'}</td>
+                <td style="padding:7px 10px;">${os.tipoServico||'—'}</td>
+                <td style="padding:7px 10px;text-align:right;">${fmtDate(os.dataFechamento)}</td>
+                <td style="padding:7px 10px;text-align:right;font-weight:700;color:var(--grn);">${os.valor?fmtVal(parsVal(os.valor)):'—'}</td>
+              </tr>`).join('')}
+          </tbody>
+        </table>`;
+    }
+  }
+}
+
+// ═══ PRODUTIVIDADE ═══
+function renderDashProdutividade() {
+  const now = new Date();
+  const anoAtual = now.getFullYear();
+  const mesAtual = now.getMonth();
+
+  function ymOf(dateStr) {
+    if(!dateStr) return null;
+    const d = new Date(dateStr.includes('T') ? dateStr : dateStr + 'T00:00');
+    if(isNaN(d)) return null;
+    return { y: d.getFullYear(), m: d.getMonth() };
+  }
+
+  const abertoMes = DB.filter(os => {
+    const ym = ymOf(os.dataAbertura);
+    return ym && ym.y === anoAtual && ym.m === mesAtual;
+  });
+  const fechMes = DB.filter(os => {
+    const ym = ymOf(os.dataFechamento);
+    return ym && ym.y === anoAtual && ym.m === mesAtual;
+  });
+
+  const el = id => document.getElementById(id);
+  const mLabel = now.toLocaleDateString('pt-BR',{month:'long',year:'numeric'});
+
+  if(el('prod-receb'))   el('prod-receb').textContent   = abertoMes.length;
+  if(el('prod-fech'))    el('prod-fech').textContent    = fechMes.length;
+  if(el('prod-fech-sub'))el('prod-fech-sub').textContent= mLabel;
+
+  // Taxa de conclusão
+  const taxa = abertoMes.length ? Math.round(fechMes.length/abertoMes.length*100) : 0;
+  if(el('prod-taxa'))    el('prod-taxa').textContent    = taxa + '%';
+
+  // Tempo médio de fechamento (para todas as OS fechadas do mês com abertura conhecida)
+  const tempos = fechMes.filter(os=>os.dataAbertura&&os.dataFechamento).map(os=>{
+    const a = new Date(os.dataAbertura.includes('T')?os.dataAbertura:os.dataAbertura+'T00:00');
+    const f = new Date(os.dataFechamento.includes('T')?os.dataFechamento:os.dataFechamento+'T00:00');
+    return Math.max(0, Math.round((f-a)/(1000*60*60*24)));
+  });
+  const tmed = tempos.length ? Math.round(tempos.reduce((s,x)=>s+x,0)/tempos.length) : null;
+  if(el('prod-tmed'))    el('prod-tmed').textContent    = tmed !== null ? tmed + 'd' : '—';
+
+  // Barras: abertas vs fechadas últimos 6 meses
+  const meses = [];
+  for(let i=5;i>=0;i--){
+    const d=new Date(anoAtual, mesAtual-i, 1);
+    meses.push({ y:d.getFullYear(), m:d.getMonth(), label:d.toLocaleDateString('pt-BR',{month:'short',year:'2-digit'}) });
+  }
+  const dadosMeses = meses.map(mes => ({
+    ...mes,
+    abertos: DB.filter(os=>{ const ym=ymOf(os.dataAbertura); return ym&&ym.y===mes.y&&ym.m===mes.m; }).length,
+    fechados: DB.filter(os=>{ const ym=ymOf(os.dataFechamento); return ym&&ym.y===mes.y&&ym.m===mes.m; }).length
+  }));
+
+  const maxB = Math.max(...dadosMeses.map(x=>Math.max(x.abertos,x.fechados)), 1);
+  const barWrap = el('prod-barras');
+  if(barWrap) {
+    barWrap.innerHTML = `
+      <div style="display:flex;align-items:flex-end;gap:6px;height:130px;padding:0 4px;">
+        ${dadosMeses.map((x,i)=>`
+          <div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:2px;">
+            <div style="width:100%;display:flex;gap:2px;align-items:flex-end;height:110px;">
+              <div style="flex:1;background:var(--sky);border-radius:3px 3px 0 0;height:${Math.max(x.abertos/maxB*100,2)}%;opacity:${i===5?1:0.7};" title="Abertas: ${x.abertos}"></div>
+              <div style="flex:1;background:var(--grn);border-radius:3px 3px 0 0;height:${Math.max(x.fechados/maxB*100,2)}%;opacity:${i===5?1:0.7};" title="Fechadas: ${x.fechados}"></div>
+            </div>
+            <div style="font-size:9px;color:var(--tx3);">${x.label}</div>
+          </div>`).join('')}
+      </div>
+      <div style="display:flex;gap:16px;margin-top:8px;justify-content:center;">
+        <div style="display:flex;align-items:center;gap:5px;font-size:11px;color:var(--tx2);"><div style="width:10px;height:10px;background:var(--sky);border-radius:2px;"></div>Abertas</div>
+        <div style="display:flex;align-items:center;gap:5px;font-size:11px;color:var(--tx2);"><div style="width:10px;height:10px;background:var(--grn);border-radius:2px;"></div>Fechadas</div>
+      </div>`;
+  }
+
+  // Tempo médio por empresa
+  const empTempos = {};
+  DB.filter(os=>os.dataAbertura&&os.dataFechamento&&!isAberto(os)).forEach(os=>{
+    if(!os.empresa) return;
+    const a=new Date(os.dataAbertura.includes('T')?os.dataAbertura:os.dataAbertura+'T00:00');
+    const f=new Date(os.dataFechamento.includes('T')?os.dataFechamento:os.dataFechamento+'T00:00');
+    const dias=Math.max(0,Math.round((f-a)/(1000*60*60*24)));
+    if(!empTempos[os.empresa]) empTempos[os.empresa]={total:0,cnt:0};
+    empTempos[os.empresa].total+=dias;
+    empTempos[os.empresa].cnt++;
+  });
+  const empT = Object.entries(empTempos).map(([e,v])=>({emp:e,med:Math.round(v.total/v.cnt)})).sort((a,b)=>a.med-b.med);
+  const empWrap = el('prod-tempo-emp');
+  if(empWrap) {
+    if(!empT.length) { empWrap.innerHTML='<div style="color:var(--tx3);font-size:12px;text-align:center;padding:20px 0;">Sem dados suficientes</div>'; }
+    else {
+      const maxT = Math.max(...empT.map(x=>x.med),1);
+      empWrap.innerHTML = empT.map(x=>`
+        <div style="margin-bottom:10px;">
+          <div style="display:flex;justify-content:space-between;font-size:12px;margin-bottom:3px;">
+            <span style="font-weight:600;">${x.emp}</span>
+            <span style="color:var(--acc);font-weight:700;">${x.med}d</span>
+          </div>
+          <div style="background:var(--bg3);border-radius:4px;height:6px;overflow:hidden;">
+            <div style="width:${Math.round(x.med/maxT*100)}%;height:100%;background:var(--sky);border-radius:4px;"></div>
+          </div>
+        </div>`).join('');
+    }
+  }
+
+  // Por tipo de serviço
+  const tipoCnt = {};
+  DB.filter(os=>!isAberto(os)).forEach(os=>{
+    if(!os.tipoServico) return;
+    tipoCnt[os.tipoServico] = (tipoCnt[os.tipoServico]||0)+1;
+  });
+  const tipoWrap = el('prod-tipo-barras');
+  if(tipoWrap) {
+    const sorted = Object.entries(tipoCnt).sort((a,b)=>b[1]-a[1]);
+    const maxC = sorted[0]?.[1]||1;
+    tipoWrap.innerHTML = sorted.map(([tipo,cnt])=>`
+      <div style="background:var(--bg2);border:1px solid var(--br);border-radius:var(--rs);padding:14px;">
+        <div style="font-size:13px;font-weight:700;margin-bottom:6px;">${tipo}</div>
+        <div style="font-size:22px;font-weight:800;color:var(--acc);">${cnt}</div>
+        <div style="background:var(--bg3);border-radius:4px;height:5px;margin-top:8px;overflow:hidden;">
+          <div style="width:${Math.round(cnt/maxC*100)}%;height:100%;background:var(--acc);border-radius:4px;"></div>
+        </div>
+        <div style="font-size:10px;color:var(--tx3);margin-top:4px;">OS finalizadas</div>
+      </div>`).join('');
+  }
+}
 window.logout = async function() {
   if(_chatUnsub)   { try { _chatUnsub(); } catch(e){} }
   if(_presencaUnsub){ try { _presencaUnsub(); } catch(e){} }
