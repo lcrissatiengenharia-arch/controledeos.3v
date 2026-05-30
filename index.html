@@ -16,7 +16,37 @@
 .leaflet-control-zoom a:last-child  { border-radius:0 0 8px 8px !important; }
 .leaflet-bottom.leaflet-right { bottom: 6px !important; right: 6px !important; }
 </style>
-<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js">
+function renderDashRecebimentos(){
+ const fech=DB.filter(o=>o.dataFechamento);
+ const hoje=new Date(), m=hoje.getMonth(), y=hoje.getFullYear();
+ const mes=fech.filter(o=>{let d=new Date(o.dataFechamento); return d.getMonth()==m&&d.getFullYear()==y;});
+ const total=mes.reduce((s,o)=>s+(parseFloat(o.valor||o.honorarios||0)||0),0);
+ const emp={};
+ mes.forEach(o=>{const e=o.empresa||'Não informado'; emp[e]=(emp[e]||0)+1;});
+ const set=(i,v)=>{let e=document.getElementById(i); if(e)e.textContent=v;};
+ set('rec-total','R$ '+total.toLocaleString('pt-BR'));
+ set('rec-fechadas',mes.length);
+ set('rec-medio','R$ '+(mes.length?total/mes.length:0).toFixed(2));
+ set('rec-empresas',Object.keys(emp).length);
+ let rk=document.getElementById('rec-ranking');
+ if(rk) rk.innerHTML=Object.entries(emp).sort((a,b)=>b[1]-a[1]).map(x=>'<div>'+x[0]+' - '+x[1]+' OS</div>').join('');
+}
+function renderDashProdutividade(){
+ const hoje=new Date(), m=hoje.getMonth(), y=hoje.getFullYear();
+ const rec=DB.filter(o=>{let d=new Date(o.dataAbertura||0); return d&&d.getMonth()==m&&d.getFullYear()==y;});
+ const fech=DB.filter(o=>{let d=new Date(o.dataFechamento||0); return o.dataFechamento && d.getMonth()==m&&d.getFullYear()==y;});
+ const pend=DB.filter(isAberto);
+ let tempo=0,c=0,tip={};
+ fech.forEach(o=>{ if(o.dataAbertura){tempo+=(new Date(o.dataFechamento)-new Date(o.dataAbertura))/86400000;c++;} tip[o.tipoServico||o.tipo||'N/I']=(tip[o.tipoServico||o.tipo||'N/I']||0)+1;});
+ const set=(i,v)=>{let e=document.getElementById(i); if(e)e.textContent=v;};
+ set('prod-rec',rec.length); set('prod-fech',fech.length); set('prod-pend',pend.length);
+ set('prod-taxa',rec.length?Math.round(fech.length/rec.length*100)+'%':'0%');
+ set('prod-tempo',c?(tempo/c).toFixed(1)+'d':'0d');
+ let el=document.getElementById('prod-tipos');
+ if(el) el.innerHTML=Object.entries(tip).sort((a,b)=>b[1]-a[1]).map(x=>'<div>'+x[0]+' - '+x[1]+'</div>').join('');
+}
+</script>
 <script src="https://unpkg.com/leaflet.heat@0.2.0/dist/leaflet-heat.js"></script>
 <!--
   ⚠️  AVISO DE SEGURANÇA — LEIA ANTES DE COLOCAR EM PRODUÇÃO
@@ -787,13 +817,9 @@ tr.row-vencido{animation:none!important;}
     <div class="sb-sec">Análises</div>
     <button class="ni" data-page="dash-recebimentos" onclick="go('dash-recebimentos')"><span class="ic">💳</span><span class="lbl">Recebimentos</span></button>
     <button class="ni" data-page="dash-produtividade" onclick="go('dash-produtividade')"><span class="ic">⚡</span><span class="lbl">Produtividade</span></button>
-    
-    
-    
-    
     <button class="ni admin-only" data-page="dash-receita" onclick="go('dash-receita')"><span class="ic">💹</span><span class="lbl">Receita Empresa × Tipo</span></button>
     <button class="ni" data-page="dash-cidades" onclick="go('dash-cidades')"><span class="ic">🗺️</span><span class="lbl">Mapa de Cidades</span></button>
-    
+    <button class="ni admin-only" data-page="dash-metas" onclick="go('dash-metas')"><span class="ic">🏆</span><span class="lbl">Metas e SLA</span></button>
     <button class="ni" data-page="dash-feed" onclick="go('dash-feed')"><span class="ic">⚡</span><span class="lbl">Feed de Atividade</span></button>
     <button class="ni admin-only" data-page="dash-comparativo" onclick="go('dash-comparativo')"><span class="ic">📊</span><span class="lbl">Comparativo Anual</span></button>
 
@@ -1359,11 +1385,11 @@ tr.row-vencido{animation:none!important;}
           </select>
         </div>
         <div class="fld">
-          <span class="flabel">Data início</span>
+          <span class="flabel">Data fechamento início</span>
           <input type="date" id="fat-de" onchange="filtrarFaturas()">
         </div>
         <div class="fld">
-          <span class="flabel">Data fim</span>
+          <span class="flabel">Data fechamento fim</span>
           <input type="date" id="fat-ate" onchange="filtrarFaturas()">
         </div>
         <div class="fld">
@@ -5166,7 +5192,8 @@ function filtrarFaturas() {
     if(status === 'finalizado' && isAberto(os)) return false;
     if(status === 'aberto' && !isAberto(os)) return false;
     if(de || ate) {
-      const d = os.dataAbertura ? os.dataAbertura.split('T')[0] : '';
+      const d = (os.dataFechamento || os.fechamento || '').split('T')[0];
+      if(!d) return false;
       if(de && d < de) return false;
       if(ate && d > ate) return false;
     }
@@ -5215,7 +5242,7 @@ function renderFaturaList() {
         </div>
         <div class="mono" style="font-size:11px;margin-top:3px;color:var(--tx3);">${os.numeroOS}</div>
         <div style="font-size:11.5px;color:var(--tx2);margin-top:3px;">
-          ${os.cliente||''} ${os.cidade?' · '+os.cidade:''} · Abertura: ${fmtDate(os.dataAbertura)}
+          ${os.cliente||''} ${os.cidade?' · '+os.cidade:''} · Fechamento: ${fmtDate(os.dataFechamento || os.fechamento)}
         </div>
       </div>
       <div style="text-align:right;flex-shrink:0;">
@@ -5407,32 +5434,6 @@ tr.row-vencido{animation:none!important;}
   <div class="footer">Documento gerado em ${new Date().toLocaleString('pt-BR')} · Sistema de Controle OS</div>
 </div>
 <scr\ipt>window.onload=()=>window.print();</scr\ipt>
-
-<section class="page" id="dash-recebimentos" style="display:none;padding:20px">
-<h2>💳 Painel de Recebimentos</h2>
-<p>Nova área preparada para indicadores financeiros baseados em OS fechadas.</p>
-<ul>
-<li>Total a receber no próximo mês</li>
-<li>OS fechadas no mês</li>
-<li>Histórico dos últimos 6 meses</li>
-<li>Ranking por empresa</li>
-<li>Tabela de OS fechadas por período</li>
-</ul>
-</section>
-
-<section class="page" id="dash-produtividade" style="display:none;padding:20px">
-<h2>⚡ Produtividade</h2>
-<p>Nova área preparada para indicadores operacionais.</p>
-<ul>
-<li>Recebidas x Fechadas</li>
-<li>Tempo médio de fechamento</li>
-<li>Taxa de conclusão</li>
-<li>Histórico 6 meses</li>
-<li>Tempo médio por empresa</li>
-<li>Volume por tipo de serviço</li>
-</ul>
-</section>
-
 </body></html>`;
 
   const win = window.open('','_blank');
@@ -8483,4 +8484,25 @@ function renderComissaoPaulo() {
   }
 }
 
-</script>
+</script
+<section class="page" id="page-dash-recebimentos">
+<div class="stats" style="grid-template-columns:repeat(4,1fr)">
+<div class="stat"><div class="stat-lbl">Receber Próx. Mês</div><div class="stat-val" id="rec-total">R$ 0</div></div>
+<div class="stat"><div class="stat-lbl">OS Fechadas</div><div class="stat-val" id="rec-fechadas">0</div></div>
+<div class="stat"><div class="stat-lbl">Valor Médio</div><div class="stat-val" id="rec-medio">R$ 0</div></div>
+<div class="stat"><div class="stat-lbl">Empresas</div><div class="stat-val" id="rec-empresas">0</div></div>
+</div>
+<div class="card"><h3>Ranking por Empresa</h3><div id="rec-ranking"></div></div>
+</section>
+
+<section class="page" id="page-dash-produtividade">
+<div class="stats" style="grid-template-columns:repeat(5,1fr)">
+<div class="stat"><div class="stat-lbl">Recebidas</div><div class="stat-val" id="prod-rec">0</div></div>
+<div class="stat"><div class="stat-lbl">Fechadas</div><div class="stat-val" id="prod-fech">0</div></div>
+<div class="stat"><div class="stat-lbl">Pendentes</div><div class="stat-val" id="prod-pend">0</div></div>
+<div class="stat"><div class="stat-lbl">Taxa</div><div class="stat-val" id="prod-taxa">0%</div></div>
+<div class="stat"><div class="stat-lbl">Tempo Médio</div><div class="stat-val" id="prod-tempo">0d</div></div>
+</div>
+<div class="card"><h3>Volume por Tipo</h3><div id="prod-tipos"></div></div>
+</section>
+>
