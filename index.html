@@ -133,28 +133,7 @@ window._fbSave = async (os) => {
   } catch(e){ /* noop */ }
   await setDoc(doc(db, "ordens_servico", id), data);
 };
-// Soft-delete: move para lixeira em vez de apagar definitivo (recuperável por 30 dias)
-window._fbSoftDelete = async (os) => {
-  const { id, ...data } = os;
-  try {
-    const u = (typeof USUARIO_ATUAL !== 'undefined' && USUARIO_ATUAL) ? USUARIO_ATUAL : null;
-    data.deletedAt = serverTimestamp();
-    if(u) { data.deletedBy = u.user; data.deletedByNome = u.nome; }
-    await setDoc(doc(db, "ordens_servico_lixeira", id), data);
-    await deleteDoc(doc(db, "ordens_servico", id));
-  } catch(e) {
-    console.error('Soft-delete falhou, tentando hard-delete:', e);
-    await deleteDoc(doc(db, "ordens_servico", id));
-  }
-};
-window._fbRestore = async (id, data) => {
-  const { deletedAt, deletedBy, deletedByNome, ...clean } = data;
-  clean.updatedAt = serverTimestamp();
-  await setDoc(doc(db, "ordens_servico", id), clean);
-  await deleteDoc(doc(db, "ordens_servico_lixeira", id));
-};
 window._fbDelete = async (id) => { await deleteDoc(doc(db, "ordens_servico", id)); };
-window._fbHardDeleteLix = async (id) => { await deleteDoc(doc(db, "ordens_servico_lixeira", id)); };
 window._fbListen = () => {
   try {
     if(typeof setConn === 'function') setConn('connecting');
@@ -766,7 +745,6 @@ tr.row-vencido{animation:none!important;}
     <button class="ni" data-page="andamento" onclick="go('andamento')"><span class="ic">⏳</span><span class="lbl">Em Andamento</span><span class="cnt warn" id="nb-and">0</span></button>
     <button class="ni" data-page="sem-ficha" onclick="go('sem-ficha')"><span class="ic">📝</span><span class="lbl">Fichas de Pesquisa</span><span class="cnt warn" id="nb-ficha">0</span></button>
     <button class="ni" data-page="vencendo" onclick="go('vencendo')"><span class="ic">🔴</span><span class="lbl">Próximo do vencimento</span><span class="cnt danger" id="nb-venc">0</span></button>
-    <button class="ni" data-page="lixeira" onclick="go('lixeira')"><span class="ic">🗑️</span><span class="lbl">Lixeira</span><span class="cnt" id="nb-lix">0</span></button>
     <button class="ni" data-page="finalizadas" onclick="go('finalizadas')"><span class="ic">✅</span><span class="lbl">Finalizadas</span><span class="cnt green" id="nb-fin">0</span></button>
 
     <div class="sb-sec">Análises</div>
@@ -1815,24 +1793,6 @@ tr.row-vencido{animation:none!important;}
 </div>
 
 
-<div class="page" id="page-lixeira">
-  <div class="toolbar">
-    <div class="srch"><span style="color:var(--tx3)">🔍</span><input type="text" id="s-lix" placeholder="Empresa, OS, cliente..." oninput="renderLixeira()"></div>
-    <div style="margin-left:auto;display:flex;gap:8px;align-items:center;">
-      <span style="font-size:11.5px;color:var(--tx3);">As OS ficam na lixeira por 30 dias</span>
-      <button class="btn btn-danger btn-sm admin-only" onclick="esvaziarLixeira()">🗑 Esvaziar lixeira</button>
-    </div>
-  </div>
-  <div class="tw">
-    <table>
-      <thead><tr>
-        <th>Empresa</th><th>Tipo</th><th>Referência OS</th>
-        <th>Cliente</th><th>Cidade</th><th>Excluída em</th><th>Por</th><th></th>
-      </tr></thead>
-      <tbody id="tb-lix"></tbody>
-    </table>
-  </div>
-</div>
 
 <div class="page" id="page-roteiro">
 
@@ -2372,7 +2332,6 @@ const PAGE_TITLES = {
   andamento:'Em Andamento','vencendo':'Próximo do vencimento','finalizadas':'Finalizadas',
   financeiro:'Dashboard Financeiro','faturas':'Gerar Fatura',
   roteiro:'Roteirização de Vistorias',
-  lixeira:'Lixeira (recuperáveis por 30 dias)',
   chat:'Chat da Equipe',
   'dash-receita':'Receita por Empresa × Tipo',
   'dash-cidades':'Distribuição Geográfica',
@@ -2528,15 +2487,10 @@ async function fbSave(os) {
   catch(e) { console.error(e); _hideSaving(false); toast('Erro ao salvar! Verifique sua conexão.','err'); throw e; }
 }
 async function fbDel(id) {
-  // Tenta soft-delete primeiro (vai pra lixeira); fallback para delete hard
+  // Exclusão direta
   const os = DB.find(o=>o.id===id);
   _showSaving('excluindo…');
   try {
-    if(window._fbSoftDelete && os) await window._fbSoftDelete(os);
-    else await window._fbDelete(id);
-    _hideSaving(true);
-  }
-  catch(e) { console.error(e); _hideSaving(false); toast('Erro ao excluir!','err'); throw e; }
 }
 function setConn(s) {
   const dot = document.getElementById('cdot');
@@ -2660,7 +2614,6 @@ function renderPage(id) {
   else if(id==='financeiro') renderFinanceiro();
   else if(id==='faturas') renderFaturas();
   else if(id==='roteiro') renderRoteiro();
-  else if(id==='lixeira') renderLixeira();
   else if(id==='dash-receita') renderDashReceita();
   else if(id==='dash-cidades') renderDashCidades();
   else if(id==='dash-feed') renderDashFeed();
@@ -2756,10 +2709,8 @@ function updateBadges() {
   const semFicha = DB.filter(os=>!isAberto(os)&&!['Realizada','Sem necessidade'].includes(os.fichas)).length;
 
   const vencidas = DB.filter(os=>isAberto(os)&&diasAte(os.prazoFatal)!==null&&diasAte(os.prazoFatal)<0).length;
-  const lixCount = (window.LIX_DB||[]).length;
 
   [['nb-total',total],['nb-preen',preen],['nb-vist',vist],['nb-ficha',semFicha],
-   ['nb-and',abertos.length],['nb-venc',venc],['nb-fin',fin],['nb-lix',lixCount]].forEach(([id,v])=>{
     const el=document.getElementById(id); if(el) el.textContent=v;
   });
 
@@ -4294,19 +4245,14 @@ async function excluir() {
   const os = DB.find(o=>o.id===currentId);
   if(!os) return;
   const ref = os.numeroOS || os.id;
-  if(!confirm(`Excluir esta OS?\n\nReferência: ${ref}\nEmpresa: ${os.empresa||'—'}\n\nA OS vai para a lixeira e pode ser recuperada por 30 dias.`)) return;
+  if(!confirm(`Excluir esta OS?\n\nReferência: ${ref}\nEmpresa: ${os.empresa||'—'}\n\nEsta ação não pode ser desfeita.`)) return;
   const id=currentId;
   const snapshot = JSON.parse(JSON.stringify(os));
   closeOv('ov-det');
   await fbDel(id);
-  toastUndo('OS movida para a lixeira.', async ()=>{
+  toast('OS excluída com sucesso.', 'ok');
     try {
       _showSaving('restaurando…');
-      if(window._fbRestore) await window._fbRestore(id, snapshot);
-      else await window._fbSave(snapshot);
-      _hideSaving(true);
-      toast('OS restaurada.','ok');
-    } catch(e){ console.error(e); _hideSaving(false); toast('Falha ao restaurar.','err'); }
   });
 }
 
@@ -5841,10 +5787,6 @@ function aplicarPerfil() {
     if(typeof window._fbListen === 'function' && !window._fbStarted) {
       window._fbStarted = true;
       window._fbUnsub = window._fbListen();
-      // Inicia listener da lixeira junto
-      if(typeof window._fbListenLixeira === 'function') {
-        window._fbUnsubLix = window._fbListenLixeira();
-      }
     }
     atualizarWidgetComissao();
     if(typeof refreshAll === 'function') refreshAll();
@@ -7254,118 +7196,25 @@ dashConsolidado = false;
 // ══════════════════════════════════════
 // LIXEIRA — listener + render + ações
 // ══════════════════════════════════════
-window.LIX_DB = [];
 
-window._fbListenLixeira = () => {
-  try {
-    if(typeof db === 'undefined' || !db) { console.warn('Lixeira: db não disponível'); return; }
-    const colLix = collection(db, "ordens_servico_lixeira");
-    return onSnapshot(colLix,
-      snap => {
-        try {
-          window.LIX_DB = snap.docs.map(d => ({ id: d.id, ...d.data() }));
-          if(typeof updateBadges === 'function') updateBadges();
-          const active = document.querySelector('.page.active')?.id;
-          if(active === 'page-lixeira' && typeof renderLixeira === 'function') renderLixeira();
-        } catch(err){ console.error('Lixeira parse:', err); }
-      },
-      err => { console.error('Lixeira listener:', err); }
-    );
-  } catch(err){ console.error('Lixeira init:', err); }
-};
-// Listener da lixeira iniciado pelo aplicarPerfil (após login), não aqui
 
-function fmtDtLix(ts){
-  try {
-    if(!ts) return '—';
-    if(ts.toDate) ts = ts.toDate();
-    else if(typeof ts === 'string') ts = new Date(ts);
-    else if(typeof ts === 'number') ts = new Date(ts);
-    if(!(ts instanceof Date) || isNaN(ts)) return '—';
-    return ts.toLocaleString('pt-BR', {day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit'});
-  } catch(e){ return '—'; }
-}
 
-function renderLixeira(){
-  const tb = document.getElementById('tb-lix');
-  if(!tb) return;
-  const q = (document.getElementById('s-lix')?.value||'').toLowerCase().trim();
-  let arr = (window.LIX_DB||[]).slice();
-  if(q) arr = arr.filter(o=>[o.empresa,o.numeroOS,o.tipoServico,o.cliente,o.cidade].some(v=>(v||'').toString().toLowerCase().includes(q)));
-  arr.sort((a,b)=>{
-    const ta = a.deletedAt?.toDate ? a.deletedAt.toDate().getTime() : 0;
-    const tb_ = b.deletedAt?.toDate ? b.deletedAt.toDate().getTime() : 0;
-    return tb_ - ta;
-  });
-  if(!arr.length){
-    tb.innerHTML = '<tr><td colspan="8" style="text-align:center;padding:30px;color:var(--tx3);">Lixeira vazia</td></tr>';
-    return;
-  }
-  tb.innerHTML = arr.map(os=>`
-    <tr>
-      <td>${os.empresa||'—'}</td>
-      <td>${tipoBadge(os.tipoServico||'—')}</td>
-      <td style="font-family:'JetBrains Mono',monospace;font-size:11px;">${os.numeroOS||'—'}</td>
-      <td>${os.cliente||'—'}</td>
-      <td>${os.cidade||'—'}</td>
-      <td style="font-size:11.5px;color:var(--tx3);">${fmtDtLix(os.deletedAt)}</td>
-      <td style="font-size:11.5px;color:var(--tx3);">${os.deletedByNome||os.deletedBy||'—'}</td>
-      <td style="white-space:nowrap;">
-        <button class="btn btn-ghost btn-sm" onclick="restaurarLixeira('${os.id}')" title="Restaurar OS">↩ Restaurar</button>
-        <button class="btn btn-danger btn-sm admin-only" onclick="excluirDefinitivo('${os.id}')" title="Excluir permanentemente">🗑 Excluir</button>
-      </td>
-    </tr>
-  `).join('');
-}
-
-async function restaurarLixeira(id){
-  const os = (window.LIX_DB||[]).find(o=>o.id===id);
-  if(!os) return;
-  if(!confirm(`Restaurar a OS ${os.numeroOS||id}?`)) return;
-  try {
-    _showSaving('restaurando…');
-    if(window._fbRestore) await window._fbRestore(id, os);
-    _hideSaving(true);
-    toast('OS restaurada com sucesso!','ok');
-  } catch(e){ console.error(e); _hideSaving(false); toast('Falha ao restaurar.','err'); }
-}
 
 async function excluirDefinitivo(id){
   if(typeof isAdmin === 'function' && !isAdmin()){ toast('Apenas administradores podem excluir definitivamente','err'); return; }
-  const os = (window.LIX_DB||[]).find(o=>o.id===id);
   if(!os) return;
   if(!confirm(`⚠ EXCLUIR PERMANENTEMENTE a OS ${os.numeroOS||id}?\n\nEsta ação NÃO pode ser desfeita.`)) return;
   try {
     _showSaving('excluindo…');
-    await deleteDoc(doc(db, "ordens_servico_lixeira", id));
     _hideSaving(true);
     toast('OS excluída permanentemente.','ok');
   } catch(e){
     // fallback: importar deleteDoc/doc do escopo do módulo
     console.error(e);
     try {
-      if(window._fbHardDeleteLix) await window._fbHardDeleteLix(id);
-      _hideSaving(true);
-      toast('OS excluída permanentemente.','ok');
-    } catch(e2){ _hideSaving(false); toast('Falha ao excluir.','err'); }
   }
 }
 
-async function esvaziarLixeira(){
-  if(typeof isAdmin === 'function' && !isAdmin()){ toast('Apenas administradores','err'); return; }
-  const n = (window.LIX_DB||[]).length;
-  if(!n) { toast('Lixeira já está vazia.','ok'); return; }
-  if(!confirm(`⚠ Esvaziar a lixeira?\n\n${n} OS serão excluídas PERMANENTEMENTE.\nEsta ação NÃO pode ser desfeita.`)) return;
-  let ok=0, fail=0;
-  for(const os of [...(window.LIX_DB||[])]){
-    try {
-      if(window._fbHardDeleteLix) await window._fbHardDeleteLix(os.id);
-      else await deleteDoc(doc(db, "ordens_servico_lixeira", os.id));
-      ok++;
-    } catch(e){ console.error(e); fail++; }
-  }
-  toast(`Lixeira esvaziada: ${ok} excluídas${fail?` · ${fail} falharam`:''}`, fail?'err':'ok');
-}
 
 updateBadges();
 renderDash();
