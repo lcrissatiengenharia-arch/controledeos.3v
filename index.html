@@ -1023,6 +1023,7 @@ tr.row-vencido{animation:none!important;}
     <button class="ni" id="btn-comissao-paulo" data-page="comissao-paulo" onclick="go('comissao-paulo')" style="display:none;"><span class="ic">💵</span><span class="lbl" id="btn-comissao-lbl">Comissão — Paulo</span></button>
     <button class="ni admin-only" data-page="financeiro" onclick="go('financeiro')"><span class="ic">💰</span><span class="lbl">Dashboard Financeiro</span></button>
     <button class="ni admin-only" data-page="faturas" onclick="go('faturas')"><span class="ic">🧾</span><span class="lbl">Gerar Fatura</span></button>
+    <button class="ni admin-only" data-page="exportar-art" onclick="go('exportar-art')"><span class="ic">📋</span><span class="lbl">Exportar para ART</span></button>
 
 
     <div class="sb-sec">Campo</div>
@@ -2554,6 +2555,61 @@ tr.row-vencido{animation:none!important;}
 </div>
 
 
+<!-- ═══ EXPORTAR PARA ART ═══ -->
+<div class="page" id="page-exportar-art">
+  <div style="max-width:960px;margin:0 auto;">
+
+    <!-- Filtros -->
+    <div class="card" style="margin-bottom:16px;">
+      <div class="card-hd"><h3>📋 Exportar OS para ART</h3><p>Selecione empresa e período para gerar a planilha de preenchimento</p></div>
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr auto;gap:12px;align-items:flex-end;margin-top:12px;">
+        <div>
+          <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.6px;color:var(--tx3);margin-bottom:5px;">Empresa</div>
+          <select id="art-empresa" onchange="renderExportarART()" style="width:100%;padding:8px 10px;font-size:12px;background:var(--bg2);border:1px solid var(--br);border-radius:var(--rs);color:var(--tx);">
+            <option value="">Todas as empresas</option>
+          </select>
+        </div>
+        <div>
+          <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.6px;color:var(--tx3);margin-bottom:5px;">Fechamento de</div>
+          <input type="date" id="art-de" onchange="renderExportarART()" style="width:100%;padding:8px 10px;font-size:12px;background:var(--bg2);border:1px solid var(--br);border-radius:var(--rs);color:var(--tx);">
+        </div>
+        <div>
+          <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.6px;color:var(--tx3);margin-bottom:5px;">Fechamento até</div>
+          <input type="date" id="art-ate" onchange="renderExportarART()" style="width:100%;padding:8px 10px;font-size:12px;background:var(--bg2);border:1px solid var(--br);border-radius:var(--rs);color:var(--tx);">
+        </div>
+        <div>
+          <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.6px;color:var(--tx3);margin-bottom:5px;">Tipo de Serviço</div>
+          <select id="art-tipo" onchange="renderExportarART()" style="width:100%;padding:8px 10px;font-size:12px;background:var(--bg2);border:1px solid var(--br);border-radius:var(--rs);color:var(--tx);">
+            <option value="">Todos os tipos</option>
+          </select>
+        </div>
+        <div style="display:flex;gap:8px;">
+          <button onclick="exportarARTExcel()" style="padding:8px 16px;background:var(--grn);color:#fff;border:none;border-radius:var(--rs);font-size:12px;font-weight:700;cursor:pointer;white-space:nowrap;">⬇️ Excel</button>
+          <button onclick="exportarARTCopy()" style="padding:8px 16px;background:var(--acc);color:#fff;border:none;border-radius:var(--rs);font-size:12px;font-weight:700;cursor:pointer;white-space:nowrap;">📋 Copiar</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- KPIs rápidos -->
+    <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:16px;" id="art-kpis"></div>
+
+    <!-- Tabela -->
+    <div class="card">
+      <div class="card-hd">
+        <div>
+          <h3>📄 OS Prontas para ART</h3>
+          <p id="art-sub" style="margin-top:2px;">—</p>
+        </div>
+        <div style="display:flex;align-items:center;gap:8px;">
+          <span style="font-size:11px;color:var(--tx3);">⚠ Vermelho = campo incompleto no cadastro</span>
+        </div>
+      </div>
+      <div id="art-tabela" style="overflow-x:auto;margin-top:10px;"></div>
+    </div>
+
+  </div>
+</div>
+
 <!-- ═══ CHAT DA EQUIPE ═══ -->
 <!-- ══════════════════════════════════════════════════════════
      CHAT MESSENGER FLUTUANTE — estilo Facebook Messenger
@@ -2737,7 +2793,7 @@ const PAGE_TITLES = {
   dashboard:'Dashboard','lista':'Todas as OS','preenchidas':'OS Preenchidas',
   'vistoriadas':'OS Vistoriadas','sem-ficha':'Fichas de Pesquisa',
   andamento:'Em Andamento','vencendo':'Próximo do vencimento','finalizadas':'Finalizadas',
-  financeiro:'Dashboard Financeiro','faturas':'Gerar Fatura','comissao-paulo':'Comissionamento — Paulo',
+  financeiro:'Dashboard Financeiro','faturas':'Gerar Fatura','exportar-art':'Exportar para ART','comissao-paulo':'Comissionamento — Paulo',
   roteiro:'Roteirização de Vistorias',
   lixeira:'Lixeira (recuperáveis por 30 dias)',
   chat:'Chat da Equipe',
@@ -3028,6 +3084,7 @@ function renderPage(id) {
   else if(id==='finalizadas') renderSimple('finalizadas');
   else if(id==='financeiro') renderFinanceiro();
   else if(id==='faturas') renderFaturas();
+  else if(id==='exportar-art') renderExportarART();
   else if(id==='comissao-paulo') renderComissaoPaulo();
   else if(id==='roteiro') renderRoteiro();
   else if(id==='lixeira') renderLixeira();
@@ -8808,6 +8865,154 @@ function renderComissaoPaulo() {
       </table>`;
     }
   }
+}
+// ══════════════════════════════════════
+// EXPORTAR PARA ART
+// ══════════════════════════════════════
+
+// Colunas da tabela ART — campos necessários para preenchimento
+const ART_COLS = [
+  { key:'numeroOS',   label:'Nº OS',           warn: os=>!os.numeroOS },
+  { key:'empresa',    label:'Empresa',          warn: os=>!os.empresa },
+  { key:'tipoServico',label:'Tipo',             warn: os=>!os.tipoServico },
+  { key:'cliente',    label:'Cliente/Mutuário', warn: os=>!os.cliente },
+  { key:'endRua',     label:'Logradouro',       warn: os=>!os.endRua },
+  { key:'endNum',     label:'Número',           warn: os=>!os.endNum },
+  { key:'endComp',    label:'Complemento',      warn: _=>false },
+  { key:'bairro',     label:'Bairro',           warn: os=>!os.bairro },
+  { key:'cidade',     label:'Cidade',           warn: os=>!os.cidade },
+  { key:'cep',        label:'CEP',              warn: os=>!os.cep },
+  { key:'valor',      label:'Valor OS (R$)',    warn: os=>!os.valor },
+  { key:'deslocamento',label:'Deslocamento (R$)',warn: _=>false },
+  { key:'dataFechamento',label:'Fechamento',    warn: os=>!os.dataFechamento },
+];
+
+// Variável para guardar OS filtradas do ART
+let artOsFiltradas = [];
+
+function renderExportarART() {
+  // Popula selects na primeira vez
+  const selEmp  = document.getElementById('art-empresa');
+  const selTipo = document.getElementById('art-tipo');
+
+  if(selEmp && selEmp.options.length <= 1) {
+    const empresas = [...new Set(DB.map(os=>os.empresa).filter(Boolean))].sort();
+    empresas.forEach(e=>{ const o=document.createElement('option'); o.value=e; o.textContent=e; selEmp.appendChild(o); });
+  }
+  if(selTipo && selTipo.options.length <= 1) {
+    const tipos = [...new Set(DB.map(os=>os.tipoServico).filter(Boolean))].sort();
+    tipos.forEach(t=>{ const o=document.createElement('option'); o.value=t; o.textContent=t; selTipo.appendChild(o); });
+  }
+
+  const empresa = selEmp?.value || '';
+  const tipo    = selTipo?.value || '';
+  const de      = document.getElementById('art-de')?.value || '';
+  const ate     = document.getElementById('art-ate')?.value || '';
+
+  // Filtrar OS finalizadas
+  artOsFiltradas = DB.filter(os=>{
+    if(isAberto(os)) return false;
+    if(empresa && os.empresa !== empresa) return false;
+    if(tipo    && os.tipoServico !== tipo) return false;
+    if(de || ate) {
+      const d = os.dataFechamento ? os.dataFechamento.split('T')[0] : '';
+      if(de  && (!d || d < de))  return false;
+      if(ate && (!d || d > ate)) return false;
+    }
+    return true;
+  }).sort((a,b)=>(a.dataFechamento||'').localeCompare(b.dataFechamento||''));
+
+  // KPIs
+  const kpiEl = document.getElementById('art-kpis');
+  if(kpiEl) {
+    const semCEP   = artOsFiltradas.filter(os=>!os.cep).length;
+    const semEnd   = artOsFiltradas.filter(os=>!os.endRua).length;
+    const semValor = artOsFiltradas.filter(os=>!os.valor).length;
+    const totalVal = artOsFiltradas.reduce((s,os)=>s+parsVal(os.valor),0);
+    kpiEl.innerHTML = `
+      <div class="stat" style="--sc:var(--acc)"><div class="stat-ic">📄</div><div class="stat-lbl">OS selecionadas</div><div class="stat-val">${artOsFiltradas.length}</div></div>
+      <div class="stat" style="--sc:var(--grn)"><div class="stat-ic">💰</div><div class="stat-lbl">Valor total</div><div class="stat-val" style="font-size:18px">${fmtVal(totalVal)}</div></div>
+      <div class="stat" style="--sc:${semCEP>0?'var(--red)':'var(--grn)'}"><div class="stat-ic">${semCEP>0?'⚠️':'✅'}</div><div class="stat-lbl">Sem CEP</div><div class="stat-val">${semCEP}</div><div class="stat-sub">${semCEP>0?'completar no cadastro':'todos ok'}</div></div>
+      <div class="stat" style="--sc:${semEnd>0?'var(--red)':'var(--grn)'}"><div class="stat-ic">${semEnd>0?'⚠️':'✅'}</div><div class="stat-lbl">Sem endereço</div><div class="stat-val">${semEnd}</div><div class="stat-sub">${semEnd>0?'completar no cadastro':'todos ok'}</div></div>`;
+  }
+
+  // Sub
+  const subEl = document.getElementById('art-sub');
+  if(subEl) subEl.textContent = `${artOsFiltradas.length} OS finalizadas${empresa?' · '+empresa:''}${de||ate?' · '+( de?fmtDate(de):'início')+' até '+(ate?fmtDate(ate):'hoje'):''}`;
+
+  // Tabela
+  const tabEl = document.getElementById('art-tabela');
+  if(!tabEl) return;
+
+  if(!artOsFiltradas.length) {
+    tabEl.innerHTML = '<div style="color:var(--tx3);font-size:13px;text-align:center;padding:32px 0;">Nenhuma OS finalizada encontrada para os filtros selecionados</div>';
+    return;
+  }
+
+  const thStyle = 'padding:9px 10px;text-align:left;font-weight:700;font-size:10px;letter-spacing:.4px;white-space:nowrap;';
+  const tdBase  = 'padding:7px 10px;font-size:11.5px;border:1px solid var(--br);white-space:nowrap;';
+
+  tabEl.innerHTML = `
+    <table style="width:100%;border-collapse:collapse;font-size:11.5px;">
+      <thead>
+        <tr style="background:var(--bg3);">
+          ${ART_COLS.map(c=>`<th style="${thStyle}color:var(--tx2);">${c.label}</th>`).join('')}
+        </tr>
+      </thead>
+      <tbody>
+        ${artOsFiltradas.map((os,i)=>`
+          <tr style="background:${i%2===0?'transparent':'var(--bg2)'};">
+            ${ART_COLS.map(c=>{
+              let val = c.key === 'dataFechamento' ? fmtDate(os[c.key]) : (os[c.key]||'');
+              const warn = c.warn(os);
+              return `<td style="${tdBase}${warn?'background:rgba(220,38,38,.08);color:#dc2626;font-weight:600;':c.key==='numeroOS'?'font-family:monospace;':''}">${val||'—'}</td>`;
+            }).join('')}
+          </tr>`).join('')}
+      </tbody>
+    </table>`;
+}
+
+function exportarARTExcel() {
+  if(!artOsFiltradas.length) { toast('Nenhuma OS para exportar','err'); return; }
+
+  const sep = '\t';
+  const header = ART_COLS.map(c=>c.label).join(sep);
+  const rows = artOsFiltradas.map(os=>
+    ART_COLS.map(c=>{
+      if(c.key === 'dataFechamento') return fmtDate(os[c.key]);
+      return (os[c.key]||'').toString().replace(/\t/g,' ');
+    }).join(sep)
+  );
+
+  const tsv = [header, ...rows].join('\n');
+  const blob = new Blob(['\uFEFF'+tsv], {type:'text/tab-separated-values;charset=utf-8'});
+  const url  = URL.createObjectURL(blob);
+  const a    = document.createElement('a');
+  const emp  = document.getElementById('art-empresa')?.value || 'todas';
+  const de   = document.getElementById('art-de')?.value || '';
+  const ate  = document.getElementById('art-ate')?.value || '';
+  a.href     = url;
+  a.download = `ART_${emp.replace(/\s/g,'_')}${de?'_'+de:''}${ate?'_a_'+ate:''}.xls`;
+  a.click();
+  URL.revokeObjectURL(url);
+  toast(`${artOsFiltradas.length} OS exportadas para Excel ✓`, 'ok');
+}
+
+function exportarARTCopy() {
+  if(!artOsFiltradas.length) { toast('Nenhuma OS para copiar','err'); return; }
+
+  const sep = '\t';
+  const header = ART_COLS.map(c=>c.label).join(sep);
+  const rows = artOsFiltradas.map(os=>
+    ART_COLS.map(c=>{
+      if(c.key === 'dataFechamento') return fmtDate(os[c.key]);
+      return (os[c.key]||'').toString().replace(/\t/g,' ');
+    }).join(sep)
+  );
+
+  navigator.clipboard.writeText([header,...rows].join('\n'))
+    .then(()=>toast(`${artOsFiltradas.length} OS copiadas — cole direto no Excel ✓`,'ok'))
+    .catch(()=>toast('Erro ao copiar. Tente exportar para Excel.','err'));
 }
 
 
