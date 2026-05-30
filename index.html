@@ -796,6 +796,7 @@ tr.row-vencido{animation:none!important;}
     <button class="ni admin-only" data-page="dash-comparativo" onclick="go('dash-comparativo')"><span class="ic">📊</span><span class="lbl">Comparativo Anual</span></button>
 
     <div class="sb-sec admin-only">Financeiro</div>
+    <button class="ni" id="btn-comissao-paulo" data-page="comissao-paulo" onclick="go('comissao-paulo')" style="display:none;"><span class="ic">💵</span><span class="lbl" id="btn-comissao-lbl">Comissão — Paulo</span></button>
     <button class="ni admin-only" data-page="financeiro" onclick="go('financeiro')"><span class="ic">💰</span><span class="lbl">Dashboard Financeiro</span></button>
     <button class="ni admin-only" data-page="faturas" onclick="go('faturas')"><span class="ic">🧾</span><span class="lbl">Gerar Fatura</span></button>
 
@@ -806,6 +807,12 @@ tr.row-vencido{animation:none!important;}
 
   </nav>
   <div class="sb-foot">
+    <!-- Widget comissão Paulo — admin e Paulo -->
+    <div id="comissao-widget" style="display:none;margin-bottom:12px;background:linear-gradient(135deg,#0f4c2a,#166534);border-radius:10px;padding:12px 14px;cursor:pointer;" onclick="go('comissao-paulo')" title="Ver detalhes">
+      <div style="font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.8px;color:rgba(255,255,255,.6);margin-bottom:6px;" id="cw-label">💵 Comissão — Paulo</div>
+      <div style="font-size:22px;font-weight:900;color:#4ade80;line-height:1;" id="cw-total">R$ 0,00</div>
+      <div style="font-size:10px;color:rgba(255,255,255,.65);margin-top:4px;" id="cw-sub">0 OS · mês atual</div>
+    </div>
     <div id="user-badge-wrap" style="margin-bottom:10px;"></div>
     <div class="conn"><div class="conn-dot" id="cdot"></div><span class="conn-lbl" id="clbl">Conectando...</span></div>
     <div class="sb-ver">v3.1 · 2026</div>
@@ -1028,22 +1035,100 @@ tr.row-vencido{animation:none!important;}
     </div>
   </div>
 
-  <!-- ROW 6: Admin only — mini financeiro -->
-  <div class="admin-only" style="display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin-bottom:16px;">
-    <div class="card">
-      <div class="card-hd"><h3>💰 Faturamento Mensal</h3></div>
-      <div style="display:flex;gap:4px;align-items:flex-end;height:90px;padding-bottom:18px;" id="fin-mini-bars"></div>
+  <!-- ROW 6: Admin only — RESULTADO DO MÊS -->
+  <div class="admin-only" style="margin-bottom:16px;">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">
+      <div style="font-size:11px;font-weight:700;letter-spacing:.8px;text-transform:uppercase;color:var(--tx3);">💼 Resultado do Mês Atual</div>
+      <div style="font-size:11px;color:var(--tx3);" id="dash-fin-mes-label"></div>
     </div>
-    <div class="card">
-      <div class="card-hd"><h3>💹 Top Empresas por Valor</h3></div>
-      <div id="fin-emp-mini"></div>
+    <!-- 3 cards grandes -->
+    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;margin-bottom:12px;">
+      <div style="background:linear-gradient(135deg,#1e3a8a,#2563eb);border-radius:14px;padding:20px;color:#fff;position:relative;overflow:hidden;">
+        <div style="position:absolute;right:-10px;top:-10px;font-size:64px;opacity:.08;">💰</div>
+        <div style="font-size:9px;font-weight:700;letter-spacing:1px;text-transform:uppercase;opacity:.7;margin-bottom:8px;">Faturado no Mês</div>
+        <div style="font-size:28px;font-weight:900;letter-spacing:-1px;line-height:1;" id="df-faturado">R$ 0</div>
+        <div style="font-size:10px;opacity:.6;margin-top:6px;" id="df-faturado-os">0 OS fechadas</div>
+      </div>
+      <div style="background:linear-gradient(135deg,#7f1d1d,#ef4444);border-radius:14px;padding:20px;color:#fff;position:relative;overflow:hidden;">
+        <div style="position:absolute;right:-10px;top:-10px;font-size:64px;opacity:.08;">📉</div>
+        <div style="font-size:9px;font-weight:700;letter-spacing:1px;text-transform:uppercase;opacity:.7;margin-bottom:8px;">Total Despesas</div>
+        <div style="font-size:28px;font-weight:900;letter-spacing:-1px;line-height:1;" id="df-despesas">R$ 0</div>
+        <div style="font-size:10px;opacity:.6;margin-top:6px;" id="df-despesas-pct">0% do faturado</div>
+        <div style="margin-top:10px;display:flex;flex-direction:column;gap:3px;" id="df-despesas-breakdown"></div>
+      </div>
+      <div style="background:linear-gradient(135deg,#14532d,#16a34a);border-radius:14px;padding:20px;color:#fff;position:relative;overflow:hidden;">
+        <div style="position:absolute;right:-10px;top:-10px;font-size:64px;opacity:.08;">📈</div>
+        <div style="font-size:9px;font-weight:700;letter-spacing:1px;text-transform:uppercase;opacity:.7;margin-bottom:8px;">Lucro Líquido</div>
+        <div style="font-size:28px;font-weight:900;letter-spacing:-1px;line-height:1;" id="df-lucro">R$ 0</div>
+        <div style="font-size:10px;opacity:.6;margin-top:6px;" id="df-margem">margem —%</div>
+        <div style="margin-top:14px;height:6px;background:rgba(255,255,255,.2);border-radius:3px;overflow:hidden;">
+          <div id="df-margem-barra" style="height:100%;background:#4ade80;border-radius:3px;width:0%;transition:width .8s;"></div>
+        </div>
+      </div>
     </div>
-    <div class="card">
-      <div class="card-hd"><h3>📈 Resumo Financeiro</h3></div>
-      <div id="fin-resumo-mini"></div>
+    <!-- 4 cards menores -->
+    <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:10px;">
+      <div style="background:var(--bg2);border:1.5px solid var(--br);border-radius:12px;padding:14px 16px;display:flex;align-items:center;gap:12px;">
+        <div style="width:38px;height:38px;border-radius:10px;background:rgba(239,68,68,.12);display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0;">🏛️</div>
+        <div>
+          <div style="font-size:9.5px;font-weight:700;color:var(--tx3);text-transform:uppercase;letter-spacing:.6px;margin-bottom:2px;">Impostos (12%)</div>
+          <div style="font-size:17px;font-weight:800;color:#ef4444;" id="df-impostos">R$ 0</div>
+        </div>
+      </div>
+      <div style="background:var(--bg2);border:1.5px solid var(--br);border-radius:12px;padding:14px 16px;display:flex;align-items:center;gap:12px;">
+        <div style="width:38px;height:38px;border-radius:10px;background:rgba(249,115,22,.12);display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0;">💵</div>
+        <div>
+          <div style="font-size:9.5px;font-weight:700;color:var(--tx3);text-transform:uppercase;letter-spacing:.6px;margin-bottom:2px;">Comissão Paulo</div>
+          <div style="font-size:17px;font-weight:800;color:#f97316;" id="df-comissao">R$ 0</div>
+          <div style="font-size:9.5px;color:var(--tx3);" id="df-comissao-os">0 OS</div>
+        </div>
+      </div>
+      <div style="background:var(--bg2);border:1.5px solid var(--br);border-radius:12px;padding:14px 16px;display:flex;align-items:center;gap:12px;">
+        <div style="width:38px;height:38px;border-radius:10px;background:rgba(234,179,8,.12);display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0;">👤</div>
+        <div>
+          <div style="font-size:9.5px;font-weight:700;color:var(--tx3);text-transform:uppercase;letter-spacing:.6px;margin-bottom:2px;">Salário João Paulo</div>
+          <div style="font-size:17px;font-weight:800;color:#eab308;" id="df-salario">R$ 700,00</div>
+        </div>
+      </div>
+      <div style="background:var(--bg2);border:1.5px solid var(--br);border-radius:12px;padding:14px 16px;display:flex;align-items:center;gap:12px;">
+        <div style="width:38px;height:38px;border-radius:10px;background:rgba(167,139,250,.12);display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0;">📒</div>
+        <div>
+          <div style="font-size:9.5px;font-weight:700;color:var(--tx3);text-transform:uppercase;letter-spacing:.6px;margin-bottom:2px;">Contador</div>
+          <div style="font-size:17px;font-weight:800;color:#a78bfa;" id="df-contador">R$ 350,00</div>
+        </div>
+      </div>
     </div>
   </div>
 
+</div>
+
+<!-- ═══ COMISSIONAMENTO PAULO ═══ -->
+<div class="page" id="page-comissao-paulo">
+  <div style="max-width:820px;margin:0 auto;">
+    <div style="display:flex;align-items:center;gap:12px;margin-bottom:20px;">
+      <div style="width:44px;height:44px;border-radius:50%;background:linear-gradient(135deg,var(--acc),#7c3aed);display:flex;align-items:center;justify-content:center;font-size:20px;">💵</div>
+      <div style="flex:1;">
+        <div style="font-size:18px;font-weight:800;color:var(--tx);" id="cp-titulo">Comissionamento</div>
+        <div style="font-size:12px;color:var(--tx3);" id="cp-subtitulo">OS fechadas com comissão</div>
+      </div>
+      <select id="cp-mes-sel" onchange="renderComissaoPaulo()" style="padding:7px 12px;font-size:12px;background:var(--bg2);border:1px solid var(--br);border-radius:var(--rs);color:var(--tx);">
+        <option value="0">Mês atual</option>
+        <option value="1">Mês anterior</option>
+        <option value="2">2 meses atrás</option>
+        <option value="3">3 meses atrás</option>
+        <option value="all">Todos os períodos</option>
+      </select>
+    </div>
+    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-bottom:20px;" id="cp-kpis"></div>
+    <div class="card" style="margin-bottom:16px;">
+      <div class="card-hd"><h3>📊 Comissão por Tipo de Serviço</h3></div>
+      <div id="cp-barras-tipo" style="padding:4px 0;"></div>
+    </div>
+    <div class="card">
+      <div class="card-hd"><h3>📋 OS com Comissão</h3><div id="cp-total-tag" style="font-size:11px;color:var(--tx3);"></div></div>
+      <div id="cp-tabela" style="overflow-x:auto;margin-top:8px;"></div>
+    </div>
+  </div>
 </div>
 
 <!-- ═══ LISTA / FILTRADAS ═══ -->
@@ -1139,6 +1224,62 @@ tr.row-vencido{animation:none!important;}
 
 <!-- ═══ FINANCEIRO ═══ -->
 <div class="page" id="page-financeiro">
+
+  <!-- PAINEL LUCRO LÍQUIDO -->
+  <div class="card" style="margin-bottom:20px;background:linear-gradient(135deg,#0f172a,#1e3a8a);border:none;color:#fff;">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:18px;">
+      <div>
+        <div style="font-size:10px;font-weight:700;letter-spacing:1.2px;text-transform:uppercase;opacity:.6;margin-bottom:6px;">Resultado Financeiro</div>
+        <div style="font-size:20px;font-weight:900;letter-spacing:-.5px;">Lucro Líquido</div>
+      </div>
+      <select id="fin-ano-lucro" onchange="renderFinanceiro()" style="padding:6px 12px;font-size:12px;background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.2);border-radius:8px;color:#fff;">
+        <option value="">Todos os anos</option><option>2025</option><option selected>2026</option><option>2027</option>
+      </select>
+    </div>
+    <div style="display:grid;grid-template-columns:repeat(8,1fr);gap:10px;">
+      <div style="background:rgba(255,255,255,.08);border-radius:10px;padding:12px 10px;text-align:center;border:1px solid rgba(255,255,255,.1);">
+        <div style="font-size:8.5px;font-weight:700;letter-spacing:.8px;text-transform:uppercase;opacity:.6;margin-bottom:5px;">Faturado</div>
+        <div style="font-size:14px;font-weight:900;color:#fff;" id="ll-faturado">R$ 0</div>
+        <div style="font-size:9px;opacity:.5;margin-top:2px;">OS finalizadas</div>
+      </div>
+      <div style="background:rgba(239,68,68,.15);border-radius:10px;padding:12px 10px;text-align:center;border:1px solid rgba(239,68,68,.25);">
+        <div style="font-size:8.5px;font-weight:700;letter-spacing:.8px;text-transform:uppercase;opacity:.7;margin-bottom:5px;color:#fca5a5;">Impostos 12%</div>
+        <div style="font-size:14px;font-weight:900;color:#fca5a5;" id="ll-impostos">R$ 0</div>
+      </div>
+      <div style="background:rgba(239,68,68,.15);border-radius:10px;padding:12px 10px;text-align:center;border:1px solid rgba(239,68,68,.25);">
+        <div style="font-size:8.5px;font-weight:700;letter-spacing:.8px;text-transform:uppercase;opacity:.7;margin-bottom:5px;color:#fca5a5;">Comissão Paulo</div>
+        <div style="font-size:14px;font-weight:900;color:#fca5a5;" id="ll-comissao-paulo">R$ 0</div>
+        <div style="font-size:9px;opacity:.5;color:#fca5a5;" id="ll-comissao-paulo-os">0 OS</div>
+      </div>
+      <div style="background:rgba(239,68,68,.15);border-radius:10px;padding:12px 10px;text-align:center;border:1px solid rgba(239,68,68,.25);">
+        <div style="font-size:8.5px;font-weight:700;letter-spacing:.8px;text-transform:uppercase;opacity:.7;margin-bottom:5px;color:#fca5a5;">Salário JP</div>
+        <div style="font-size:14px;font-weight:900;color:#fca5a5;" id="ll-salario-jp">R$ 700</div>
+        <div style="font-size:9px;opacity:.5;color:#fca5a5;">fixo mensal</div>
+      </div>
+      <div style="background:rgba(239,68,68,.15);border-radius:10px;padding:12px 10px;text-align:center;border:1px solid rgba(239,68,68,.25);">
+        <div style="font-size:8.5px;font-weight:700;letter-spacing:.8px;text-transform:uppercase;opacity:.7;margin-bottom:5px;color:#fca5a5;">Contador</div>
+        <div style="font-size:14px;font-weight:900;color:#fca5a5;" id="ll-contador">R$ 350</div>
+        <div style="font-size:9px;opacity:.5;color:#fca5a5;">fixo mensal</div>
+      </div>
+      <div style="background:rgba(239,68,68,.2);border-radius:10px;padding:12px 10px;text-align:center;border:1px solid rgba(239,68,68,.35);">
+        <div style="font-size:8.5px;font-weight:700;letter-spacing:.8px;text-transform:uppercase;opacity:.7;margin-bottom:5px;color:#f87171;">Total Gastos</div>
+        <div style="font-size:14px;font-weight:900;color:#f87171;" id="ll-total-gastos">R$ 0</div>
+      </div>
+      <div style="display:flex;align-items:center;justify-content:center;">
+        <div style="font-size:24px;opacity:.4;">=</div>
+      </div>
+      <div style="background:rgba(74,222,128,.15);border-radius:10px;padding:12px 10px;text-align:center;border:1px solid rgba(74,222,128,.3);">
+        <div style="font-size:8.5px;font-weight:700;letter-spacing:.8px;text-transform:uppercase;opacity:.7;margin-bottom:5px;color:#4ade80;">Lucro Líquido</div>
+        <div style="font-size:14px;font-weight:900;color:#4ade80;" id="ll-liquido">R$ 0</div>
+        <div style="font-size:9px;opacity:.5;color:#4ade80;" id="ll-margem">margem —</div>
+      </div>
+    </div>
+    <div style="margin-top:14px;">
+      <div style="font-size:9px;opacity:.5;margin-bottom:5px;letter-spacing:.6px;text-transform:uppercase;">Composição dos Gastos</div>
+      <div style="display:flex;height:7px;border-radius:4px;overflow:hidden;gap:1px;" id="ll-barra-gastos"></div>
+      <div style="display:flex;gap:14px;margin-top:7px;flex-wrap:wrap;" id="ll-barra-legend"></div>
+    </div>
+  </div>
 
   <!-- TOP STATS -->
   <div class="stats" style="grid-template-columns:repeat(4,1fr);margin-bottom:20px;">
@@ -2255,7 +2396,7 @@ const PAGE_TITLES = {
   dashboard:'Dashboard','lista':'Todas as OS','preenchidas':'OS Preenchidas',
   'vistoriadas':'OS Vistoriadas','sem-ficha':'Fichas de Pesquisa',
   andamento:'Em Andamento','vencendo':'Próximo do vencimento','finalizadas':'Finalizadas',
-  financeiro:'Dashboard Financeiro','faturas':'Gerar Fatura',
+  financeiro:'Dashboard Financeiro','faturas':'Gerar Fatura','comissao-paulo':'Comissionamento — Paulo',
   roteiro:'Roteirização de Vistorias',
   lixeira:'Lixeira (recuperáveis por 30 dias)',
   chat:'Chat da Equipe',
@@ -2546,6 +2687,7 @@ function renderPage(id) {
   else if(id==='finalizadas') renderSimple('finalizadas');
   else if(id==='financeiro') renderFinanceiro();
   else if(id==='faturas') renderFaturas();
+  else if(id==='comissao-paulo') renderComissaoPaulo();
   else if(id==='roteiro') renderRoteiro();
   else if(id==='lixeira') renderLixeira();
   else if(id==='dash-tendencia') renderDashTendencia();
@@ -2569,6 +2711,7 @@ function refreshAll() {
 }
 function _refreshAll_impl() {
   updateBadges();
+  if(typeof atualizarWidgetComissao === 'function') atualizarWidgetComissao();
   const pid = document.querySelector('.page.active')?.id?.replace('page-','');
   if(pid) renderPage(pid);
 }
@@ -3447,9 +3590,50 @@ function renderDash() {
 
   // ── MINI FINANCEIRO (admin only) ──
   if(isAdmin()) {
-    // Barras mensais de valor — agora por MÊS DE RECEBIMENTO
+    // ── Painel resultado do mês ──
+    const _now = new Date();
+    const _anoAtual = _now.getFullYear();
+    const _mesAtual = _now.getMonth();
+    const _mesLabel = _now.toLocaleDateString('pt-BR',{month:'long',year:'numeric'});
+    const _sv = (id,v) => { const e=document.getElementById(id); if(e) e.textContent=v; };
+
+    const osMesFech = DB.filter(os => {
+      if(!os.dataFechamento || isAberto(os)) return false;
+      const d = new Date(os.dataFechamento.includes('T')?os.dataFechamento:os.dataFechamento+'T00:00');
+      return d.getFullYear()===_anoAtual && d.getMonth()===_mesAtual;
+    });
+    const _fat = osMesFech.reduce((s,os)=>s+parsVal(os.valor),0);
+    const _imp = _fat * 0.12;
+    const _CTIPO = {'A-413':18,'B-438':32,'B-437':30};
+    let _com=0, _comOS=0;
+    osMesFech.forEach(os=>{ const t=(os.tipoServico||'').toUpperCase(); for(const[k,v] of Object.entries(_CTIPO)){if(t.includes(k)){_com+=v;_comOS++;break;}} });
+    const _sal=700, _cnt=350;
+    const _gastos=_imp+_com+_sal+_cnt;
+    const _lucro=_fat-_gastos;
+    const _marg=_fat>0?Math.round(_lucro/_fat*100):0;
+
+    const _dfEl = id => document.getElementById(id);
+    if(_dfEl('dash-fin-mes-label')) _dfEl('dash-fin-mes-label').textContent = _mesLabel;
+    _sv('df-faturado',   fmtVal(_fat));
+    _sv('df-faturado-os',osMesFech.length+' OS fechadas');
+    _sv('df-despesas',   fmtVal(_gastos));
+    _sv('df-despesas-pct',(_fat>0?Math.round(_gastos/_fat*100):0)+'% do faturado');
+    _sv('df-lucro',      fmtVal(_lucro));
+    _sv('df-margem',     'margem '+_marg+'%');
+    _sv('df-impostos',   fmtVal(_imp));
+    _sv('df-comissao',   fmtVal(_com));
+    _sv('df-comissao-os',_comOS+' OS comissionadas');
+    _sv('df-salario',    fmtVal(_sal));
+    _sv('df-contador',   fmtVal(_cnt));
+    const _bm = _dfEl('df-margem-barra');
+    if(_bm) setTimeout(()=>{ _bm.style.width=Math.max(0,Math.min(_marg,100))+'%'; },100);
+    const _bd = _dfEl('df-despesas-breakdown');
+    if(_bd) _bd.innerHTML=[{l:'Impostos',v:_imp},{l:'Paulo',v:_com},{l:'João Paulo',v:_sal},{l:'Contador',v:_cnt}]
+      .map(it=>`<div style="display:flex;justify-content:space-between;font-size:9px;color:rgba(255,255,255,.7);"><span>${it.l}</span><span style="font-weight:700;">${fmtVal(it.v)}</span></div>`).join('');
+
+    // mini barras (mantidas para compatibilidade)
     const valMes = Array(12).fill(0);
-    const anoAtual = (new Date()).getFullYear();
+    const anoAtual = _anoAtual;
     const anoRefMini = dashAno ? parseInt(dashAno) : anoAtual;
     dados.forEach(os=>{
       const {mIdx, ano} = getMesRecebimento(os);
@@ -4756,25 +4940,73 @@ function fmtVal(n) {
 }
 
 function renderFinanceiro() {
-  const ano = document.getElementById('fin-ano')?.value || '';
+  const sv = (id,v) => { const el=document.getElementById(id); if(el) el.textContent=v; };
+  const ano  = document.getElementById('fin-ano')?.value || '';
   const ano2 = document.getElementById('fin-ano2')?.value || '';
+  const anoLucro = document.getElementById('fin-ano-lucro')?.value || '';
 
-  // Filtro por ano usa o ANO DE RECEBIMENTO (não a data de abertura)
   const filtrar = (os) => {
     if(!ano) return true;
     const {ano:aRec} = getMesRecebimento(os);
     return aRec === parseInt(ano);
   };
+  const filtrarLucro = (os) => {
+    if(!anoLucro) return true;
+    const {ano:aRec} = getMesRecebimento(os);
+    return aRec === parseInt(anoLucro);
+  };
 
   const dados = DB.filter(filtrar);
+  const dadosLucro = DB.filter(filtrarLucro);
 
-  // Top stats
+  // ── Lucro líquido ──
+  const faturado = dadosLucro.filter(os=>!isAberto(os)).reduce((a,os)=>a+parsVal(os.valor),0);
+  const impostos = faturado * 0.12;
+  const CTIPO_LL = {'A-413':18,'B-438':32,'B-437':30};
+  let comPaulo=0, comPauloOS=0;
+  dadosLucro.filter(os=>!isAberto(os)).forEach(os=>{
+    const t=(os.tipoServico||'').toUpperCase();
+    for(const[k,v] of Object.entries(CTIPO_LL)){if(t.includes(k)){comPaulo+=v;comPauloOS++;break;}}
+  });
+  // Meses com OS fechadas no período (para multiplicar fixos)
+  const mesesSet = new Set();
+  dadosLucro.filter(os=>!isAberto(os)&&os.dataFechamento).forEach(os=>{
+    const d=new Date(os.dataFechamento.includes('T')?os.dataFechamento:os.dataFechamento+'T00:00');
+    mesesSet.add(d.getFullYear()+'-'+d.getMonth());
+  });
+  const nMeses = Math.max(1, mesesSet.size);
+  const salarioJP  = 700 * nMeses;
+  const contador   = 350 * nMeses;
+  const totalGastos = impostos + comPaulo + salarioJP + contador;
+  const liquido    = faturado - totalGastos;
+  const margem     = faturado>0 ? Math.round(liquido/faturado*100) : 0;
+
+  sv('ll-faturado',        fmtVal(faturado));
+  sv('ll-impostos',        fmtVal(impostos));
+  sv('ll-comissao-paulo',  fmtVal(comPaulo));
+  sv('ll-comissao-paulo-os', comPauloOS+' OS');
+  sv('ll-salario-jp',      fmtVal(salarioJP)+(nMeses>1?' ('+nMeses+'m)':''));
+  sv('ll-contador',        fmtVal(contador)+(nMeses>1?' ('+nMeses+'m)':''));
+  sv('ll-total-gastos',    fmtVal(totalGastos));
+  sv('ll-liquido',         fmtVal(liquido));
+  sv('ll-margem',          'margem '+margem+'%');
+
+  const barEl = document.getElementById('ll-barra-gastos');
+  const legEl = document.getElementById('ll-barra-legend');
+  if(barEl && faturado>0) {
+    const itens=[{l:'Impostos 12%',v:impostos,c:'#ef4444'},{l:'Comissão Paulo',v:comPaulo,c:'#f97316'},
+                 {l:'João Paulo',v:salarioJP,c:'#eab308'},{l:'Contador',v:contador,c:'#a78bfa'},
+                 {l:'Lucro',v:Math.max(0,liquido),c:'#4ade80'}];
+    barEl.innerHTML=itens.map(it=>`<div style="flex:${Math.max(it.v,0)/faturado};background:${it.c};min-width:${it.v>0?'3px':'0'};"></div>`).join('');
+    if(legEl) legEl.innerHTML=itens.map(it=>`<div style="display:flex;align-items:center;gap:4px;font-size:10px;color:rgba(255,255,255,.7);"><div style="width:8px;height:8px;border-radius:2px;background:${it.c};"></div>${it.l}: <span style="color:#fff;font-weight:700;">${fmtVal(it.v)}</span></div>`).join('');
+  }
+
+  // ── Stats originais ──
   const total = dados.reduce((a,os)=>a+parsVal(os.valor),0);
   const receb = dados.filter(os=>!isAberto(os)).reduce((a,os)=>a+parsVal(os.valor),0);
   const aber  = dados.filter(isAberto).reduce((a,os)=>a+parsVal(os.valor),0);
   const ticket = dados.length ? total/dados.length : 0;
 
-  const sv = (id,v) => { const el=document.getElementById(id); if(el) el.textContent=v; };
   sv('fv-total', fmtVal(total));
   sv('fv-rec',   fmtVal(receb));
   sv('fv-aber',  fmtVal(aber));
@@ -5320,6 +5552,14 @@ async function _carregarPerfil(user) {
   return { uid: user.uid, email: user.email, nome, perfil, cargo, user: user.email };
 }
 
+function isPauloUser() {
+  if(!USUARIO_ATUAL) return false;
+  return (USUARIO_ATUAL.email||'').toLowerCase().trim() === 'paauloccp@gmail.com';
+}
+function isAdminUser() {
+  return (USUARIO_ATUAL?.email||'').toLowerCase().trim() === 'lcrissatiengenharia@gmail.com';
+}
+
 function aplicarPerfil() {
   if(!PERFIL_ATUAL) return;
 
@@ -5329,6 +5569,17 @@ function aplicarPerfil() {
   // Aplica classe ao body para CSS admin-only funcionar
   document.body.classList.remove('admin','estagiario');
   document.body.classList.add(PERFIL_ATUAL);
+
+  // Widget e botão de comissão — Paulo e Admin
+  setTimeout(() => {
+    const widget = document.getElementById('comissao-widget');
+    const btn    = document.getElementById('btn-comissao-paulo');
+    const lbl    = document.getElementById('btn-comissao-lbl');
+    const show   = isPauloUser() || isAdmin();
+    if(widget) widget.style.setProperty('display', show ? 'block' : 'none', 'important');
+    if(btn)    btn.style.setProperty('display',    show ? 'flex'  : 'none', 'important');
+    if(lbl)    lbl.textContent = isPauloUser() && !isAdmin() ? 'Meu Comissionamento' : 'Comissão — Paulo';
+  }, 0);
 
   // Badge do usuário na sidebar
   const wrap = document.getElementById('user-badge-wrap');
@@ -8051,6 +8302,147 @@ window.logout = async function() {
   _presencaUnsub = null;
   if(_origLogout) await _origLogout();
 };
+
+// ══════════════════════════════════════
+// COMISSIONAMENTO PAULO
+// ══════════════════════════════════════
+// Emails fixos
+const EMAIL_ADMIN = 'lcrissatiengenharia@gmail.com';
+const EMAIL_PAULO = 'paauloccp@gmail.com';
+
+// Tabela de comissão: A-413=R$18, B-438=R$32, B-437=R$30, todas as empresas
+const COMISSAO_TIPO = {'A-413':18,'B-438':32,'B-437':30};
+
+function calcComissaoPaulo(os) {
+  const tipo = (os.tipoServico||'').trim().toUpperCase();
+  for(const [t,v] of Object.entries(COMISSAO_TIPO)) { if(tipo.includes(t)) return v; }
+  return 0;
+}
+
+function atualizarWidgetComissao() {
+  const widget = document.getElementById('comissao-widget');
+  if(!widget) return;
+  const show = isPauloUser() || isAdmin();
+  if(!show) { widget.style.setProperty('display','none','important'); return; }
+  widget.style.setProperty('display','block','important');
+
+  const now = new Date();
+  const ay = now.getFullYear(), am = now.getMonth();
+  const osMes = DB.filter(os=>{
+    if(!os.dataFechamento||isAberto(os)) return false;
+    const d=new Date(os.dataFechamento.includes('T')?os.dataFechamento:os.dataFechamento+'T00:00');
+    return d.getFullYear()===ay && d.getMonth()===am;
+  });
+  const comItems = osMes.map(os=>({...os,comissao:calcComissaoPaulo(os)})).filter(os=>os.comissao>0);
+  const total = comItems.reduce((s,os)=>s+os.comissao,0);
+  const lbl = document.getElementById('cw-label');
+  const tot = document.getElementById('cw-total');
+  const sub = document.getElementById('cw-sub');
+  if(lbl) lbl.textContent = (isAdmin()&&!isPauloUser()) ? '💵 Comissão — Paulo' : '💵 Meu Comissionamento';
+  if(tot) tot.textContent = fmtVal(total);
+  if(sub) sub.textContent = comItems.length+' OS · '+now.toLocaleDateString('pt-BR',{month:'short',year:'2-digit'});
+}
+
+function renderComissaoPaulo() {
+  const now = new Date();
+  const sel = document.getElementById('cp-mes-sel');
+  const offset = sel ? sel.value : '0';
+
+  let osList;
+  if(offset==='all') {
+    osList = DB.filter(os=>os.dataFechamento && !isAberto(os));
+  } else {
+    const off=parseInt(offset)||0;
+    const alvo=new Date(now.getFullYear(),now.getMonth()-off,1);
+    const ay=alvo.getFullYear(), am=alvo.getMonth();
+    osList = DB.filter(os=>{
+      if(!os.dataFechamento||isAberto(os)) return false;
+      const d=new Date(os.dataFechamento.includes('T')?os.dataFechamento:os.dataFechamento+'T00:00');
+      return d.getFullYear()===ay && d.getMonth()===am;
+    });
+  }
+
+  const comItems = osList.map(os=>({...os,comissao:calcComissaoPaulo(os)}))
+    .filter(os=>os.comissao>0)
+    .sort((a,b)=>(b.dataFechamento||'').localeCompare(a.dataFechamento||''));
+
+  const totalCom = comItems.reduce((s,os)=>s+os.comissao,0);
+  const el = id=>document.getElementById(id);
+
+  const titulo = (isAdmin()&&!isPauloUser()) ? 'Comissionamento — Paulo' : 'Meu Comissionamento';
+  if(el('cp-titulo')) el('cp-titulo').textContent = titulo;
+  if(el('cp-subtitulo')) el('cp-subtitulo').textContent =
+    offset==='all' ? 'Todos os períodos' :
+    (()=>{ const d=new Date(now.getFullYear(),now.getMonth()-parseInt(offset),1);
+           return d.toLocaleDateString('pt-BR',{month:'long',year:'numeric'}); })();
+
+  // KPIs
+  const tipoMap={};
+  comItems.forEach(os=>{ const t=os.tipoServico||'—'; if(!tipoMap[t]) tipoMap[t]={cnt:0,val:0}; tipoMap[t].cnt++; tipoMap[t].val+=os.comissao; });
+  const tipoArr=Object.entries(tipoMap).sort((a,b)=>b[1].val-a[1].val);
+
+  if(el('cp-kpis')) el('cp-kpis').innerHTML=`
+    <div class="stat" style="--sc:var(--grn)"><div class="stat-ic">💵</div><div class="stat-lbl">Total a Receber</div><div class="stat-val" style="font-size:20px;">${fmtVal(totalCom)}</div><div class="stat-sub">${comItems.length} OS com comissão</div></div>
+    <div class="stat" style="--sc:var(--acc)"><div class="stat-ic">📋</div><div class="stat-lbl">OS Comissionadas</div><div class="stat-val">${comItems.length}</div><div class="stat-sub">${tipoArr.length} tipo(s) distintos</div></div>
+    <div class="stat" style="--sc:var(--sky)"><div class="stat-ic">⚙️</div><div class="stat-lbl">Média por OS</div><div class="stat-val" style="font-size:20px;">${comItems.length?fmtVal(totalCom/comItems.length):'—'}</div><div class="stat-sub">valor de comissão</div></div>`;
+
+  // Barras por tipo
+  const barEl = el('cp-barras-tipo');
+  if(barEl) {
+    if(!tipoArr.length) {
+      barEl.innerHTML='<div style="color:var(--tx3);font-size:12px;text-align:center;padding:20px 0;">Nenhuma OS com comissão no período</div>';
+    } else {
+      const maxV=tipoArr[0][1].val;
+      const REGRAS={'A-413':'R$ 18,00/OS','B-438':'R$ 32,00/OS','B-437':'R$ 30,00/OS'};
+      barEl.innerHTML=tipoArr.map(([tipo,d])=>`
+        <div style="display:flex;align-items:center;gap:12px;margin-bottom:12px;">
+          <div style="width:60px;text-align:right;font-weight:700;font-size:12px;color:var(--tx);">${tipo}</div>
+          <div style="flex:1;background:var(--bg3);border-radius:6px;height:28px;overflow:hidden;position:relative;">
+            <div style="width:${Math.round(d.val/maxV*100)}%;height:100%;background:linear-gradient(90deg,var(--acc),var(--sky));border-radius:6px;"></div>
+            <div style="position:absolute;left:10px;top:50%;transform:translateY(-50%);font-size:11px;font-weight:700;color:#fff;">${d.cnt} OS</div>
+          </div>
+          <div style="text-align:right;min-width:110px;">
+            <div style="font-weight:800;color:var(--grn);font-size:13px;">${fmtVal(d.val)}</div>
+            <div style="font-size:9px;color:var(--tx3);">${REGRAS[tipo]||''}</div>
+          </div>
+        </div>`).join('')+
+        `<div style="margin-top:10px;padding:8px 12px;background:var(--bg3);border-radius:var(--rs);font-size:11px;color:var(--tx3);">ℹ️ <strong>Sem comissão:</strong> E-401 · E-005 · E-004 · AVA-01 · AVA-04 · G-416 · G-402</div>`;
+    }
+  }
+
+  // Tabela
+  const tabEl = el('cp-tabela');
+  if(el('cp-total-tag')) el('cp-total-tag').textContent = comItems.length ? comItems.length+' OS · '+fmtVal(totalCom) : '';
+  if(tabEl) {
+    if(!comItems.length) {
+      tabEl.innerHTML='<div style="color:var(--tx3);font-size:12px;text-align:center;padding:24px 0;">Nenhuma OS com comissão no período selecionado</div>';
+    } else {
+      tabEl.innerHTML=`<table style="width:100%;border-collapse:collapse;font-size:12px;">
+        <thead><tr style="background:var(--bg3);">
+          <th style="padding:8px 10px;text-align:left;font-weight:700;color:var(--tx2);">OS</th>
+          <th style="padding:8px 10px;text-align:left;font-weight:700;color:var(--tx2);">Empresa</th>
+          <th style="padding:8px 10px;text-align:left;font-weight:700;color:var(--tx2);">Tipo</th>
+          <th style="padding:8px 10px;text-align:left;font-weight:700;color:var(--tx2);">Cidade</th>
+          <th style="padding:8px 10px;text-align:right;font-weight:700;color:var(--tx2);">Fechamento</th>
+          <th style="padding:8px 10px;text-align:right;font-weight:700;color:var(--grn);">Comissão</th>
+        </tr></thead>
+        <tbody>
+          ${comItems.map((os,i)=>`<tr style="border-bottom:1px solid var(--br);background:${i%2===0?'transparent':'var(--bg2)'};">
+            <td style="padding:7px 10px;" class="mono">${os.numeroOS||'—'}</td>
+            <td style="padding:7px 10px;font-weight:600;">${os.empresa||'—'}</td>
+            <td style="padding:7px 10px;">${os.tipoServico||'—'}</td>
+            <td style="padding:7px 10px;color:var(--tx2);">${os.cidade||'—'}</td>
+            <td style="padding:7px 10px;text-align:right;">${fmtDate(os.dataFechamento)}</td>
+            <td style="padding:7px 10px;text-align:right;font-weight:800;color:var(--grn);">${fmtVal(os.comissao)}</td>
+          </tr>`).join('')}
+          <tr style="background:var(--bg3);font-weight:800;border-top:2px solid var(--br);">
+            <td colspan="5" style="padding:10px 10px;font-size:13px;">TOTAL</td>
+            <td style="padding:10px 10px;text-align:right;font-size:15px;color:var(--grn);">${fmtVal(totalCom)}</td>
+          </tr>
+        </tbody>
+      </table>`;
+    }
+  }
+}
+
 </script>
-</body>
-</html>
