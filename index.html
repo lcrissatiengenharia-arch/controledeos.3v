@@ -2437,6 +2437,107 @@ tr.row-vencido{animation:none!important;}
   </div>
 </div>
 
+<!-- ═══ PAINEL DE RECEBIMENTOS ═══ -->
+<div class="page" id="page-dash-recebimentos">
+  <div class="stats" style="grid-template-columns:repeat(4,1fr);margin-bottom:16px;">
+    <div class="stat" style="--sc:var(--grn)">
+      <div class="stat-ic">💳</div>
+      <div class="stat-lbl">A receber (próx. mês)</div>
+      <div class="stat-val" id="rec2-prox" style="font-size:18px">R$ 0</div>
+      <div class="stat-sub" id="rec2-prox-cnt">OS fechadas este mês</div>
+    </div>
+    <div class="stat" style="--sc:var(--acc)">
+      <div class="stat-ic">📋</div>
+      <div class="stat-lbl">Fechadas este mês</div>
+      <div class="stat-val" id="rec2-mes-cnt">0</div>
+      <div class="stat-sub" id="rec2-mes-label">—</div>
+    </div>
+    <div class="stat" style="--sc:var(--sky)">
+      <div class="stat-ic">📊</div>
+      <div class="stat-lbl">Média mensal (6m)</div>
+      <div class="stat-val" id="rec2-media" style="font-size:18px">R$ 0</div>
+      <div class="stat-sub">últimos 6 meses</div>
+    </div>
+    <div class="stat" style="--sc:var(--org)">
+      <div class="stat-ic">⏳</div>
+      <div class="stat-lbl">OS abertas (sem fecha.)</div>
+      <div class="stat-val" id="rec2-abertas">0</div>
+      <div class="stat-sub" id="rec2-abertas-val">valor pendente</div>
+    </div>
+  </div>
+
+  <div style="display:grid;grid-template-columns:2fr 1fr;gap:16px;margin-bottom:16px;">
+    <div class="card">
+      <div class="card-hd"><h3>📅 Histórico de Fechamentos por Mês</h3><p>Valor das OS fechadas — recebido no mês seguinte</p></div>
+      <div id="rec2-barras" style="padding:8px 0;"></div>
+    </div>
+    <div class="card">
+      <div class="card-hd"><h3>🏢 Por Empresa (mês atual)</h3></div>
+      <div id="rec2-emp-lista" style="padding:8px 0;"></div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-hd">
+      <h3>📋 OS Fechadas</h3>
+      <select id="rec2-filtro-mes" onchange="renderDashRecebimentos()" style="font-size:11.5px;padding:4px 8px;background:var(--bg2);border:1px solid var(--br);border-radius:var(--rs);color:var(--tx);">
+        <option value="0">Mês atual</option>
+        <option value="1">Mês anterior</option>
+        <option value="2">2 meses atrás</option>
+        <option value="3">3 meses atrás</option>
+      </select>
+    </div>
+    <div id="rec2-os-lista" style="margin-top:8px;overflow-x:auto;"></div>
+  </div>
+</div>
+
+<!-- ═══ PRODUTIVIDADE ═══ -->
+<div class="page" id="page-dash-produtividade">
+  <div class="stats" style="grid-template-columns:repeat(4,1fr);margin-bottom:16px;">
+    <div class="stat" style="--sc:var(--acc)">
+      <div class="stat-ic">📥</div>
+      <div class="stat-lbl">Abertas este mês</div>
+      <div class="stat-val" id="prod2-receb">0</div>
+      <div class="stat-sub">OS recebidas</div>
+    </div>
+    <div class="stat" style="--sc:var(--grn)">
+      <div class="stat-ic">✅</div>
+      <div class="stat-lbl">Fechadas este mês</div>
+      <div class="stat-val" id="prod2-fech">0</div>
+      <div class="stat-sub" id="prod2-fech-sub">—</div>
+    </div>
+    <div class="stat" style="--sc:var(--sky)">
+      <div class="stat-ic">⏱️</div>
+      <div class="stat-lbl">Tempo médio fechamento</div>
+      <div class="stat-val" id="prod2-tmed" style="font-size:18px">—</div>
+      <div class="stat-sub">dias · OS do mês</div>
+    </div>
+    <div class="stat" style="--sc:var(--org)">
+      <div class="stat-ic">🔁</div>
+      <div class="stat-lbl">Taxa de conclusão</div>
+      <div class="stat-val" id="prod2-taxa" style="font-size:18px">—</div>
+      <div class="stat-sub">fechadas / abertas</div>
+    </div>
+  </div>
+
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px;">
+    <div class="card">
+      <div class="card-hd"><h3>📊 Abertas vs Fechadas por Mês</h3><p>Últimos 6 meses</p></div>
+      <div id="prod2-barras" style="padding:8px 0;"></div>
+    </div>
+    <div class="card">
+      <div class="card-hd"><h3>⏱️ Tempo Médio por Empresa</h3><p>Dias entre abertura e fechamento</p></div>
+      <div id="prod2-tempo-emp" style="padding:8px 0;"></div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-hd"><h3>🏷️ Volume por Tipo de Serviço</h3><p>OS finalizadas</p></div>
+    <div id="prod2-tipo-barras" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:12px;padding:8px 0;"></div>
+  </div>
+</div>
+
+
 <!-- ═══ CHAT DA EQUIPE ═══ -->
 <!-- ══════════════════════════════════════════════════════════
      CHAT MESSENGER FLUTUANTE — estilo Facebook Messenger
@@ -8682,104 +8783,5 @@ function renderComissaoPaulo() {
   }
 }
 
-</script
-<!-- ═══ PAINEL DE RECEBIMENTOS ═══ -->
-<div class="page" id="page-dash-recebimentos">
-  <div class="stats" style="grid-template-columns:repeat(4,1fr);margin-bottom:16px;">
-    <div class="stat" style="--sc:var(--grn)">
-      <div class="stat-ic">💳</div>
-      <div class="stat-lbl">A receber (próx. mês)</div>
-      <div class="stat-val" id="rec2-prox" style="font-size:18px">R$ 0</div>
-      <div class="stat-sub" id="rec2-prox-cnt">OS fechadas este mês</div>
-    </div>
-    <div class="stat" style="--sc:var(--acc)">
-      <div class="stat-ic">📋</div>
-      <div class="stat-lbl">Fechadas este mês</div>
-      <div class="stat-val" id="rec2-mes-cnt">0</div>
-      <div class="stat-sub" id="rec2-mes-label">—</div>
-    </div>
-    <div class="stat" style="--sc:var(--sky)">
-      <div class="stat-ic">📊</div>
-      <div class="stat-lbl">Média mensal (6m)</div>
-      <div class="stat-val" id="rec2-media" style="font-size:18px">R$ 0</div>
-      <div class="stat-sub">últimos 6 meses</div>
-    </div>
-    <div class="stat" style="--sc:var(--org)">
-      <div class="stat-ic">⏳</div>
-      <div class="stat-lbl">OS abertas (sem fecha.)</div>
-      <div class="stat-val" id="rec2-abertas">0</div>
-      <div class="stat-sub" id="rec2-abertas-val">valor pendente</div>
-    </div>
-  </div>
 
-  <div style="display:grid;grid-template-columns:2fr 1fr;gap:16px;margin-bottom:16px;">
-    <div class="card">
-      <div class="card-hd"><h3>📅 Histórico de Fechamentos por Mês</h3><p>Valor das OS fechadas — recebido no mês seguinte</p></div>
-      <div id="rec2-barras" style="padding:8px 0;"></div>
-    </div>
-    <div class="card">
-      <div class="card-hd"><h3>🏢 Por Empresa (mês atual)</h3></div>
-      <div id="rec2-emp-lista" style="padding:8px 0;"></div>
-    </div>
-  </div>
-
-  <div class="card">
-    <div class="card-hd">
-      <h3>📋 OS Fechadas</h3>
-      <select id="rec2-filtro-mes" onchange="renderDashRecebimentos()" style="font-size:11.5px;padding:4px 8px;background:var(--bg2);border:1px solid var(--br);border-radius:var(--rs);color:var(--tx);">
-        <option value="0">Mês atual</option>
-        <option value="1">Mês anterior</option>
-        <option value="2">2 meses atrás</option>
-        <option value="3">3 meses atrás</option>
-      </select>
-    </div>
-    <div id="rec2-os-lista" style="margin-top:8px;overflow-x:auto;"></div>
-  </div>
-</div>
-
-<!-- ═══ PRODUTIVIDADE ═══ -->
-<div class="page" id="page-dash-produtividade">
-  <div class="stats" style="grid-template-columns:repeat(4,1fr);margin-bottom:16px;">
-    <div class="stat" style="--sc:var(--acc)">
-      <div class="stat-ic">📥</div>
-      <div class="stat-lbl">Abertas este mês</div>
-      <div class="stat-val" id="prod2-receb">0</div>
-      <div class="stat-sub">OS recebidas</div>
-    </div>
-    <div class="stat" style="--sc:var(--grn)">
-      <div class="stat-ic">✅</div>
-      <div class="stat-lbl">Fechadas este mês</div>
-      <div class="stat-val" id="prod2-fech">0</div>
-      <div class="stat-sub" id="prod2-fech-sub">—</div>
-    </div>
-    <div class="stat" style="--sc:var(--sky)">
-      <div class="stat-ic">⏱️</div>
-      <div class="stat-lbl">Tempo médio fechamento</div>
-      <div class="stat-val" id="prod2-tmed" style="font-size:18px">—</div>
-      <div class="stat-sub">dias · OS do mês</div>
-    </div>
-    <div class="stat" style="--sc:var(--org)">
-      <div class="stat-ic">🔁</div>
-      <div class="stat-lbl">Taxa de conclusão</div>
-      <div class="stat-val" id="prod2-taxa" style="font-size:18px">—</div>
-      <div class="stat-sub">fechadas / abertas</div>
-    </div>
-  </div>
-
-  <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px;">
-    <div class="card">
-      <div class="card-hd"><h3>📊 Abertas vs Fechadas por Mês</h3><p>Últimos 6 meses</p></div>
-      <div id="prod2-barras" style="padding:8px 0;"></div>
-    </div>
-    <div class="card">
-      <div class="card-hd"><h3>⏱️ Tempo Médio por Empresa</h3><p>Dias entre abertura e fechamento</p></div>
-      <div id="prod2-tempo-emp" style="padding:8px 0;"></div>
-    </div>
-  </div>
-
-  <div class="card">
-    <div class="card-hd"><h3>🏷️ Volume por Tipo de Serviço</h3><p>OS finalizadas</p></div>
-    <div id="prod2-tipo-barras" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:12px;padding:8px 0;"></div>
-  </div>
-</div>
->
+</script>
