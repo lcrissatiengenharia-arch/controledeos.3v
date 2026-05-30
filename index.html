@@ -20,7 +20,6 @@
 .leaflet-bottom.leaflet-right { bottom: 6px !important; right: 6px !important; }
 </style>
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-<script src="https://unpkg.com/leaflet.heat@0.2.0/dist/leaflet-heat.js"></script>
 <!--
   ⚠️  AVISO DE SEGURANÇA — LEIA ANTES DE COLOCAR EM PRODUÇÃO
   ─────────────────────────────────────────────────────────
@@ -968,31 +967,6 @@ tr.row-vencido{animation:none!important;}
         <button class="btn btn-ghost btn-xs" data-page="lista" onclick="go('lista')">Ver todas →</button>
       </div>
       <div id="ultimas-os"></div>
-    </div>
-  </div>
-
-  <!-- ROW 5: Mapa de calor de cidades -->
-  <div class="card" style="margin-bottom:16px;">
-    <div class="card-hd">
-      <h3>🗺️ Distribuição Geográfica — Mapa de Calor</h3>
-      <div style="display:flex;align-items:center;gap:8px;">
-        <select id="heatmap-filtro" onchange="renderHeatmapDash()" style="font-size:11.5px;padding:4px 8px;background:var(--bg2);border:1px solid var(--br);border-radius:var(--rs);color:var(--tx);">
-          <option value="all">Todas as OS</option>
-          <option value="abertas">Em aberto</option>
-          <option value="vencidas">Vencidas / críticas</option>
-          <option value="finalizadas">Finalizadas</option>
-        </select>
-        <span id="heatmap-count" style="font-size:11px;color:var(--tx3);"></span>
-      </div>
-    </div>
-    <!-- Letreiro ticker acima do mapa -->
-    <div id="heatmap-ticker-wrap" style="
-      width:100%;overflow:hidden;background:linear-gradient(90deg,rgba(255,255,255,1) 0%,rgba(248,250,253,0) 4%,rgba(248,250,253,0) 96%,rgba(255,255,255,1) 100%);
-      border-radius:8px;margin-bottom:8px;height:32px;display:flex;align-items:center;position:relative;border:1px solid rgba(200,215,235,.5);">
-      <div id="heatmap-ticker" style="display:flex;align-items:center;gap:0;white-space:nowrap;will-change:transform;"></div>
-    </div>
-    <div id="brasil-heatmap" style="height:440px;border-radius:10px;overflow:hidden;background:#f0f4f8;position:relative;box-shadow:inset 0 0 0 1px rgba(0,0,0,.06);">
-      <div style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;color:#8898b8;font-size:13px;font-family:Inter,sans-serif;z-index:2;" id="heatmap-loading">Carregando mapa...</div>
     </div>
   </div>
 
@@ -2487,18 +2461,12 @@ async function fbSave(os) {
   catch(e) { console.error(e); _hideSaving(false); toast('Erro ao salvar! Verifique sua conexão.','err'); throw e; }
 }
 async function fbDel(id) {
-  // Exclusão direta
-  const os = DB.find(o=>o.id===id);
   _showSaving('excluindo…');
   try {
-    if(typeof window._fbSoftDelete === 'function' && os) {
-      await window._fbSoftDelete(os);
-    } else {
-      await window._fbDelete(id);
-    }
+    await window._fbDelete(id);
     _hideSaving(true);
   } catch(e) {
-    console.error('Erro ao excluir OS:', e);
+    console.error(e);
     _hideSaving(false);
     toast('Erro ao excluir! Verifique sua conexão.','err');
     throw e;
@@ -2722,7 +2690,7 @@ function updateBadges() {
 
   const vencidas = DB.filter(os=>isAberto(os)&&diasAte(os.prazoFatal)!==null&&diasAte(os.prazoFatal)<0).length;
 
-  [['nb-total',total],['nb-and',abertos.length],['nb-venc',venc],['nb-ficha',semFicha],['nb-fin',fin]].forEach(([id,v])=>{
+  [['nb-total',total],['nb-preen',preen],['nb-vist',vist],['nb-ficha',semFicha],
     const el=document.getElementById(id); if(el) el.textContent=v;
   });
 
@@ -2986,8 +2954,6 @@ const CIDADES_COORDS = {
   'Boa Vista':[2.8235,-60.6758],
 };
 
-let _heatmapLeaflet = null;
-let _heatLayer     = null;
 let _markerGroup   = null;
 let _brasilBounds  = null;
 
@@ -3018,223 +2984,7 @@ function _findCoords(cidade) {
   return null;
 }
 
-function renderHeatmapDash() {
-  // Só renderiza se a página dashboard estiver ativa e visível
-  const dashPage = document.getElementById('page-dashboard');
-  if(!dashPage || !dashPage.classList.contains('active')) return;
-
-  const container = document.getElementById('brasil-heatmap');
-  if(!container || container.offsetWidth === 0 || container.offsetHeight === 0) {
-    // Container sem dimensões — tenta de novo em 300ms
-    setTimeout(renderHeatmapDash, 300);
-    return;
-  }
-
-  const filtro = document.getElementById('heatmap-filtro')?.value || 'all';
-  const base = filtro==='abertas'    ? DB.filter(isAberto)
-             : filtro==='finalizadas'? DB.filter(os=>!isAberto(os))
-             : filtro==='vencidas'   ? DB.filter(os=>isAberto(os)&&diasAte(os.prazoFatal)!==null&&diasAte(os.prazoFatal)<0)
-             : DB;
-
-  const cidCnt = {};
-  base.forEach(os => {
-    const c = normCidadeHeat(os.cidade);
-    if (c) cidCnt[c] = (cidCnt[c]||0)+1;
-  });
-
-  const countEl = document.getElementById('heatmap-count');
-  if (countEl) countEl.textContent = Object.keys(cidCnt).length + ' cidades · ' + base.length + ' OS';
-
-  const pontos = [];
-  const pontosInfo = [];
-  let matched = 0;
-  for (const [cidade, cnt] of Object.entries(cidCnt)) {
-    const coords = _findCoords(cidade);
-    if (coords) {
-      pontos.push([coords[0], coords[1], cnt]);
-      pontosInfo.push({ lat:coords[0], lng:coords[1], cidade, cnt });
-      matched++;
-    }
-  }
-
-  const loading   = document.getElementById('heatmap-loading');
-
-  if (!_heatmapLeaflet) {
-    if (typeof L === 'undefined') {
-      if (loading) loading.textContent = '⚠ Aguardando Leaflet...';
-      setTimeout(() => renderHeatmapDash(), 600);
-      return;
-    }
-    if (loading) loading.style.display = 'none';
-
-    _brasilBounds = L.latLngBounds(BRASIL_SW, BRASIL_NE);
-
-    _heatmapLeaflet = L.map('brasil-heatmap', {
-      center: [-14.5, -51.0],
-      zoom: 4,
-      minZoom: 4,
-      maxZoom: 12,
-      maxBounds: _brasilBounds,
-      maxBoundsViscosity: 1.0,
-      zoomControl: false,
-      scrollWheelZoom: true,
-      attributionControl: false,
-    });
-
-    // Zoom control reposicionado
-    L.control.zoom({ position: 'bottomright' }).addTo(_heatmapLeaflet);
-
-    // Attribution discreta
-    L.control.attribution({ position:'bottomright', prefix:false })
-      .addAttribution('<span style="font-size:9px;opacity:.4">© OpenStreetMap © CARTO</span>')
-      .addTo(_heatmapLeaflet);
-
-    // Tile CartoDB Positron — sem labels (nomes embaçados = problema do tile anterior)
-    L.tileLayer('https://{s}.basemaps.cartocdn.com/light_nolabels/{z}/{x}/{y}{r}.png', {
-      subdomains: 'abcd',
-      maxZoom: 19,
-    }).addTo(_heatmapLeaflet);
-
-    // Camada só com labels das cidades por cima do heatmap (nítidos, sem embaçamento)
-    L.tileLayer('https://{s}.basemaps.cartocdn.com/light_only_labels/{z}/{x}/{y}{r}.png', {
-      subdomains: 'abcd',
-      maxZoom: 19,
-      pane: 'shadowPane',
-    }).addTo(_heatmapLeaflet);
-
-    // Tooltip ao hover — div flutuante
-    const tipEl = document.createElement('div');
-    tipEl.id = 'heatmap-tooltip';
-    tipEl.style.cssText = [
-      'position:absolute','z-index:9999','pointer-events:none','display:none',
-      'background:rgba(255,255,255,.97)','border-radius:10px',
-      'padding:9px 14px','font-family:Inter,sans-serif',
-      'box-shadow:0 8px 30px rgba(0,0,0,.14),0 2px 6px rgba(0,0,0,.08)',
-      'border:1px solid rgba(180,195,220,.6)','min-width:130px',
-    ].join(';');
-    container.style.position = 'relative';
-    container.appendChild(tipEl);
-
-    // Hover nos marcadores invisíveis
-    _heatmapLeaflet.on('mousemove', function(e) {
-      // Verificar se está perto de um ponto
-      const zoom = _heatmapLeaflet.getZoom();
-      const threshold = Math.max(0.8, 3.5 - zoom * 0.18);
-      let closest = null, minDist = threshold;
-      for (const p of pontosInfo) {
-        const dist = Math.sqrt(Math.pow(e.latlng.lat - p.lat, 2) + Math.pow(e.latlng.lng - p.lng, 2));
-        if (dist < minDist) { minDist = dist; closest = p; }
-      }
-      if (closest) {
-        const tip = document.getElementById('heatmap-tooltip');
-        const rect = container.getBoundingClientRect();
-        const pt = _heatmapLeaflet.latLngToContainerPoint([closest.lat, closest.lng]);
-        const maxOS = Math.max(...pontosInfo.map(x=>x.cnt));
-        const pct = Math.round(closest.cnt/base.length*100);
-        const cor = closest.cnt >= maxOS*0.7 ? '#e03050'
-                  : closest.cnt >= maxOS*0.4 ? '#f07020'
-                  : closest.cnt >= maxOS*0.15? '#c8a800'
-                  : '#2a9d60';
-        tip.innerHTML = `
-          <div style="font-size:12px;font-weight:700;color:#1a2540;margin-bottom:5px;">${closest.cidade}</div>
-          <div style="display:flex;align-items:baseline;gap:6px;">
-            <span style="font-size:22px;font-weight:800;color:${cor};line-height:1;">${closest.cnt}</span>
-            <span style="font-size:11px;color:#8898b0;">OS · ${pct}% do total</span>
-          </div>`;
-        // Posicionar acima do cursor
-        const tx = Math.min(pt.x + 12, container.offsetWidth - 180);
-        const ty = Math.max(pt.y - 80, 8);
-        tip.style.left = tx + 'px';
-        tip.style.top  = ty + 'px';
-        tip.style.display = 'block';
-        container.style.cursor = 'crosshair';
-      } else {
-        const tip = document.getElementById('heatmap-tooltip');
-        if (tip) tip.style.display = 'none';
-        container.style.cursor = '';
-      }
-    });
-    _heatmapLeaflet.on('mouseout', function() {
-      const tip = document.getElementById('heatmap-tooltip');
-      if (tip) tip.style.display = 'none';
-    });
-
-  } else {
-    if (loading) loading.style.display = 'none';
-    // Atualizar referência de pontosInfo no closure
-  }
-
-  // Remover layers anteriores
-  if (_heatLayer) { _heatmapLeaflet.removeLayer(_heatLayer); _heatLayer = null; }
-  if (_markerGroup) { _heatmapLeaflet.removeLayer(_markerGroup); _markerGroup = null; }
-
-  if (pontos.length > 0) {
-    const maxVal = Math.max(...pontos.map(p=>p[2]));
-    const normalized = pontos.map(([lat,lng,v]) => [lat, lng, Math.pow(v/maxVal, 0.55)]);
-
-    _heatLayer = L.heatLayer(normalized, {
-      radius: 38,
-      blur: 22,
-      maxZoom: 12,
-      max: 1.0,
-      minOpacity: 0.25,
-      gradient: {
-        0.00: 'rgba(180,225,255,0)',
-        0.12: 'rgba(100,210,200,0.45)',
-        0.30: 'rgba(50,200,120,0.65)',
-        0.52: 'rgba(255,215,0,0.78)',
-        0.72: 'rgba(255,110,30,0.88)',
-        1.00: 'rgba(210,20,50,0.94)',
-      }
-    }).addTo(_heatmapLeaflet);
-
-    // Marcadores invisíveis (para o hover funcionar)
-    _markerGroup = L.layerGroup();
-    pontosInfo.forEach(p => {
-      const inv = L.circleMarker([p.lat, p.lng], {
-        radius: 8, opacity: 0, fillOpacity: 0, interactive: true
-      });
-      _markerGroup.addLayer(inv);
-    });
-    _markerGroup.addTo(_heatmapLeaflet);
-  }
-
-  // Legenda clean
-  const oldLeg = container.querySelector('.heatmap-legend');
-  if (oldLeg) oldLeg.remove();
-  const legEl = document.createElement('div');
-  legEl.className = 'heatmap-legend';
-  legEl.style.cssText = [
-    'position:absolute','bottom:36px','left:14px','z-index:1000',
-    'background:rgba(255,255,255,.93)','border-radius:10px',
-    'padding:10px 14px','font-family:Inter,sans-serif',
-    'box-shadow:0 4px 20px rgba(0,0,0,.1)','border:1px solid rgba(190,205,225,.6)',
-  ].join(';');
-  const totCidades = matched;
-  const totOS = base.length;
-  legEl.innerHTML = `
-    <div style="font-size:10px;font-weight:600;color:#8898b8;letter-spacing:.06em;margin-bottom:7px;">CONCENTRAÇÃO DE OS</div>
-    <div style="width:110px;height:7px;border-radius:4px;overflow:hidden;background:linear-gradient(to right,
-      rgba(100,210,200,.5) 0%,
-      rgba(50,200,120,.7) 25%,
-      rgba(255,215,0,.85) 55%,
-      rgba(255,110,30,.92) 78%,
-      rgba(210,20,50,.95) 100%);margin-bottom:4px;"></div>
-    <div style="display:flex;justify-content:space-between;width:110px;">
-      <span style="font-size:9px;color:#b0bbd0;">baixa</span>
-      <span style="font-size:9px;color:#b0bbd0;">alta</span>
-    </div>
-    <div style="margin-top:8px;padding-top:7px;border-top:1px solid rgba(0,0,0,.06);">
-      <span style="font-size:11px;font-weight:700;color:#1a2540;">${totOS}</span>
-      <span style="font-size:10px;color:#8898b8;"> OS · </span>
-      <span style="font-size:11px;font-weight:700;color:#1a2540;">${totCidades}</span>
-      <span style="font-size:10px;color:#8898b8;"> cidades</span>
-    </div>`;
-  container.appendChild(legEl);
-
-  // ── Ticker letreiro ──────────────────────────────────────────
-  _renderHeatTicker(pontosInfo, base.length);
-}
+function renderHeatmapDash() { /* mapa removido */ }
 
 let _tickerRAF = null;
 let _tickerPos = 0;
@@ -3605,8 +3355,7 @@ function renderDash() {
     }
   }
 
-  // Atualizar mapa de calor
-  setTimeout(() => renderHeatmapDash(), 100);
+  // fim renderDash
 }
 
 // ══════════════════════════════════════
@@ -4259,7 +4008,6 @@ async function excluir() {
   const ref = os.numeroOS || os.id;
   if(!confirm(`Excluir esta OS?\n\nReferência: ${ref}\nEmpresa: ${os.empresa||'—'}\n\nEsta ação não pode ser desfeita.`)) return;
   const id=currentId;
-  const snapshot = JSON.parse(JSON.stringify(os));
   closeOv('ov-det');
   await fbDel(id);
   toast('OS excluída com sucesso.', 'ok');
@@ -7211,22 +6959,16 @@ dashConsolidado = false;
 
 async function excluirDefinitivo(id){
   if(typeof isAdmin === 'function' && !isAdmin()){ toast('Apenas administradores podem excluir definitivamente','err'); return; }
-  const os = (window.LIX_DB||[]).find(o=>o.id===id) || DB.find(o=>o.id===id);
-  if(!os) { toast('OS não encontrada','err'); return; }
+  if(!os) return;
   if(!confirm(`⚠ EXCLUIR PERMANENTEMENTE a OS ${os.numeroOS||id}?\n\nEsta ação NÃO pode ser desfeita.`)) return;
   try {
     _showSaving('excluindo…');
-    if(typeof window._fbHardDeleteLix === 'function') {
-      await window._fbHardDeleteLix(id);
-    } else if(typeof window._fbDelete === 'function') {
-      await window._fbDelete(id);
-    }
     _hideSaving(true);
     toast('OS excluída permanentemente.','ok');
   } catch(e){
-    console.error('Erro ao excluir definitivamente:', e);
-    _hideSaving(false);
-    toast('Erro ao excluir. Tente novamente.','err');
+    // fallback: importar deleteDoc/doc do escopo do módulo
+    console.error(e);
+    try {
   }
 }
 
