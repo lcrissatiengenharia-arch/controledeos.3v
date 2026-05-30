@@ -8310,11 +8310,21 @@ window.logout = async function() {
 const EMAIL_ADMIN = 'lcrissatiengenharia@gmail.com';
 const EMAIL_PAULO = 'paauloccp@gmail.com';
 
-// Tabela de comissão: A-413=R$18, B-438=R$32, B-437=R$30, todas as empresas
+// Empresas que pagam comissão ao Paulo
+const EMPRESAS_PAULO = ['ATX','Gusmão Filho Engenharia','JOP','Ribeiro Albuquerque',
+                        'LC Rissati Engenharia','L&L Engenharia','Mattos e Periotto','Álvares filho'];
+
+// Tabela de comissão: A-413=R$18, B-438=R$32, B-437=R$30, apenas empresas da lista
 const COMISSAO_TIPO = {'A-413':18,'B-438':32,'B-437':30};
 
 function calcComissaoPaulo(os) {
+  const emp  = (os.empresa||'').trim().toLowerCase();
   const tipo = (os.tipoServico||'').trim().toUpperCase();
+  // Verifica se a empresa está na lista (busca parcial, case-insensitive)
+  const temEmpresa = EMPRESAS_PAULO.some(e =>
+    emp.includes(e.toLowerCase()) || e.toLowerCase().includes(emp)
+  );
+  if(!temEmpresa) return 0;
   for(const [t,v] of Object.entries(COMISSAO_TIPO)) { if(tipo.includes(t)) return v; }
   return 0;
 }
