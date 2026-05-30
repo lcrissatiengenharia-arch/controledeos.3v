@@ -3554,15 +3554,15 @@ function renderDash() {
   if(isAdmin()) {
     // Barras mensais de valor — agora por MÊS DE RECEBIMENTO
     const valMes = Array(12).fill(0);
-    const anoAtual = (new Date()).getFullYear();
+    const now = new Date();
+    const anoAtual = now.getFullYear();
+    const mesAtual = now.getMonth();
     const anoRefMini = dashAno ? parseInt(dashAno) : anoAtual;
     dados.forEach(os=>{
       const {mIdx, ano} = getMesRecebimento(os);
       if(mIdx >= 0 && ano === anoRefMini) valMes[mIdx] += parsVal(os.valor);
     });
     // ── PAINEL RESULTADO DO MÊS (lucro / despesas / comissão) ──
-    const now = new Date();
-    const mesAtual = now.getMonth(), anoAtual = now.getFullYear();
     const mesLabel = now.toLocaleDateString('pt-BR',{month:'long',year:'numeric'});
     const dfEl = id => document.getElementById(id);
 
