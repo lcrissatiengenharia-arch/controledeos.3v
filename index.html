@@ -1198,11 +1198,11 @@ tr.row-vencido{animation:none!important;}
           </select>
         </div>
         <div class="fld">
-          <span class="flabel">Data início</span>
+          <span class="flabel">Fechamento de</span>
           <input type="date" id="fat-de" onchange="filtrarFaturas()">
         </div>
         <div class="fld">
-          <span class="flabel">Data fim</span>
+          <span class="flabel">Fechamento até</span>
           <input type="date" id="fat-ate" onchange="filtrarFaturas()">
         </div>
         <div class="fld">
@@ -1216,6 +1216,7 @@ tr.row-vencido{animation:none!important;}
         <div class="fld">
           <span class="flabel">Ordenar por</span>
           <select id="fat-order" onchange="filtrarFaturas()">
+            <option value="dataFechamento">Data de fechamento</option>
             <option value="dataAbertura">Data de abertura</option>
             <option value="prazoFatal">Prazo fatal</option>
             <option value="empresa">Empresa</option>
@@ -4893,7 +4894,7 @@ function filtrarFaturas() {
   const de      = document.getElementById('fat-de')?.value || '';
   const ate     = document.getElementById('fat-ate')?.value || '';
   const tipo    = document.getElementById('fat-tipo')?.value || '';
-  const order   = document.getElementById('fat-order')?.value || 'dataAbertura';
+  const order   = document.getElementById('fat-order')?.value || 'dataFechamento';
 
   const isValidOS = (os) => {
     const emp = (os.empresa||'').toString().trim().toLowerCase();
@@ -4910,9 +4911,9 @@ function filtrarFaturas() {
     if(status === 'finalizado' && isAberto(os)) return false;
     if(status === 'aberto' && !isAberto(os)) return false;
     if(de || ate) {
-      const d = os.dataAbertura ? os.dataAbertura.split('T')[0] : '';
-      if(de && d < de) return false;
-      if(ate && d > ate) return false;
+      const d = os.dataFechamento ? os.dataFechamento.split('T')[0] : '';
+      if(de && (!d || d < de)) return false;
+      if(ate && (!d || d > ate)) return false;
     }
     return true;
   }).sort((a,b) => {
@@ -4959,7 +4960,7 @@ function renderFaturaList() {
         </div>
         <div class="mono" style="font-size:11px;margin-top:3px;color:var(--tx3);">${os.numeroOS}</div>
         <div style="font-size:11.5px;color:var(--tx2);margin-top:3px;">
-          ${os.cliente||''} ${os.cidade?' · '+os.cidade:''} · Abertura: ${fmtDate(os.dataAbertura)}
+          ${os.cliente||''} ${os.cidade?' · '+os.cidade:''} · Fechamento: ${os.dataFechamento ? fmtDate(os.dataFechamento) : '—'}
         </div>
       </div>
       <div style="text-align:right;flex-shrink:0;">
