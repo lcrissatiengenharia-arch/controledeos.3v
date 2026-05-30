@@ -1357,11 +1357,11 @@ tr.row-vencido{animation:none!important;}
           </select>
         </div>
         <div class="fld">
-          <span class="flabel">Data início</span>
+          <span class="flabel">Data fechamento início</span>
           <input type="date" id="fat-de" onchange="filtrarFaturas()">
         </div>
         <div class="fld">
-          <span class="flabel">Data fim</span>
+          <span class="flabel">Data fechamento fim</span>
           <input type="date" id="fat-ate" onchange="filtrarFaturas()">
         </div>
         <div class="fld">
@@ -5164,7 +5164,8 @@ function filtrarFaturas() {
     if(status === 'finalizado' && isAberto(os)) return false;
     if(status === 'aberto' && !isAberto(os)) return false;
     if(de || ate) {
-      const d = os.dataAbertura ? os.dataAbertura.split('T')[0] : '';
+      const d = (os.dataFechamento || os.fechamento || '').split('T')[0];
+      if(!d) return false;
       if(de && d < de) return false;
       if(ate && d > ate) return false;
     }
@@ -5213,7 +5214,7 @@ function renderFaturaList() {
         </div>
         <div class="mono" style="font-size:11px;margin-top:3px;color:var(--tx3);">${os.numeroOS}</div>
         <div style="font-size:11.5px;color:var(--tx2);margin-top:3px;">
-          ${os.cliente||''} ${os.cidade?' · '+os.cidade:''} · Abertura: ${fmtDate(os.dataAbertura)}
+          ${os.cliente||''} ${os.cidade?' · '+os.cidade:''} · Fechamento: ${fmtDate(os.dataFechamento || os.fechamento)}
         </div>
       </div>
       <div style="text-align:right;flex-shrink:0;">
