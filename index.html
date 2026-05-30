@@ -787,6 +787,12 @@ tr.row-vencido{animation:none!important;}
 
   </nav>
   <div class="sb-foot">
+    <!-- Widget de comissão Paulo — visível para admin e Paulo -->
+    <div id="comissao-widget" style="display:none;margin-bottom:12px;background:linear-gradient(135deg,#0f4c2a,#166534);border-radius:10px;padding:12px 14px;cursor:pointer;" onclick="go('comissao-paulo')" title="Ver detalhes do comissionamento">
+      <div style="font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.8px;color:rgba(255,255,255,.6);margin-bottom:6px;" id="cw-label">💵 Comissão — Paulo</div>
+      <div style="font-size:22px;font-weight:900;color:#4ade80;line-height:1;" id="cw-total">R$ 0,00</div>
+      <div style="font-size:10px;color:rgba(255,255,255,.65);margin-top:4px;" id="cw-sub">0 OS · mês atual</div>
+    </div>
     <div id="user-badge-wrap" style="margin-bottom:10px;"></div>
     <div class="conn"><div class="conn-dot" id="cdot"></div><span class="conn-lbl" id="clbl">Conectando...</span></div>
     <div class="sb-ver">v3.1 · 2026</div>
@@ -2527,6 +2533,7 @@ function refreshAll() {
 }
 function _refreshAll_impl() {
   updateBadges();
+  atualizarWidgetComissao();
   const pid = document.querySelector('.page.active')?.id?.replace('page-','');
   if(pid) renderPage(pid);
 }
@@ -5443,6 +5450,14 @@ async function _carregarPerfil(user) {
   return { uid: user.uid, email: user.email, nome, perfil, cargo, user: user.email };
 }
 
+function isPauloUser() {
+  if(!USUARIO_ATUAL) return false;
+  return (USUARIO_ATUAL.email || '').toLowerCase().trim() === 'paauloccp@gmail.com';
+}
+function isAdminUser() {
+  return (USUARIO_ATUAL?.email || '').toLowerCase().trim() === 'lcrissatiengenharia@gmail.com';
+}
+
 function aplicarPerfil() {
   if(!PERFIL_ATUAL) return;
 
@@ -5453,18 +5468,22 @@ function aplicarPerfil() {
   document.body.classList.remove('admin','estagiario');
   document.body.classList.add(PERFIL_ATUAL);
 
-  // Botão de comissão: visível para admin e para Paulo
-  const btnComissao = document.getElementById('btn-comissao-paulo');
-  if(btnComissao) {
-    const isPaulo = isPauloUser();
-    const show = isAdmin() || isPaulo;
-    btnComissao.style.display = show ? 'flex' : 'none';
-    if(isPaulo && !isAdmin()) {
-      btnComissao.querySelector('.lbl').textContent = 'Meu Comissionamento';
-    } else if(isAdmin()) {
-      btnComissao.querySelector('.lbl').textContent = 'Comissão — Paulo';
+  // Botão de comissão: visível para admin (lcrissatiengenharia) e Paulo (paauloccp)
+  // Usamos setTimeout para rodar APÓS o CSS admin-only ser aplicado
+  setTimeout(() => {
+    const btnComissao = document.getElementById('btn-comissao-paulo');
+    if(btnComissao) {
+      const paulo = isPauloUser();
+      const admin = isAdmin();
+      if(paulo || admin) {
+        btnComissao.style.setProperty('display','flex','important');
+        const lbl = btnComissao.querySelector('.lbl');
+        if(lbl) lbl.textContent = paulo && !admin ? 'Meu Comissionamento' : 'Comissão — Paulo';
+      } else {
+        btnComissao.style.setProperty('display','none','important');
+      }
     }
-  }
+  }, 0);
 
   // Badge do usuário na sidebar
   const wrap = document.getElementById('user-badge-wrap');
@@ -5488,6 +5507,7 @@ function aplicarPerfil() {
       window._fbStarted = true;
       window._fbUnsub = window._fbListen();
     }
+    atualizarWidgetComissao();
     if(typeof refreshAll === 'function') refreshAll();
   } catch(err) {
     console.error('Erro ao abrir sistema após login:', err);
@@ -8187,32 +8207,15 @@ window.logout = async function() {
 };
 
 // ═══ COMISSIONAMENTO PAULO ═══
-// Identificação: o usuário Paulo é identificado pelo nome ou email contendo "paulo"
-// (exceto João Paulo, que NÃO tem acesso)
-function isPauloUser() {
-  if(!USUARIO_ATUAL) return false;
-  const nome  = (USUARIO_ATUAL.nome  || '').toLowerCase();
-  const email = (USUARIO_ATUAL.email || '').toLowerCase();
-  // João Paulo: NÃO recebe comissão — excluído explicitamente
-  if(nome.includes('joão paulo') || nome.includes('joao paulo') ||
-     email.includes('joaopaulo') || email.includes('joao.paulo') ||
-     email.includes('joão.paulo')) return false;
-  // Paulo: sim
-  return nome.includes('paulo') || email.includes('paulo');
-}
+// Emails fixos para identificação
+const EMAIL_ADMIN = 'lcrissatiengenharia@gmail.com';
+const EMAIL_PAULO = 'paauloccp@gmail.com';
 
-// Regras de comissionamento do Paulo
+// Regras de comissionamento
 const COMISSAO_PAULO = {
-  // Empresas com comissão
   EMPRESAS: ['ATX','Gusmão Filho Engenharia','JOP','Ribeiro Albuquerque',
              'LC Rissati Engenharia','L&L Engenharia','Mattos e Periotto','Álvares filho'],
-  // Valor por tipo (normalizado para busca parcial)
-  VALOR_TIPO: {
-    'A-413': 18.00,
-    'B-438': 32.00,
-    'B-437': 30.00,
-    // E-401, E-005, E-004, AVA-01, AVA-04 → 0
-  },
+  VALOR_TIPO: { 'A-413': 18.00, 'B-438': 32.00, 'B-437': 30.00 },
 };
 
 function calcComissaoPaulo(os) {
@@ -8229,6 +8232,46 @@ function calcComissaoPaulo(os) {
     if(tipo.includes(t)) return val;
   }
   return 0; // tipos sem comissão
+}
+
+function atualizarWidgetComissao() {
+  const widget = document.getElementById('comissao-widget');
+  if(!widget) return;
+
+  const paulo = isPauloUser();
+  const admin = isAdmin();
+
+  // Só mostra para admin ou Paulo
+  if(!paulo && !admin) {
+    widget.style.setProperty('display','none','important');
+    return;
+  }
+  widget.style.setProperty('display','block','important');
+
+  // Calcula comissão do mês atual
+  const now = new Date();
+  const ay = now.getFullYear(), am = now.getMonth();
+
+  const osMes = DB.filter(os => {
+    if(!os.dataFechamento) return false;
+    const d = new Date(os.dataFechamento.includes('T') ? os.dataFechamento : os.dataFechamento + 'T00:00');
+    return d.getFullYear() === ay && d.getMonth() === am;
+  });
+
+  const comItems = osMes.map(os => ({ ...os, comissao: calcComissaoPaulo(os) }))
+                        .filter(os => os.comissao > 0);
+  const total = comItems.reduce((s, os) => s + os.comissao, 0);
+  const cnt   = comItems.length;
+
+  const mesLabel = now.toLocaleDateString('pt-BR', { month: 'short', year: '2-digit' });
+
+  const labelEl = document.getElementById('cw-label');
+  const totalEl = document.getElementById('cw-total');
+  const subEl   = document.getElementById('cw-sub');
+
+  if(labelEl) labelEl.textContent = admin && !paulo ? '💵 Comissão — Paulo' : '💵 Meu Comissionamento';
+  if(totalEl) totalEl.textContent = fmtVal(total);
+  if(subEl)   subEl.textContent   = `${cnt} OS · ${mesLabel}`;
 }
 
 function renderComissaoPaulo() {
