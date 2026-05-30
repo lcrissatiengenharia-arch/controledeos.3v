@@ -3056,6 +3056,17 @@ function _findCoords(cidade) {
 }
 
 function renderHeatmapDash() {
+  // Só renderiza se a página dashboard estiver ativa e visível
+  const dashPage = document.getElementById('page-dashboard');
+  if(!dashPage || !dashPage.classList.contains('active')) return;
+
+  const container = document.getElementById('brasil-heatmap');
+  if(!container || container.offsetWidth === 0 || container.offsetHeight === 0) {
+    // Container sem dimensões — tenta de novo em 300ms
+    setTimeout(renderHeatmapDash, 300);
+    return;
+  }
+
   const filtro = document.getElementById('heatmap-filtro')?.value || 'all';
   const base = filtro==='abertas'    ? DB.filter(isAberto)
              : filtro==='finalizadas'? DB.filter(os=>!isAberto(os))
@@ -3083,7 +3094,6 @@ function renderHeatmapDash() {
     }
   }
 
-  const container = document.getElementById('brasil-heatmap');
   const loading   = document.getElementById('heatmap-loading');
 
   if (!_heatmapLeaflet) {
@@ -5831,6 +5841,10 @@ function aplicarPerfil() {
     if(typeof window._fbListen === 'function' && !window._fbStarted) {
       window._fbStarted = true;
       window._fbUnsub = window._fbListen();
+      // Inicia listener da lixeira junto
+      if(typeof window._fbListenLixeira === 'function') {
+        window._fbUnsubLix = window._fbListenLixeira();
+      }
     }
     atualizarWidgetComissao();
     if(typeof refreshAll === 'function') refreshAll();
@@ -7244,6 +7258,7 @@ window.LIX_DB = [];
 
 window._fbListenLixeira = () => {
   try {
+    if(typeof db === 'undefined' || !db) { console.warn('Lixeira: db não disponível'); return; }
     const colLix = collection(db, "ordens_servico_lixeira");
     return onSnapshot(colLix,
       snap => {
@@ -7258,8 +7273,7 @@ window._fbListenLixeira = () => {
     );
   } catch(err){ console.error('Lixeira init:', err); }
 };
-// Inicializa o listener da lixeira
-try { window._fbListenLixeira && window._fbListenLixeira(); } catch(e){ console.error(e); }
+// Listener da lixeira iniciado pelo aplicarPerfil (após login), não aqui
 
 function fmtDtLix(ts){
   try {
