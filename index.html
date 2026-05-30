@@ -1234,35 +1234,51 @@ tr.row-vencido{animation:none!important;}
     </div>
   </div>
 
-  <!-- ROW 5: Mapa de calor de cidades -->
-  <div class="card" style="margin-bottom:16px;">
-    <div class="card-hd">
-      <h3>🗺️ Distribuição Geográfica — Mapa de Calor</h3>
-      <div style="display:flex;align-items:center;gap:8px;">
-        <select id="heatmap-filtro" onchange="renderHeatmapDash()" style="font-size:11.5px;padding:4px 8px;background:var(--bg2);border:1px solid var(--br);border-radius:var(--rs);color:var(--tx);">
-          <option value="all">Todas as OS</option>
-          <option value="abertas">Em aberto</option>
-          <option value="vencidas">Vencidas / críticas</option>
-          <option value="finalizadas">Finalizadas</option>
-        </select>
-        <span id="heatmap-count" style="font-size:11px;color:var(--tx3);"></span>
-      </div>
+  <!-- ROW 5: Indicadores Operacionais -->
+  <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:14px;margin-bottom:16px;" id="row-indicadores">
+
+    <!-- Card 1: Ranking de Empresas -->
+    <div class="card">
+      <div class="card-hd"><h3>🏢 Top Empresas</h3><p id="ind-emp-sub">por volume de OS fechadas</p></div>
+      <div id="ind-empresas" style="margin-top:4px;"></div>
     </div>
-    <!-- Letreiro ticker acima do mapa -->
-    <div id="heatmap-ticker-wrap" style="
-      width:100%;overflow:hidden;background:linear-gradient(90deg,rgba(255,255,255,1) 0%,rgba(248,250,253,0) 4%,rgba(248,250,253,0) 96%,rgba(255,255,255,1) 100%);
-      border-radius:8px;margin-bottom:8px;height:32px;display:flex;align-items:center;position:relative;border:1px solid rgba(200,215,235,.5);">
-      <div id="heatmap-ticker" style="display:flex;align-items:center;gap:0;white-space:nowrap;will-change:transform;"></div>
+
+    <!-- Card 2: Fluxo do Mês (abertas vs fechadas) -->
+    <div class="card">
+      <div class="card-hd"><h3>📆 Fluxo Mensal</h3><p id="ind-fluxo-sub">OS abertas e fechadas por mês</p></div>
+      <div id="ind-fluxo" style="margin-top:4px;"></div>
     </div>
-    <div id="brasil-heatmap" style="height:440px;border-radius:10px;overflow:hidden;background:#f0f4f8;position:relative;box-shadow:inset 0 0 0 1px rgba(0,0,0,.06);">
-      <div style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;color:#8898b8;font-size:13px;font-family:Inter,sans-serif;z-index:2;" id="heatmap-loading">Carregando mapa...</div>
+
+    <!-- Card 3: Prazo Médio por Tipo -->
+    <div class="card">
+      <div class="card-hd"><h3>⏱️ Prazo Médio por Tipo</h3><p>dias entre abertura e fechamento</p></div>
+      <div id="ind-prazo-tipo" style="margin-top:4px;"></div>
     </div>
+
+    <!-- Card 4: OS por Tipo de Serviço -->
+    <div class="card">
+      <div class="card-hd"><h3>📋 Mix de Serviços</h3><p>distribuição por tipo</p></div>
+      <div id="ind-mix" style="margin-top:4px;"></div>
+    </div>
+
+    <!-- Card 5: Cidades com mais OS -->
+    <div class="card">
+      <div class="card-hd"><h3>📍 Top Cidades</h3><p id="ind-cid-sub">volume de OS</p></div>
+      <div id="ind-cidades" style="margin-top:4px;"></div>
+    </div>
+
+    <!-- Card 6: Velocidade de Fechamento -->
+    <div class="card">
+      <div class="card-hd"><h3>🚀 Velocidade de Fechamento</h3><p>OS fechadas nos últimos 30, 60 e 90 dias</p></div>
+      <div id="ind-velocidade" style="margin-top:8px;"></div>
+    </div>
+
   </div>
 
   <!-- ROW 6: Admin only — RESULTADO DO MÊS -->
   <div class="admin-only" style="margin-bottom:16px;">
     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">
-      <div style="font-size:11px;font-weight:700;letter-spacing:.8px;text-transform:uppercase;color:var(--tx3);">💼 Resultado do Mês Atual</div>
+      <div style="font-size:11px;font-weight:700;letter-spacing:.8px;text-transform:uppercase;color:var(--tx3);" id="dash-resultado-titulo">💼 Resultado do Mês Atual</div>
       <div style="font-size:11px;color:var(--tx3);" id="dash-fin-mes-label"></div>
     </div>
     <!-- 3 cards grandes -->
@@ -3413,217 +3429,176 @@ function _findCoords(cidade) {
   return null;
 }
 
-function renderHeatmapDash() {
-  // Só renderiza se dashboard estiver visível
-  const dashPage = document.getElementById('page-dashboard');
-  if(!dashPage || !dashPage.classList.contains('active')) return;
-  const container = document.getElementById('brasil-heatmap');
-  if(!container || container.offsetWidth === 0) { setTimeout(renderHeatmapDash, 500); return; }
-  const filtro = document.getElementById('heatmap-filtro')?.value || 'all';
-  const base = filtro==='abertas'    ? DB.filter(isAberto)
-             : filtro==='finalizadas'? DB.filter(os=>!isAberto(os))
-             : filtro==='vencidas'   ? DB.filter(os=>isAberto(os)&&diasAte(os.prazoFatal)!==null&&diasAte(os.prazoFatal)<0)
-             : DB;
+function renderHeatmapDash() { /* mapa removido */ }
 
-  const cidCnt = {};
-  base.forEach(os => {
-    const c = normCidadeHeat(os.cidade);
-    if (c) cidCnt[c] = (cidCnt[c]||0)+1;
+function renderIndicadoresDash() {
+  const dados = getDadosFiltrados();
+  const el = id => document.getElementById(id);
+  const now = new Date();
+
+  // ── helpers ──
+  const _pv = v => parseFloat(v||0)||0;
+  const _dt = s => { if(!s) return null; const d=new Date(s.includes('T')?s:s+'T00:00'); return isNaN(d)?null:d; };
+
+  // ── 1. TOP EMPRESAS ──
+  const empMap={};
+  dados.forEach(os=>{
+    const e=os.empresa||'—';
+    if(!empMap[e]) empMap[e]={tot:0,fech:0,val:0};
+    empMap[e].tot++;
+    if(!isAberto(os)) { empMap[e].fech++; empMap[e].val+=_pv(os.valor); }
   });
+  const empArr=Object.entries(empMap).sort((a,b)=>b[1].fech-a[1].fech).slice(0,7);
+  const maxEmp=empArr[0]?.[1].fech||1;
+  const empEl=el('ind-empresas');
+  if(empEl) empEl.innerHTML=empArr.map(([emp,d])=>`
+    <div style="margin-bottom:9px;">
+      <div style="display:flex;justify-content:space-between;font-size:11.5px;margin-bottom:3px;">
+        <span style="font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:140px;" title="${emp}">${emp}</span>
+        <span style="color:var(--tx3);font-size:11px;flex-shrink:0;margin-left:6px;">${d.fech} fechadas · ${fmtVal(d.val)}</span>
+      </div>
+      <div style="background:var(--bg3);border-radius:4px;height:7px;overflow:hidden;">
+        <div style="width:${Math.round(d.fech/maxEmp*100)}%;height:100%;background:linear-gradient(90deg,var(--acc),var(--sky));border-radius:4px;"></div>
+      </div>
+    </div>`).join('');
 
-  const countEl = document.getElementById('heatmap-count');
-  if (countEl) countEl.textContent = Object.keys(cidCnt).length + ' cidades · ' + base.length + ' OS';
-
-  const pontos = [];
-  const pontosInfo = [];
-  let matched = 0;
-  for (const [cidade, cnt] of Object.entries(cidCnt)) {
-    const coords = _findCoords(cidade);
-    if (coords) {
-      pontos.push([coords[0], coords[1], cnt]);
-      pontosInfo.push({ lat:coords[0], lng:coords[1], cidade, cnt });
-      matched++;
-    }
+  // ── 2. FLUXO MENSAL (últimos 6 meses) ──
+  const meses6=[];
+  for(let i=5;i>=0;i--){
+    const d=new Date(now.getFullYear(),now.getMonth()-i,1);
+    meses6.push({y:d.getFullYear(),m:d.getMonth(),lbl:d.toLocaleDateString('pt-BR',{month:'short'})});
   }
-
-  const loading   = document.getElementById('heatmap-loading');
-
-  if (!_heatmapLeaflet) {
-    if (typeof L === 'undefined') {
-      if (loading) loading.textContent = '⚠ Aguardando Leaflet...';
-      setTimeout(() => renderHeatmapDash(), 600);
-      return;
-    }
-    if (loading) loading.style.display = 'none';
-
-    _brasilBounds = L.latLngBounds(BRASIL_SW, BRASIL_NE);
-
-    _heatmapLeaflet = L.map('brasil-heatmap', {
-      center: [-14.5, -51.0],
-      zoom: 4,
-      minZoom: 4,
-      maxZoom: 12,
-      maxBounds: _brasilBounds,
-      maxBoundsViscosity: 1.0,
-      zoomControl: false,
-      scrollWheelZoom: true,
-      attributionControl: false,
-    });
-
-    // Zoom control reposicionado
-    L.control.zoom({ position: 'bottomright' }).addTo(_heatmapLeaflet);
-
-    // Attribution discreta
-    L.control.attribution({ position:'bottomright', prefix:false })
-      .addAttribution('<span style="font-size:9px;opacity:.4">© OpenStreetMap © CARTO</span>')
-      .addTo(_heatmapLeaflet);
-
-    // Tile CartoDB Positron — sem labels (nomes embaçados = problema do tile anterior)
-    L.tileLayer('https://{s}.basemaps.cartocdn.com/light_nolabels/{z}/{x}/{y}{r}.png', {
-      subdomains: 'abcd',
-      maxZoom: 19,
-    }).addTo(_heatmapLeaflet);
-
-    // Camada só com labels das cidades por cima do heatmap (nítidos, sem embaçamento)
-    L.tileLayer('https://{s}.basemaps.cartocdn.com/light_only_labels/{z}/{x}/{y}{r}.png', {
-      subdomains: 'abcd',
-      maxZoom: 19,
-      pane: 'shadowPane',
-    }).addTo(_heatmapLeaflet);
-
-    // Tooltip ao hover — div flutuante
-    const tipEl = document.createElement('div');
-    tipEl.id = 'heatmap-tooltip';
-    tipEl.style.cssText = [
-      'position:absolute','z-index:9999','pointer-events:none','display:none',
-      'background:rgba(255,255,255,.97)','border-radius:10px',
-      'padding:9px 14px','font-family:Inter,sans-serif',
-      'box-shadow:0 8px 30px rgba(0,0,0,.14),0 2px 6px rgba(0,0,0,.08)',
-      'border:1px solid rgba(180,195,220,.6)','min-width:130px',
-    ].join(';');
-    container.style.position = 'relative';
-    container.appendChild(tipEl);
-
-    // Hover nos marcadores invisíveis
-    _heatmapLeaflet.on('mousemove', function(e) {
-      // Verificar se está perto de um ponto
-      const zoom = _heatmapLeaflet.getZoom();
-      const threshold = Math.max(0.8, 3.5 - zoom * 0.18);
-      let closest = null, minDist = threshold;
-      for (const p of pontosInfo) {
-        const dist = Math.sqrt(Math.pow(e.latlng.lat - p.lat, 2) + Math.pow(e.latlng.lng - p.lng, 2));
-        if (dist < minDist) { minDist = dist; closest = p; }
-      }
-      if (closest) {
-        const tip = document.getElementById('heatmap-tooltip');
-        const rect = container.getBoundingClientRect();
-        const pt = _heatmapLeaflet.latLngToContainerPoint([closest.lat, closest.lng]);
-        const maxOS = Math.max(...pontosInfo.map(x=>x.cnt));
-        const pct = Math.round(closest.cnt/base.length*100);
-        const cor = closest.cnt >= maxOS*0.7 ? '#e03050'
-                  : closest.cnt >= maxOS*0.4 ? '#f07020'
-                  : closest.cnt >= maxOS*0.15? '#c8a800'
-                  : '#2a9d60';
-        tip.innerHTML = `
-          <div style="font-size:12px;font-weight:700;color:#1a2540;margin-bottom:5px;">${closest.cidade}</div>
-          <div style="display:flex;align-items:baseline;gap:6px;">
-            <span style="font-size:22px;font-weight:800;color:${cor};line-height:1;">${closest.cnt}</span>
-            <span style="font-size:11px;color:#8898b0;">OS · ${pct}% do total</span>
-          </div>`;
-        // Posicionar acima do cursor
-        const tx = Math.min(pt.x + 12, container.offsetWidth - 180);
-        const ty = Math.max(pt.y - 80, 8);
-        tip.style.left = tx + 'px';
-        tip.style.top  = ty + 'px';
-        tip.style.display = 'block';
-        container.style.cursor = 'crosshair';
-      } else {
-        const tip = document.getElementById('heatmap-tooltip');
-        if (tip) tip.style.display = 'none';
-        container.style.cursor = '';
-      }
-    });
-    _heatmapLeaflet.on('mouseout', function() {
-      const tip = document.getElementById('heatmap-tooltip');
-      if (tip) tip.style.display = 'none';
-    });
-
-  } else {
-    if (loading) loading.style.display = 'none';
-    // Atualizar referência de pontosInfo no closure
-  }
-
-  // Remover layers anteriores
-  if (_heatLayer) { _heatmapLeaflet.removeLayer(_heatLayer); _heatLayer = null; }
-  if (_markerGroup) { _heatmapLeaflet.removeLayer(_markerGroup); _markerGroup = null; }
-
-  if (pontos.length > 0) {
-    const maxVal = Math.max(...pontos.map(p=>p[2]));
-    const normalized = pontos.map(([lat,lng,v]) => [lat, lng, Math.pow(v/maxVal, 0.55)]);
-
-    _heatLayer = L.heatLayer(normalized, {
-      radius: 38,
-      blur: 22,
-      maxZoom: 12,
-      max: 1.0,
-      minOpacity: 0.25,
-      gradient: {
-        0.00: 'rgba(180,225,255,0)',
-        0.12: 'rgba(100,210,200,0.45)',
-        0.30: 'rgba(50,200,120,0.65)',
-        0.52: 'rgba(255,215,0,0.78)',
-        0.72: 'rgba(255,110,30,0.88)',
-        1.00: 'rgba(210,20,50,0.94)',
-      }
-    }).addTo(_heatmapLeaflet);
-
-    // Marcadores invisíveis (para o hover funcionar)
-    _markerGroup = L.layerGroup();
-    pontosInfo.forEach(p => {
-      const inv = L.circleMarker([p.lat, p.lng], {
-        radius: 8, opacity: 0, fillOpacity: 0, interactive: true
-      });
-      _markerGroup.addLayer(inv);
-    });
-    _markerGroup.addTo(_heatmapLeaflet);
-  }
-
-  // Legenda clean
-  const oldLeg = container.querySelector('.heatmap-legend');
-  if (oldLeg) oldLeg.remove();
-  const legEl = document.createElement('div');
-  legEl.className = 'heatmap-legend';
-  legEl.style.cssText = [
-    'position:absolute','bottom:36px','left:14px','z-index:1000',
-    'background:rgba(255,255,255,.93)','border-radius:10px',
-    'padding:10px 14px','font-family:Inter,sans-serif',
-    'box-shadow:0 4px 20px rgba(0,0,0,.1)','border:1px solid rgba(190,205,225,.6)',
-  ].join(';');
-  const totCidades = matched;
-  const totOS = base.length;
-  legEl.innerHTML = `
-    <div style="font-size:10px;font-weight:600;color:#8898b8;letter-spacing:.06em;margin-bottom:7px;">CONCENTRAÇÃO DE OS</div>
-    <div style="width:110px;height:7px;border-radius:4px;overflow:hidden;background:linear-gradient(to right,
-      rgba(100,210,200,.5) 0%,
-      rgba(50,200,120,.7) 25%,
-      rgba(255,215,0,.85) 55%,
-      rgba(255,110,30,.92) 78%,
-      rgba(210,20,50,.95) 100%);margin-bottom:4px;"></div>
-    <div style="display:flex;justify-content:space-between;width:110px;">
-      <span style="font-size:9px;color:#b0bbd0;">baixa</span>
-      <span style="font-size:9px;color:#b0bbd0;">alta</span>
+  const fluxo=meses6.map(mes=>({
+    ...mes,
+    ab: DB.filter(os=>{ const d=_dt(os.dataAbertura); return d&&d.getFullYear()===mes.y&&d.getMonth()===mes.m; }).length,
+    fc: DB.filter(os=>{ if(!os.dataFechamento||isAberto(os)) return false; const d=_dt(os.dataFechamento); return d&&d.getFullYear()===mes.y&&d.getMonth()===mes.m; }).length
+  }));
+  const maxF=Math.max(...fluxo.map(x=>Math.max(x.ab,x.fc)),1);
+  const fluxEl=el('ind-fluxo');
+  if(fluxEl) fluxEl.innerHTML=`
+    <div style="display:flex;align-items:flex-end;gap:5px;height:100px;">
+      ${fluxo.map((x,i)=>`
+        <div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:2px;">
+          <div style="width:100%;display:flex;gap:2px;align-items:flex-end;height:80px;">
+            <div style="flex:1;background:var(--sky);border-radius:3px 3px 0 0;height:${Math.max(x.ab/maxF*100,3)}%;opacity:${i===5?1:.65};" title="Abertas: ${x.ab}"></div>
+            <div style="flex:1;background:var(--grn);border-radius:3px 3px 0 0;height:${Math.max(x.fc/maxF*100,3)}%;opacity:${i===5?1:.65};" title="Fechadas: ${x.fc}"></div>
+          </div>
+          <div style="font-size:9px;color:var(--tx3);">${x.lbl}</div>
+        </div>`).join('')}
     </div>
-    <div style="margin-top:8px;padding-top:7px;border-top:1px solid rgba(0,0,0,.06);">
-      <span style="font-size:11px;font-weight:700;color:#1a2540;">${totOS}</span>
-      <span style="font-size:10px;color:#8898b8;"> OS · </span>
-      <span style="font-size:11px;font-weight:700;color:#1a2540;">${totCidades}</span>
-      <span style="font-size:10px;color:#8898b8;"> cidades</span>
+    <div style="display:flex;gap:14px;margin-top:8px;">
+      <div style="display:flex;align-items:center;gap:4px;font-size:10.5px;color:var(--tx2);"><div style="width:9px;height:9px;background:var(--sky);border-radius:2px;"></div>Abertas</div>
+      <div style="display:flex;align-items:center;gap:4px;font-size:10.5px;color:var(--tx2);"><div style="width:9px;height:9px;background:var(--grn);border-radius:2px;"></div>Fechadas</div>
     </div>`;
-  container.appendChild(legEl);
 
-  // ── Ticker letreiro ──────────────────────────────────────────
-  _renderHeatTicker(pontosInfo, base.length);
+  // ── 3. PRAZO MÉDIO POR TIPO ──
+  const tipoTempos={};
+  DB.filter(os=>!isAberto(os)&&os.dataAbertura&&os.dataFechamento).forEach(os=>{
+    const t=os.tipoServico||'—';
+    const a=_dt(os.dataAbertura), f=_dt(os.dataFechamento);
+    if(!a||!f) return;
+    const dias=Math.max(0,Math.round((f-a)/86400000));
+    if(!tipoTempos[t]) tipoTempos[t]={total:0,cnt:0};
+    tipoTempos[t].total+=dias; tipoTempos[t].cnt++;
+  });
+  const tipoArr=Object.entries(tipoTempos).map(([t,v])=>({tipo:t,med:Math.round(v.total/v.cnt),cnt:v.cnt})).sort((a,b)=>a.med-b.med).slice(0,7);
+  const maxT=Math.max(...tipoArr.map(x=>x.med),1);
+  const prazoEl=el('ind-prazo-tipo');
+  if(prazoEl) prazoEl.innerHTML=tipoArr.length ? tipoArr.map(x=>`
+    <div style="margin-bottom:9px;">
+      <div style="display:flex;justify-content:space-between;font-size:11.5px;margin-bottom:3px;">
+        <span style="font-weight:600;">${x.tipo}</span>
+        <span style="color:${x.med<=10?'var(--grn)':x.med<=20?'var(--org)':'var(--red)'};font-weight:700;">${x.med}d</span>
+      </div>
+      <div style="background:var(--bg3);border-radius:4px;height:7px;overflow:hidden;">
+        <div style="width:${Math.round(x.med/maxT*100)}%;height:100%;background:${x.med<=10?'var(--grn)':x.med<=20?'var(--org)':'var(--red)'};border-radius:4px;"></div>
+      </div>
+      <div style="font-size:9.5px;color:var(--tx3);margin-top:2px;">${x.cnt} OS finalizadas</div>
+    </div>`).join('') : '<div style="color:var(--tx3);font-size:12px;padding:12px 0;">Sem dados suficientes</div>';
+
+  // ── 4. MIX DE SERVIÇOS ──
+  const mixMap={};
+  dados.forEach(os=>{ const t=os.tipoServico||'—'; mixMap[t]=(mixMap[t]||0)+1; });
+  const mixArr=Object.entries(mixMap).sort((a,b)=>b[1]-a[1]);
+  const mixTot=mixArr.reduce((s,[,v])=>s+v,0)||1;
+  const CORES=['#2563eb','#16a34a','#d97706','#dc2626','#7c3aed','#0891b2','#be185d'];
+  const mixEl=el('ind-mix');
+  if(mixEl) {
+    // Mini donut SVG
+    let ang=0;
+    const R=36,r=22,CX=42,CY=42;
+    const slices=mixArr.slice(0,6).map(([t,v],i)=>{
+      const frac=v/mixTot, a=frac*Math.PI*2;
+      const x1=CX+R*Math.sin(ang),y1=CY-R*Math.cos(ang); ang+=a;
+      const x2=CX+R*Math.sin(ang),y2=CY-R*Math.cos(ang);
+      const xi1=CX+r*Math.sin(ang-a),yi1=CY-r*Math.cos(ang-a);
+      const xi2=CX+r*Math.sin(ang),yi2=CY-r*Math.cos(ang);
+      return `<path d="M${x1},${y1} A${R},${R} 0 ${frac>.5?1:0},1 ${x2},${y2} L${xi2},${yi2} A${r},${r} 0 ${frac>.5?1:0},0 ${xi1},${yi1} Z" fill="${CORES[i%CORES.length]}" stroke="#fff" stroke-width="1.5"/>`;
+    }).join('');
+    const legend=mixArr.slice(0,6).map(([t,v],i)=>`
+      <div style="display:flex;align-items:center;gap:6px;margin-bottom:5px;">
+        <div style="width:9px;height:9px;border-radius:2px;background:${CORES[i%CORES.length]};flex-shrink:0;"></div>
+        <span style="font-size:11px;font-weight:600;">${t}</span>
+        <span style="font-size:11px;color:var(--tx3);margin-left:auto;">${v} · ${Math.round(v/mixTot*100)}%</span>
+      </div>`).join('');
+    mixEl.innerHTML=`<div style="display:flex;gap:14px;align-items:center;">
+      <svg width="84" height="84" xmlns="http://www.w3.org/2000/svg" style="flex-shrink:0;">
+        ${slices}
+        <text x="${CX}" y="${CY-4}" text-anchor="middle" font-size="12" font-weight="800" fill="var(--tx)">${dados.length}</text>
+        <text x="${CX}" y="${CY+8}" text-anchor="middle" font-size="9" fill="var(--tx3)">OS</text>
+      </svg>
+      <div style="flex:1;">${legend}</div>
+    </div>`;
+  }
+
+  // ── 5. TOP CIDADES ──
+  const cidMap={};
+  dados.forEach(os=>{ const c=os.cidade||'—'; cidMap[c]=(cidMap[c]||0)+1; });
+  const cidArr=Object.entries(cidMap).sort((a,b)=>b[1]-a[1]).slice(0,8);
+  const maxC=cidArr[0]?.[1]||1;
+  const cidEl=el('ind-cidades');
+  if(cidEl) cidEl.innerHTML=cidArr.map(([cid,cnt],i)=>`
+    <div style="display:flex;align-items:center;gap:8px;margin-bottom:7px;">
+      <div style="width:18px;height:18px;border-radius:50%;background:${i<3?'var(--acc)':'var(--bg3)'};display:flex;align-items:center;justify-content:center;font-size:9.5px;font-weight:700;color:${i<3?'#fff':'var(--tx3)'};flex-shrink:0;">${i+1}</div>
+      <div style="flex:1;min-width:0;">
+        <div style="font-size:11.5px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${cid}</div>
+        <div style="background:var(--bg3);border-radius:3px;height:5px;margin-top:3px;overflow:hidden;">
+          <div style="width:${Math.round(cnt/maxC*100)}%;height:100%;background:${i<3?'var(--acc)':'var(--sky)'};border-radius:3px;opacity:${i<3?1:.7};"></div>
+        </div>
+      </div>
+      <div style="font-size:11.5px;font-weight:700;color:var(--tx2);flex-shrink:0;">${cnt}</div>
+    </div>`).join('');
+
+  // ── 6. VELOCIDADE DE FECHAMENTO ──
+  const hoje=now.getTime();
+  const os30=DB.filter(os=>{ if(!os.dataFechamento||isAberto(os)) return false; const d=_dt(os.dataFechamento); return d&&(hoje-d.getTime())<=30*86400000; }).length;
+  const os60=DB.filter(os=>{ if(!os.dataFechamento||isAberto(os)) return false; const d=_dt(os.dataFechamento); return d&&(hoje-d.getTime())<=60*86400000; }).length;
+  const os90=DB.filter(os=>{ if(!os.dataFechamento||isAberto(os)) return false; const d=_dt(os.dataFechamento); return d&&(hoje-d.getTime())<=90*86400000; }).length;
+  const velEl=el('ind-velocidade');
+  if(velEl) velEl.innerHTML=`
+    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;text-align:center;">
+      <div style="background:var(--bg3);border-radius:10px;padding:12px 8px;">
+        <div style="font-size:24px;font-weight:900;color:var(--grn);">${os30}</div>
+        <div style="font-size:10px;color:var(--tx3);margin-top:3px;">últimos 30d</div>
+        <div style="font-size:9.5px;color:var(--tx3);">${(os30/30).toFixed(1)}/dia</div>
+      </div>
+      <div style="background:var(--bg3);border-radius:10px;padding:12px 8px;">
+        <div style="font-size:24px;font-weight:900;color:var(--acc);">${os60}</div>
+        <div style="font-size:10px;color:var(--tx3);margin-top:3px;">últimos 60d</div>
+        <div style="font-size:9.5px;color:var(--tx3);">${(os60/60).toFixed(1)}/dia</div>
+      </div>
+      <div style="background:var(--bg3);border-radius:10px;padding:12px 8px;">
+        <div style="font-size:24px;font-weight:900;color:var(--sky);">${os90}</div>
+        <div style="font-size:10px;color:var(--tx3);margin-top:3px;">últimos 90d</div>
+        <div style="font-size:9.5px;color:var(--tx3);">${(os90/90).toFixed(1)}/dia</div>
+      </div>
+    </div>
+    <div style="margin-top:12px;padding:10px 14px;background:var(--bg3);border-radius:10px;display:flex;justify-content:space-between;align-items:center;">
+      <span style="font-size:11.5px;color:var(--tx2);">Projeção mensal (ritmo atual)</span>
+      <span style="font-size:14px;font-weight:800;color:var(--acc);">${Math.round(os30/30*30)} OS</span>
+    </div>`;
 }
+
 
 let _tickerRAF = null;
 let _tickerPos = 0;
@@ -3917,30 +3892,71 @@ function renderDash() {
 
   // ── MINI FINANCEIRO (admin only) ──
   if(isAdmin()) {
-    // ── Painel resultado do mês ──
+    // ── Painel resultado — respeita filtro do dashboard ──
     const _now = new Date();
-    const _anoAtual = _now.getFullYear();
-    const _mesAtual = _now.getMonth();
-    const _mesLabel = _now.toLocaleDateString('pt-BR',{month:'long',year:'numeric'});
     const _sv = (id,v) => { const e=document.getElementById(id); if(e) e.textContent=v; };
+
+    // Determinar ano e mês do filtro atual
+    let _anoFiltro, _mesFiltro, _mesLabel, _modoLabel;
+    if(dashConsolidado || (dashAno === null && dashMes === null)) {
+      // Sem filtro: usar mês atual
+      _anoFiltro = _now.getFullYear();
+      _mesFiltro = _now.getMonth();
+      _mesLabel  = _now.toLocaleDateString('pt-BR',{month:'long',year:'numeric'});
+      _modoLabel = _mesLabel;
+    } else if(dashAno && dashMes !== null) {
+      // Mês específico selecionado
+      _anoFiltro = dashAno;
+      _mesFiltro = dashMes;
+      const d = new Date(dashAno, dashMes, 1);
+      _mesLabel  = d.toLocaleDateString('pt-BR',{month:'long',year:'numeric'});
+      _modoLabel = _mesLabel;
+    } else if(dashAno && dashMes === null) {
+      // Ano inteiro: mostrar totais do ano (sem fixar mês)
+      _anoFiltro = dashAno;
+      _mesFiltro = null;
+      _mesLabel  = 'Ano ' + dashAno;
+      _modoLabel = 'Ano ' + dashAno;
+    } else {
+      _anoFiltro = _now.getFullYear();
+      _mesFiltro = _now.getMonth();
+      _mesLabel  = _now.toLocaleDateString('pt-BR',{month:'long',year:'numeric'});
+      _modoLabel = _mesLabel;
+    }
 
     const osMesFech = DB.filter(os => {
       if(!os.dataFechamento || isAberto(os)) return false;
       const d = new Date(os.dataFechamento.includes('T')?os.dataFechamento:os.dataFechamento+'T00:00');
-      return d.getFullYear()===_anoAtual && d.getMonth()===_mesAtual;
+      if(d.getFullYear() !== _anoFiltro) return false;
+      if(_mesFiltro !== null && d.getMonth() !== _mesFiltro) return false;
+      return true;
     });
+
     const _fat = osMesFech.reduce((s,os)=>s+parsVal(os.valor),0);
     const _imp = _fat * 0.12;
     const _CTIPO = {'A-413':18,'B-438':32,'B-437':30};
     let _com=0, _comOS=0;
     osMesFech.forEach(os=>{ const t=(os.tipoServico||'').toUpperCase(); for(const[k,v] of Object.entries(_CTIPO)){if(t.includes(k)){_com+=v;_comOS++;break;}} });
-    const _sal=700, _cnt=350;
+    // Fixos: multiplicar por nº de meses quando filtro é anual
+    const _nMeses = _mesFiltro !== null ? 1 : (() => {
+      const ms = new Set();
+      osMesFech.forEach(os=>{ const d=new Date(os.dataFechamento.includes('T')?os.dataFechamento:os.dataFechamento+'T00:00'); ms.add(d.getMonth()); });
+      return Math.max(1, ms.size);
+    })();
+    const _sal=700*_nMeses, _cnt=350*_nMeses;
     const _gastos=_imp+_com+_sal+_cnt;
     const _lucro=_fat-_gastos;
     const _marg=_fat>0?Math.round(_lucro/_fat*100):0;
 
     const _dfEl = id => document.getElementById(id);
-    if(_dfEl('dash-fin-mes-label')) _dfEl('dash-fin-mes-label').textContent = _mesLabel;
+    const _hdrEl = _dfEl('dash-fin-mes-label');
+    if(_hdrEl) _hdrEl.textContent = _modoLabel;
+    const _tituloEl = _dfEl('dash-resultado-titulo');
+    if(_tituloEl) _tituloEl.textContent = '💼 Resultado — ' + _modoLabel;
+
+    // Atualizar título do painel
+    const _hdrTitulo = document.querySelector('#df-faturado')?.closest('.admin-only')?.querySelector('div[style*="RESULTADO"]');
+
     _sv('df-faturado',   fmtVal(_fat));
     _sv('df-faturado-os',osMesFech.length+' OS fechadas');
     _sv('df-despesas',   fmtVal(_gastos));
@@ -4017,8 +4033,8 @@ function renderDash() {
       </div>`;
   }
 
-  // Atualizar mapa de calor
-  setTimeout(() => renderHeatmapDash(), 100);
+  // Atualizar indicadores operacionais
+  renderIndicadoresDash();
 }
 
 // ══════════════════════════════════════
