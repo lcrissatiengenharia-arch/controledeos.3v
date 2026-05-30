@@ -2487,12 +2487,18 @@ async function fbSave(os) {
   catch(e) { console.error(e); _hideSaving(false); toast('Erro ao salvar! Verifique sua conexão.','err'); throw e; }
 }
 async function fbDel(id) {
+  // Exclusão direta
+  const os = DB.find(o=>o.id===id);
   _showSaving('excluindo…');
   try {
-    await window._fbDelete(id);
+    if(typeof window._fbSoftDelete === 'function' && os) {
+      await window._fbSoftDelete(os);
+    } else {
+      await window._fbDelete(id);
+    }
     _hideSaving(true);
   } catch(e) {
-    console.error(e);
+    console.error('Erro ao excluir OS:', e);
     _hideSaving(false);
     toast('Erro ao excluir! Verifique sua conexão.','err');
     throw e;
@@ -2716,7 +2722,7 @@ function updateBadges() {
 
   const vencidas = DB.filter(os=>isAberto(os)&&diasAte(os.prazoFatal)!==null&&diasAte(os.prazoFatal)<0).length;
 
-  [['nb-total',total],['nb-preen',preen],['nb-vist',vist],['nb-ficha',semFicha],
+  [['nb-total',total],['nb-and',abertos.length],['nb-venc',venc],['nb-ficha',semFicha],['nb-fin',fin]].forEach(([id,v])=>{
     const el=document.getElementById(id); if(el) el.textContent=v;
   });
 
@@ -4253,6 +4259,7 @@ async function excluir() {
   const ref = os.numeroOS || os.id;
   if(!confirm(`Excluir esta OS?\n\nReferência: ${ref}\nEmpresa: ${os.empresa||'—'}\n\nEsta ação não pode ser desfeita.`)) return;
   const id=currentId;
+  const snapshot = JSON.parse(JSON.stringify(os));
   closeOv('ov-det');
   await fbDel(id);
   toast('OS excluída com sucesso.', 'ok');
@@ -7204,16 +7211,22 @@ dashConsolidado = false;
 
 async function excluirDefinitivo(id){
   if(typeof isAdmin === 'function' && !isAdmin()){ toast('Apenas administradores podem excluir definitivamente','err'); return; }
-  if(!os) return;
+  const os = (window.LIX_DB||[]).find(o=>o.id===id) || DB.find(o=>o.id===id);
+  if(!os) { toast('OS não encontrada','err'); return; }
   if(!confirm(`⚠ EXCLUIR PERMANENTEMENTE a OS ${os.numeroOS||id}?\n\nEsta ação NÃO pode ser desfeita.`)) return;
   try {
     _showSaving('excluindo…');
+    if(typeof window._fbHardDeleteLix === 'function') {
+      await window._fbHardDeleteLix(id);
+    } else if(typeof window._fbDelete === 'function') {
+      await window._fbDelete(id);
+    }
     _hideSaving(true);
     toast('OS excluída permanentemente.','ok');
   } catch(e){
-    // fallback: importar deleteDoc/doc do escopo do módulo
-    console.error(e);
-    try {
+    console.error('Erro ao excluir definitivamente:', e);
+    _hideSaving(false);
+    toast('Erro ao excluir. Tente novamente.','err');
   }
 }
 
