@@ -2487,10 +2487,16 @@ async function fbSave(os) {
   catch(e) { console.error(e); _hideSaving(false); toast('Erro ao salvar! Verifique sua conexão.','err'); throw e; }
 }
 async function fbDel(id) {
-  // Exclusão direta
-  const os = DB.find(o=>o.id===id);
   _showSaving('excluindo…');
   try {
+    await window._fbDelete(id);
+    _hideSaving(true);
+  } catch(e) {
+    console.error(e);
+    _hideSaving(false);
+    toast('Erro ao excluir! Verifique sua conexão.','err');
+    throw e;
+  }
 }
 function setConn(s) {
   const dot = document.getElementById('cdot');
@@ -4247,13 +4253,9 @@ async function excluir() {
   const ref = os.numeroOS || os.id;
   if(!confirm(`Excluir esta OS?\n\nReferência: ${ref}\nEmpresa: ${os.empresa||'—'}\n\nEsta ação não pode ser desfeita.`)) return;
   const id=currentId;
-  const snapshot = JSON.parse(JSON.stringify(os));
   closeOv('ov-det');
   await fbDel(id);
   toast('OS excluída com sucesso.', 'ok');
-    try {
-      _showSaving('restaurando…');
-  });
 }
 
 // ══════════════════════════════════════
