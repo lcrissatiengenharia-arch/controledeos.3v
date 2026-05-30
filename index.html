@@ -3432,31 +3432,38 @@ function _findCoords(cidade) {
 function renderHeatmapDash() { /* mapa removido */ }
 
 function renderIndicadoresDash() {
-  // Usa SEMPRE o DB completo para indicadores históricos
-  // O filtro só afeta os cards do topo (getDadosFiltrados)
+  // Guard: se DB ainda vazio, tenta novamente em 600ms
+  if(!DB || DB.length === 0) {
+    setTimeout(renderIndicadoresDash, 600);
+    return;
+  }
+
   const el  = id => document.getElementById(id);
   const now = new Date();
   const _pv = v  => parseFloat(v||0)||0;
   const _dt = s  => { if(!s) return null; const d=new Date(s.includes('T')?s:s+'T00:00'); return isNaN(d)?null:d; };
 
-  // ── 1. TOP EMPRESAS (base: todas as OS finalizadas no DB) ──
+  // ── 1. TOP EMPRESAS (total de OS + finalizadas) ──
   const empMap={};
   DB.forEach(os=>{
     const e=os.empresa||'—';
-    if(!empMap[e]) empMap[e]={fech:0,val:0};
+    if(!e||e==='—') return;
+    if(!empMap[e]) empMap[e]={total:0,fech:0,val:0};
+    empMap[e].total++;
     if(!isAberto(os)) { empMap[e].fech++; empMap[e].val+=_pv(os.valor); }
   });
-  const empArr=Object.entries(empMap).filter(([,d])=>d.fech>0).sort((a,b)=>b[1].fech-a[1].fech).slice(0,7);
-  const maxEmp=empArr[0]?.[1].fech||1;
+  const empArr=Object.entries(empMap).sort((a,b)=>b[1].total-a[1].total).slice(0,7);
+  const maxEmp=empArr[0]?.[1].total||1;
   const empEl=el('ind-empresas');
   if(empEl) empEl.innerHTML=empArr.length ? empArr.map(([emp,d])=>`
     <div style="margin-bottom:9px;">
       <div style="display:flex;justify-content:space-between;font-size:11.5px;margin-bottom:3px;">
-        <span style="font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:140px;" title="${emp}">${emp}</span>
-        <span style="color:var(--tx3);font-size:11px;flex-shrink:0;margin-left:6px;">${d.fech} OS · ${fmtVal(d.val)}</span>
+        <span style="font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:130px;" title="${emp}">${emp}</span>
+        <span style="color:var(--tx3);font-size:10.5px;flex-shrink:0;margin-left:6px;">${d.fech}/${d.total} · ${fmtVal(d.val)}</span>
       </div>
-      <div style="background:var(--bg3);border-radius:4px;height:7px;overflow:hidden;">
-        <div style="width:${Math.round(d.fech/maxEmp*100)}%;height:100%;background:linear-gradient(90deg,var(--acc),var(--sky));border-radius:4px;"></div>
+      <div style="background:var(--bg3);border-radius:4px;height:7px;overflow:hidden;position:relative;">
+        <div style="width:${Math.round(d.total/maxEmp*100)}%;height:100%;background:var(--bg4);border-radius:4px;position:absolute;"></div>
+        <div style="width:${Math.round(d.fech/maxEmp*100)}%;height:100%;background:linear-gradient(90deg,var(--acc),var(--sky));border-radius:4px;position:absolute;"></div>
       </div>
     </div>`).join('')
   : '<div style="color:var(--tx3);font-size:12px;padding:12px 0;text-align:center;">Sem dados</div>';
