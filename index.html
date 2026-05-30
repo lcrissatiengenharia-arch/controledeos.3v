@@ -1015,23 +1015,99 @@ tr.row-vencido{animation:none!important;}
     </div>
   </div>
 
-  <!-- ROW 6: Admin only — mini financeiro -->
-  <div class="admin-only" style="display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin-bottom:16px;">
-    <div class="card">
-      <div class="card-hd"><h3>💰 Faturamento Mensal</h3></div>
-      <div style="display:flex;gap:4px;align-items:flex-end;height:90px;padding-bottom:18px;" id="fin-mini-bars"></div>
+  <!-- ROW 6: Admin only — RESULTADO FINANCEIRO (bater o olho) -->
+  <div class="admin-only" style="margin-bottom:16px;">
+
+    <!-- Cabeçalho do painel -->
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">
+      <div style="font-size:11px;font-weight:700;letter-spacing:.8px;text-transform:uppercase;color:var(--tx3);">💼 Resultado do Mês Atual</div>
+      <div style="font-size:11px;color:var(--tx3);" id="dash-fin-mes-label"></div>
     </div>
-    <div class="card">
-      <div class="card-hd"><h3>💹 Top Empresas por Valor</h3></div>
-      <div id="fin-emp-mini"></div>
+
+    <!-- Linha 1: Faturado / Despesas / Lucro — os 3 grandes -->
+    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;margin-bottom:12px;">
+
+      <!-- Faturado -->
+      <div style="background:linear-gradient(135deg,#1e3a8a,#2563eb);border-radius:14px;padding:20px;color:#fff;position:relative;overflow:hidden;">
+        <div style="position:absolute;right:-10px;top:-10px;font-size:64px;opacity:.08;">💰</div>
+        <div style="font-size:9px;font-weight:700;letter-spacing:1px;text-transform:uppercase;opacity:.7;margin-bottom:8px;">Faturado no Mês</div>
+        <div style="font-size:28px;font-weight:900;letter-spacing:-1px;line-height:1;" id="df-faturado">R$ 0</div>
+        <div style="font-size:10px;opacity:.6;margin-top:6px;" id="df-faturado-os">0 OS fechadas</div>
+        <div style="margin-top:14px;height:3px;background:rgba(255,255,255,.2);border-radius:2px;overflow:hidden;">
+          <div style="height:100%;background:#fff;border-radius:2px;width:100%;"></div>
+        </div>
+      </div>
+
+      <!-- Despesas -->
+      <div style="background:linear-gradient(135deg,#7f1d1d,#ef4444);border-radius:14px;padding:20px;color:#fff;position:relative;overflow:hidden;">
+        <div style="position:absolute;right:-10px;top:-10px;font-size:64px;opacity:.08;">📉</div>
+        <div style="font-size:9px;font-weight:700;letter-spacing:1px;text-transform:uppercase;opacity:.7;margin-bottom:8px;">Total Despesas</div>
+        <div style="font-size:28px;font-weight:900;letter-spacing:-1px;line-height:1;" id="df-despesas">R$ 0</div>
+        <div style="font-size:10px;opacity:.6;margin-top:6px;" id="df-despesas-pct">0% do faturado</div>
+        <!-- Mini breakdown -->
+        <div style="margin-top:12px;display:flex;flex-direction:column;gap:4px;" id="df-despesas-breakdown"></div>
+      </div>
+
+      <!-- Lucro Líquido -->
+      <div style="background:linear-gradient(135deg,#14532d,#16a34a);border-radius:14px;padding:20px;color:#fff;position:relative;overflow:hidden;">
+        <div style="position:absolute;right:-10px;top:-10px;font-size:64px;opacity:.08;">📈</div>
+        <div style="font-size:9px;font-weight:700;letter-spacing:1px;text-transform:uppercase;opacity:.7;margin-bottom:8px;">Lucro Líquido</div>
+        <div style="font-size:28px;font-weight:900;letter-spacing:-1px;line-height:1;" id="df-lucro">R$ 0</div>
+        <div style="font-size:10px;opacity:.6;margin-top:6px;" id="df-margem">margem —%</div>
+        <!-- Barra de margem -->
+        <div style="margin-top:14px;">
+          <div style="height:6px;background:rgba(255,255,255,.2);border-radius:3px;overflow:hidden;">
+            <div id="df-margem-barra" style="height:100%;background:#4ade80;border-radius:3px;width:0%;transition:width .8s ease;"></div>
+          </div>
+        </div>
+      </div>
     </div>
-    <div class="card">
-      <div class="card-hd"><h3>📈 Resumo Financeiro</h3></div>
-      <div id="fin-resumo-mini"></div>
+
+    <!-- Linha 2: Breakdown detalhado de cada despesa + comissão Paulo -->
+    <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:10px;">
+
+      <!-- Impostos -->
+      <div style="background:var(--bg2);border:1.5px solid var(--br);border-radius:12px;padding:14px 16px;display:flex;align-items:center;gap:12px;">
+        <div style="width:38px;height:38px;border-radius:10px;background:rgba(239,68,68,.12);display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0;">🏛️</div>
+        <div style="min-width:0;">
+          <div style="font-size:9.5px;font-weight:700;color:var(--tx3);text-transform:uppercase;letter-spacing:.6px;margin-bottom:2px;">Impostos (12%)</div>
+          <div style="font-size:17px;font-weight:800;color:#ef4444;" id="df-impostos">R$ 0</div>
+        </div>
+      </div>
+
+      <!-- Comissão Paulo -->
+      <div style="background:var(--bg2);border:1.5px solid var(--br);border-radius:12px;padding:14px 16px;display:flex;align-items:center;gap:12px;">
+        <div style="width:38px;height:38px;border-radius:10px;background:rgba(249,115,22,.12);display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0;">💵</div>
+        <div style="min-width:0;">
+          <div style="font-size:9.5px;font-weight:700;color:var(--tx3);text-transform:uppercase;letter-spacing:.6px;margin-bottom:2px;">Comissão Paulo</div>
+          <div style="font-size:17px;font-weight:800;color:#f97316;" id="df-comissao">R$ 0</div>
+          <div style="font-size:9.5px;color:var(--tx3);" id="df-comissao-os">0 OS</div>
+        </div>
+      </div>
+
+      <!-- Salário JP -->
+      <div style="background:var(--bg2);border:1.5px solid var(--br);border-radius:12px;padding:14px 16px;display:flex;align-items:center;gap:12px;">
+        <div style="width:38px;height:38px;border-radius:10px;background:rgba(234,179,8,.12);display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0;">👤</div>
+        <div style="min-width:0;">
+          <div style="font-size:9.5px;font-weight:700;color:var(--tx3);text-transform:uppercase;letter-spacing:.6px;margin-bottom:2px;">Salário João Paulo</div>
+          <div style="font-size:17px;font-weight:800;color:#eab308;" id="df-salario">R$ 700,00</div>
+          <div style="font-size:9.5px;color:var(--tx3);">fixo mensal</div>
+        </div>
+      </div>
+
+      <!-- Contador -->
+      <div style="background:var(--bg2);border:1.5px solid var(--br);border-radius:12px;padding:14px 16px;display:flex;align-items:center;gap:12px;">
+        <div style="width:38px;height:38px;border-radius:10px;background:rgba(167,139,250,.12);display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0;">📒</div>
+        <div style="min-width:0;">
+          <div style="font-size:9.5px;font-weight:700;color:var(--tx3);text-transform:uppercase;letter-spacing:.6px;margin-bottom:2px;">Contador</div>
+          <div style="font-size:17px;font-weight:800;color:#a78bfa;" id="df-contador">R$ 350,00</div>
+          <div style="font-size:9.5px;color:var(--tx3);">fixo mensal</div>
+        </div>
+      </div>
     </div>
   </div>
 
-</div>
+
 
 <!-- ═══ LISTA / FILTRADAS ═══ -->
 <div class="page" id="page-lista">
@@ -3484,55 +3560,73 @@ function renderDash() {
       const {mIdx, ano} = getMesRecebimento(os);
       if(mIdx >= 0 && ano === anoRefMini) valMes[mIdx] += parsVal(os.valor);
     });
-    const vmx=Math.max(...valMes,1);
-    const finBars=document.getElementById('fin-mini-bars');
-    if(finBars) finBars.innerHTML = MESES_ABR.map((m,i)=>`
-      <div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:2px;position:relative;">
-        <div style="width:100%;background:linear-gradient(to top,var(--grn),var(--sky));border-radius:3px 3px 0 0;
-          height:${Math.max(2,valMes[i]/vmx*72)}px;opacity:${valMes[i]>0?.9:.2};
-          position:absolute;bottom:18px;transition:height .7s ease;" title="${m}/${anoRefMini}: ${fmtVal(valMes[i])} (recebimento)"></div>
-        <div style="position:absolute;bottom:2px;font-size:8px;color:var(--tx3);">${m}</div>
-      </div>`).join('');
+    // ── PAINEL RESULTADO DO MÊS (lucro / despesas / comissão) ──
+    const now = new Date();
+    const mesAtual = now.getMonth(), anoAtual = now.getFullYear();
+    const mesLabel = now.toLocaleDateString('pt-BR',{month:'long',year:'numeric'});
+    const dfEl = id => document.getElementById(id);
 
-    // Top empresas por valor
-    const empValMap={};
-    dados.forEach(os=>{ empValMap[os.empresa]=(empValMap[os.empresa]||0)+parsVal(os.valor); });
-    const empValArr=Object.entries(empValMap).sort((a,b)=>b[1]-a[1]).slice(0,5);
-    const evmx=empValArr[0]?.[1]||1;
-    const fEmpMini=document.getElementById('fin-emp-mini');
-    if(fEmpMini) fEmpMini.innerHTML=empValArr.map(([e,v])=>`
-      <div style="padding:5px 0;border-bottom:1px solid var(--br);">
-        <div style="display:flex;justify-content:space-between;margin-bottom:4px;">
-          <div style="font-size:11px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100px;" title="${e}">${e}</div>
-          <div style="font-size:10px;font-weight:700;color:var(--grn);flex-shrink:0;">${fmtVal(v)}</div>
-        </div>
-        <div style="height:10px;background:var(--bg4);border-radius:4px;overflow:hidden;">
-          <div style="height:100%;width:${v/evmx*100}%;background:linear-gradient(to right,var(--grn),var(--sky));border-radius:4px;transition:width .7s ease;"></div>
-        </div>
-      </div>`).join('');
+    // OS fechadas no mês atual
+    const osMesFech = DB.filter(os => {
+      if(!os.dataFechamento || isAberto(os)) return false;
+      const d = new Date(os.dataFechamento.includes('T') ? os.dataFechamento : os.dataFechamento + 'T00:00');
+      return d.getFullYear() === anoAtual && d.getMonth() === mesAtual;
+    });
 
-    // Resumo financeiro
-    const totalVal=dados.reduce((a,o)=>a+parsVal(o.valor),0);
-    const recVal=dados.filter(o=>!isAberto(o)).reduce((a,o)=>a+parsVal(o.valor),0);
-    const aberVal=dados.filter(isAberto).reduce((a,o)=>a+parsVal(o.valor),0);
-    const fRes=document.getElementById('fin-resumo-mini');
-    if(fRes) fRes.innerHTML=`
-      <div style="display:flex;flex-direction:column;gap:10px;">
-        ${[['💰 Total previsto',totalVal,'var(--tx)'],
-           ['✅ Recebido',recVal,'var(--grn)'],
-           ['⏳ A receber',aberVal,'var(--org)'],
-          ].map(([l,v,c])=>`
-          <div style="display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid var(--br);">
-            <span style="font-size:12px;color:var(--tx2);">${l}</span>
-            <span style="font-size:14px;font-weight:800;color:${c};">${fmtVal(v)}</span>
-          </div>`).join('')}
-        <div style="text-align:center;margin-top:4px;">
-          <div style="font-size:10px;color:var(--tx3);margin-bottom:4px;">Taxa de recebimento</div>
-          <div style="font-size:22px;font-weight:800;background:linear-gradient(135deg,var(--grn),var(--sky));-webkit-background-clip:text;-webkit-text-fill-color:transparent;">
-            ${totalVal>0?Math.round(recVal/totalVal*100):0}%
-          </div>
-        </div>
-      </div>`;
+    const faturadoMes = osMesFech.reduce((s, os) => s + parsVal(os.valor), 0);
+
+    // Impostos 12%
+    const impostosMes = faturadoMes * 0.12;
+
+    // Comissão Paulo
+    const CTIPO = {'A-413':18,'B-438':32,'B-437':30};
+    let comissaoMes = 0, comissaoOS = 0;
+    osMesFech.forEach(os => {
+      const t = (os.tipoServico||'').toUpperCase();
+      for(const [k,v] of Object.entries(CTIPO)) { if(t.includes(k)) { comissaoMes+=v; comissaoOS++; break; } }
+    });
+
+    const salarioJPMes  = 700;
+    const contadorMes   = 350;
+    const totalDespesas = impostosMes + comissaoMes + salarioJPMes + contadorMes;
+    const lucroMes      = faturadoMes - totalDespesas;
+    const margemMes     = faturadoMes > 0 ? Math.round(lucroMes / faturadoMes * 100) : 0;
+    const despPct       = faturadoMes > 0 ? Math.round(totalDespesas / faturadoMes * 100) : 0;
+
+    if(dfEl('dash-fin-mes-label')) dfEl('dash-fin-mes-label').textContent = mesLabel;
+
+    const sv2 = (id, v) => { const e = dfEl(id); if(e) e.textContent = v; };
+    sv2('df-faturado',     fmtVal(faturadoMes));
+    sv2('df-faturado-os',  osMesFech.length + ' OS fechadas');
+    sv2('df-despesas',     fmtVal(totalDespesas));
+    sv2('df-despesas-pct', despPct + '% do faturado');
+    sv2('df-lucro',        fmtVal(lucroMes));
+    sv2('df-margem',       'margem ' + margemMes + '%');
+    sv2('df-impostos',     fmtVal(impostosMes));
+    sv2('df-comissao',     fmtVal(comissaoMes));
+    sv2('df-comissao-os',  comissaoOS + ' OS comissionadas');
+    sv2('df-salario',      fmtVal(salarioJPMes));
+    sv2('df-contador',     fmtVal(contadorMes));
+
+    // Barra de margem
+    const barMargem = dfEl('df-margem-barra');
+    if(barMargem) setTimeout(() => { barMargem.style.width = Math.max(0, Math.min(margemMes, 100)) + '%'; }, 100);
+
+    // Mini breakdown dentro do card Despesas
+    const breakdown = dfEl('df-despesas-breakdown');
+    if(breakdown) {
+      const itens = [
+        {l:'Impostos', v:impostosMes},
+        {l:'Comissão Paulo', v:comissaoMes},
+        {l:'João Paulo', v:salarioJPMes},
+        {l:'Contador', v:contadorMes},
+      ];
+      breakdown.innerHTML = itens.map(it => `
+        <div style="display:flex;justify-content:space-between;font-size:9.5px;color:rgba(255,255,255,.75);">
+          <span>${it.l}</span>
+          <span style="font-weight:700;">${fmtVal(it.v)}</span>
+        </div>`).join('');
+    }
   }
 
   // Atualizar mapa de calor
