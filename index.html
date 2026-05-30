@@ -3,10 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
-<meta http-equiv="Pragma" content="no-cache">
-<meta http-equiv="Expires" content="0">
-<title>Controle OS — Caixa (v3.3)</title>
+<title>Controle OS — Caixa (v3.2)</title>
 <meta name="description" content="Sistema de gestão de Ordens de Serviço para engenharia/avaliações — Caixa Econômica Federal">
 <meta name="robots" content="noindex, nofollow">
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
@@ -133,7 +130,28 @@ window._fbSave = async (os) => {
   } catch(e){ /* noop */ }
   await setDoc(doc(db, "ordens_servico", id), data);
 };
+// Soft-delete: move para lixeira em vez de apagar definitivo (recuperável por 30 dias)
+window._fbSoftDelete = async (os) => {
+  const { id, ...data } = os;
+  try {
+    const u = (typeof USUARIO_ATUAL !== 'undefined' && USUARIO_ATUAL) ? USUARIO_ATUAL : null;
+    data.deletedAt = serverTimestamp();
+    if(u) { data.deletedBy = u.user; data.deletedByNome = u.nome; }
+    await setDoc(doc(db, "ordens_servico_lixeira", id), data);
+    await deleteDoc(doc(db, "ordens_servico", id));
+  } catch(e) {
+    console.error('Soft-delete falhou, tentando hard-delete:', e);
+    await deleteDoc(doc(db, "ordens_servico", id));
+  }
+};
+window._fbRestore = async (id, data) => {
+  const { deletedAt, deletedBy, deletedByNome, ...clean } = data;
+  clean.updatedAt = serverTimestamp();
+  await setDoc(doc(db, "ordens_servico", id), clean);
+  await deleteDoc(doc(db, "ordens_servico_lixeira", id));
+};
 window._fbDelete = async (id) => { await deleteDoc(doc(db, "ordens_servico", id)); };
+window._fbHardDeleteLix = async (id) => { await deleteDoc(doc(db, "ordens_servico_lixeira", id)); };
 window._fbListen = () => {
   try {
     if(typeof setConn === 'function') setConn('connecting');
@@ -175,6 +193,24 @@ window._fbListen = () => {
   }
 };
 document.addEventListener('DOMContentLoaded', () => { /* login controls when to start */ });
+
+// Expor _fbListenLixeira dentro do módulo (tem acesso a collection/onSnapshot)
+window._fbListenLixeira = () => {
+  try {
+    const colLix = collection(db, "ordens_servico_lixeira");
+    return onSnapshot(colLix,
+      snap => {
+        try {
+          window.LIX_DB = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+          if(typeof updateBadges === 'function') updateBadges();
+          const active = document.querySelector('.page.active')?.id;
+          if(active === 'page-lixeira' && typeof renderLixeira === 'function') renderLixeira();
+        } catch(err){ console.error('Lixeira parse:', err); }
+      },
+      err => { console.error('Lixeira listener:', err); }
+    );
+  } catch(err){ console.error('Lixeira init:', err); }
+};
 
 // Sinaliza que o módulo Firebase terminou de carregar
 window.dispatchEvent(new CustomEvent('fbReady'));
@@ -745,21 +781,23 @@ tr.row-vencido{animation:none!important;}
     <button class="ni" data-page="andamento" onclick="go('andamento')"><span class="ic">⏳</span><span class="lbl">Em Andamento</span><span class="cnt warn" id="nb-and">0</span></button>
     <button class="ni" data-page="sem-ficha" onclick="go('sem-ficha')"><span class="ic">📝</span><span class="lbl">Fichas de Pesquisa</span><span class="cnt warn" id="nb-ficha">0</span></button>
     <button class="ni" data-page="vencendo" onclick="go('vencendo')"><span class="ic">🔴</span><span class="lbl">Próximo do vencimento</span><span class="cnt danger" id="nb-venc">0</span></button>
+    <button class="ni" data-page="lixeira" onclick="go('lixeira')"><span class="ic">🗑️</span><span class="lbl">Lixeira</span><span class="cnt" id="nb-lix">0</span></button>
     <button class="ni" data-page="finalizadas" onclick="go('finalizadas')"><span class="ic">✅</span><span class="lbl">Finalizadas</span><span class="cnt green" id="nb-fin">0</span></button>
 
     <div class="sb-sec">Análises</div>
-
+    <button class="ni" data-page="dash-saude" onclick="go('dash-saude')"><span class="ic">🎯</span><span class="lbl">Saúde da Operação</span></button>
+    <button class="ni" data-page="dash-calendario" onclick="go('dash-calendario')"><span class="ic">📅</span><span class="lbl">Calendário de OS</span></button>
+    <button class="ni" data-page="dash-timeline" onclick="go('dash-timeline')"><span class="ic">⏱️</span><span class="lbl">Timeline Crítica</span></button>
+    <button class="ni" data-page="dash-tendencia" onclick="go('dash-tendencia')"><span class="ic">📈</span><span class="lbl">Tendência de Prazo</span></button>
     <button class="ni admin-only" data-page="dash-receita" onclick="go('dash-receita')"><span class="ic">💹</span><span class="lbl">Receita Empresa × Tipo</span></button>
     <button class="ni" data-page="dash-cidades" onclick="go('dash-cidades')"><span class="ic">🗺️</span><span class="lbl">Mapa de Cidades</span></button>
+    <button class="ni admin-only" data-page="dash-metas" onclick="go('dash-metas')"><span class="ic">🏆</span><span class="lbl">Metas e SLA</span></button>
     <button class="ni" data-page="dash-feed" onclick="go('dash-feed')"><span class="ic">⚡</span><span class="lbl">Feed de Atividade</span></button>
     <button class="ni admin-only" data-page="dash-comparativo" onclick="go('dash-comparativo')"><span class="ic">📊</span><span class="lbl">Comparativo Anual</span></button>
-    <button class="ni admin-only" data-page="dash-recebimentos" onclick="go('dash-recebimentos')"><span class="ic">💳</span><span class="lbl">Painel de Recebimentos</span></button>
-    <button class="ni" data-page="dash-produtividade" onclick="go('dash-produtividade')"><span class="ic">⚡</span><span class="lbl">Produtividade</span></button>
 
     <div class="sb-sec admin-only">Financeiro</div>
     <button class="ni admin-only" data-page="financeiro" onclick="go('financeiro')"><span class="ic">💰</span><span class="lbl">Dashboard Financeiro</span></button>
     <button class="ni admin-only" data-page="faturas" onclick="go('faturas')"><span class="ic">🧾</span><span class="lbl">Gerar Fatura</span></button>
-    <button class="ni paulo-only admin-only-also" data-page="comissao-paulo" onclick="go('comissao-paulo')" id="btn-comissao-paulo" style="display:none;"><span class="ic">💵</span><span class="lbl">Meu Comissionamento</span></button>
 
 
     <div class="sb-sec">Campo</div>
@@ -768,12 +806,6 @@ tr.row-vencido{animation:none!important;}
 
   </nav>
   <div class="sb-foot">
-    <!-- Widget de comissão Paulo — visível para admin e Paulo -->
-    <div id="comissao-widget" style="display:none;margin-bottom:12px;background:linear-gradient(135deg,#0f4c2a,#166534);border-radius:10px;padding:12px 14px;cursor:pointer;" onclick="go('comissao-paulo')" title="Ver detalhes do comissionamento">
-      <div style="font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.8px;color:rgba(255,255,255,.6);margin-bottom:6px;" id="cw-label">💵 Comissão — Paulo</div>
-      <div style="font-size:22px;font-weight:900;color:#4ade80;line-height:1;" id="cw-total">R$ 0,00</div>
-      <div style="font-size:10px;color:rgba(255,255,255,.65);margin-top:4px;" id="cw-sub">0 OS · mês atual</div>
-    </div>
     <div id="user-badge-wrap" style="margin-bottom:10px;"></div>
     <div class="conn"><div class="conn-dot" id="cdot"></div><span class="conn-lbl" id="clbl">Conectando...</span></div>
     <div class="sb-ver">v3.1 · 2026</div>
@@ -996,99 +1028,23 @@ tr.row-vencido{animation:none!important;}
     </div>
   </div>
 
-  <!-- ROW 6: Admin only — RESULTADO FINANCEIRO (bater o olho) -->
-  <div class="admin-only" style="margin-bottom:16px;">
-
-    <!-- Cabeçalho do painel -->
-    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">
-      <div style="font-size:11px;font-weight:700;letter-spacing:.8px;text-transform:uppercase;color:var(--tx3);">💼 Resultado do Mês Atual</div>
-      <div style="font-size:11px;color:var(--tx3);" id="dash-fin-mes-label"></div>
+  <!-- ROW 6: Admin only — mini financeiro -->
+  <div class="admin-only" style="display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin-bottom:16px;">
+    <div class="card">
+      <div class="card-hd"><h3>💰 Faturamento Mensal</h3></div>
+      <div style="display:flex;gap:4px;align-items:flex-end;height:90px;padding-bottom:18px;" id="fin-mini-bars"></div>
     </div>
-
-    <!-- Linha 1: Faturado / Despesas / Lucro — os 3 grandes -->
-    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;margin-bottom:12px;">
-
-      <!-- Faturado -->
-      <div style="background:linear-gradient(135deg,#1e3a8a,#2563eb);border-radius:14px;padding:20px;color:#fff;position:relative;overflow:hidden;">
-        <div style="position:absolute;right:-10px;top:-10px;font-size:64px;opacity:.08;">💰</div>
-        <div style="font-size:9px;font-weight:700;letter-spacing:1px;text-transform:uppercase;opacity:.7;margin-bottom:8px;">Faturado no Mês</div>
-        <div style="font-size:28px;font-weight:900;letter-spacing:-1px;line-height:1;" id="df-faturado">R$ 0</div>
-        <div style="font-size:10px;opacity:.6;margin-top:6px;" id="df-faturado-os">0 OS fechadas</div>
-        <div style="margin-top:14px;height:3px;background:rgba(255,255,255,.2);border-radius:2px;overflow:hidden;">
-          <div style="height:100%;background:#fff;border-radius:2px;width:100%;"></div>
-        </div>
-      </div>
-
-      <!-- Despesas -->
-      <div style="background:linear-gradient(135deg,#7f1d1d,#ef4444);border-radius:14px;padding:20px;color:#fff;position:relative;overflow:hidden;">
-        <div style="position:absolute;right:-10px;top:-10px;font-size:64px;opacity:.08;">📉</div>
-        <div style="font-size:9px;font-weight:700;letter-spacing:1px;text-transform:uppercase;opacity:.7;margin-bottom:8px;">Total Despesas</div>
-        <div style="font-size:28px;font-weight:900;letter-spacing:-1px;line-height:1;" id="df-despesas">R$ 0</div>
-        <div style="font-size:10px;opacity:.6;margin-top:6px;" id="df-despesas-pct">0% do faturado</div>
-        <!-- Mini breakdown -->
-        <div style="margin-top:12px;display:flex;flex-direction:column;gap:4px;" id="df-despesas-breakdown"></div>
-      </div>
-
-      <!-- Lucro Líquido -->
-      <div style="background:linear-gradient(135deg,#14532d,#16a34a);border-radius:14px;padding:20px;color:#fff;position:relative;overflow:hidden;">
-        <div style="position:absolute;right:-10px;top:-10px;font-size:64px;opacity:.08;">📈</div>
-        <div style="font-size:9px;font-weight:700;letter-spacing:1px;text-transform:uppercase;opacity:.7;margin-bottom:8px;">Lucro Líquido</div>
-        <div style="font-size:28px;font-weight:900;letter-spacing:-1px;line-height:1;" id="df-lucro">R$ 0</div>
-        <div style="font-size:10px;opacity:.6;margin-top:6px;" id="df-margem">margem —%</div>
-        <!-- Barra de margem -->
-        <div style="margin-top:14px;">
-          <div style="height:6px;background:rgba(255,255,255,.2);border-radius:3px;overflow:hidden;">
-            <div id="df-margem-barra" style="height:100%;background:#4ade80;border-radius:3px;width:0%;transition:width .8s ease;"></div>
-          </div>
-        </div>
-      </div>
+    <div class="card">
+      <div class="card-hd"><h3>💹 Top Empresas por Valor</h3></div>
+      <div id="fin-emp-mini"></div>
     </div>
-
-    <!-- Linha 2: Breakdown detalhado de cada despesa + comissão Paulo -->
-    <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:10px;">
-
-      <!-- Impostos -->
-      <div style="background:var(--bg2);border:1.5px solid var(--br);border-radius:12px;padding:14px 16px;display:flex;align-items:center;gap:12px;">
-        <div style="width:38px;height:38px;border-radius:10px;background:rgba(239,68,68,.12);display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0;">🏛️</div>
-        <div style="min-width:0;">
-          <div style="font-size:9.5px;font-weight:700;color:var(--tx3);text-transform:uppercase;letter-spacing:.6px;margin-bottom:2px;">Impostos (12%)</div>
-          <div style="font-size:17px;font-weight:800;color:#ef4444;" id="df-impostos">R$ 0</div>
-        </div>
-      </div>
-
-      <!-- Comissão Paulo -->
-      <div style="background:var(--bg2);border:1.5px solid var(--br);border-radius:12px;padding:14px 16px;display:flex;align-items:center;gap:12px;">
-        <div style="width:38px;height:38px;border-radius:10px;background:rgba(249,115,22,.12);display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0;">💵</div>
-        <div style="min-width:0;">
-          <div style="font-size:9.5px;font-weight:700;color:var(--tx3);text-transform:uppercase;letter-spacing:.6px;margin-bottom:2px;">Comissão Paulo</div>
-          <div style="font-size:17px;font-weight:800;color:#f97316;" id="df-comissao">R$ 0</div>
-          <div style="font-size:9.5px;color:var(--tx3);" id="df-comissao-os">0 OS</div>
-        </div>
-      </div>
-
-      <!-- Salário JP -->
-      <div style="background:var(--bg2);border:1.5px solid var(--br);border-radius:12px;padding:14px 16px;display:flex;align-items:center;gap:12px;">
-        <div style="width:38px;height:38px;border-radius:10px;background:rgba(234,179,8,.12);display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0;">👤</div>
-        <div style="min-width:0;">
-          <div style="font-size:9.5px;font-weight:700;color:var(--tx3);text-transform:uppercase;letter-spacing:.6px;margin-bottom:2px;">Salário João Paulo</div>
-          <div style="font-size:17px;font-weight:800;color:#eab308;" id="df-salario">R$ 700,00</div>
-          <div style="font-size:9.5px;color:var(--tx3);">fixo mensal</div>
-        </div>
-      </div>
-
-      <!-- Contador -->
-      <div style="background:var(--bg2);border:1.5px solid var(--br);border-radius:12px;padding:14px 16px;display:flex;align-items:center;gap:12px;">
-        <div style="width:38px;height:38px;border-radius:10px;background:rgba(167,139,250,.12);display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0;">📒</div>
-        <div style="min-width:0;">
-          <div style="font-size:9.5px;font-weight:700;color:var(--tx3);text-transform:uppercase;letter-spacing:.6px;margin-bottom:2px;">Contador</div>
-          <div style="font-size:17px;font-weight:800;color:#a78bfa;" id="df-contador">R$ 350,00</div>
-          <div style="font-size:9.5px;color:var(--tx3);">fixo mensal</div>
-        </div>
-      </div>
+    <div class="card">
+      <div class="card-hd"><h3>📈 Resumo Financeiro</h3></div>
+      <div id="fin-resumo-mini"></div>
     </div>
   </div>
 
-
+</div>
 
 <!-- ═══ LISTA / FILTRADAS ═══ -->
 <div class="page" id="page-lista">
@@ -1184,75 +1140,7 @@ tr.row-vencido{animation:none!important;}
 <!-- ═══ FINANCEIRO ═══ -->
 <div class="page" id="page-financeiro">
 
-  <!-- PAINEL DE RESULTADO — lucro líquido -->
-  <div class="card" style="margin-bottom:20px;background:linear-gradient(135deg,#0f172a,#1e3a8a);border:none;color:#fff;">
-    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:18px;">
-      <div>
-        <div style="font-size:10px;font-weight:700;letter-spacing:1.2px;text-transform:uppercase;opacity:.6;margin-bottom:6px;">Resultado Financeiro</div>
-        <div style="font-size:20px;font-weight:900;letter-spacing:-.5px;">Lucro Líquido</div>
-      </div>
-      <select id="fin-ano-lucro" onchange="renderFinanceiro()" style="padding:6px 12px;font-size:12px;background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.2);border-radius:8px;color:#fff;">
-        <option value="">Todos os anos</option><option>2025</option><option selected>2026</option><option>2027</option>
-      </select>
-    </div>
-    <div style="display:grid;grid-template-columns:repeat(8,1fr);gap:12px;">
-      <!-- Faturado -->
-      <div style="background:rgba(255,255,255,.08);border-radius:10px;padding:14px 12px;text-align:center;border:1px solid rgba(255,255,255,.1);">
-        <div style="font-size:9px;font-weight:700;letter-spacing:.8px;text-transform:uppercase;opacity:.6;margin-bottom:6px;">Faturado</div>
-        <div style="font-size:16px;font-weight:900;color:#fff;" id="ll-faturado">R$ 0</div>
-        <div style="font-size:9.5px;opacity:.5;margin-top:3px;">OS finalizadas</div>
-      </div>
-      <!-- Impostos 12% -->
-      <div style="background:rgba(239,68,68,.15);border-radius:10px;padding:14px 12px;text-align:center;border:1px solid rgba(239,68,68,.25);">
-        <div style="font-size:9px;font-weight:700;letter-spacing:.8px;text-transform:uppercase;opacity:.7;margin-bottom:6px;color:#fca5a5;">Impostos 12%</div>
-        <div style="font-size:16px;font-weight:900;color:#fca5a5;" id="ll-impostos">R$ 0</div>
-        <div style="font-size:9.5px;opacity:.5;margin-top:3px;color:#fca5a5;">sobre faturado</div>
-      </div>
-      <!-- Comissão Paulo -->
-      <div style="background:rgba(239,68,68,.15);border-radius:10px;padding:14px 12px;text-align:center;border:1px solid rgba(239,68,68,.25);">
-        <div style="font-size:9px;font-weight:700;letter-spacing:.8px;text-transform:uppercase;opacity:.7;margin-bottom:6px;color:#fca5a5;">Comissão Paulo</div>
-        <div style="font-size:16px;font-weight:900;color:#fca5a5;" id="ll-comissao-paulo">R$ 0</div>
-        <div style="font-size:9.5px;opacity:.5;margin-top:3px;color:#fca5a5;" id="ll-comissao-paulo-os">0 OS</div>
-      </div>
-      <!-- Salário João Paulo -->
-      <div style="background:rgba(239,68,68,.15);border-radius:10px;padding:14px 12px;text-align:center;border:1px solid rgba(239,68,68,.25);">
-        <div style="font-size:9px;font-weight:700;letter-spacing:.8px;text-transform:uppercase;opacity:.7;margin-bottom:6px;color:#fca5a5;">Salário João Paulo</div>
-        <div style="font-size:16px;font-weight:900;color:#fca5a5;" id="ll-salario-jp">R$ 700,00</div>
-        <div style="font-size:9.5px;opacity:.5;margin-top:3px;color:#fca5a5;">fixo mensal</div>
-      </div>
-      <!-- Contador -->
-      <div style="background:rgba(239,68,68,.15);border-radius:10px;padding:14px 12px;text-align:center;border:1px solid rgba(239,68,68,.25);">
-        <div style="font-size:9px;font-weight:700;letter-spacing:.8px;text-transform:uppercase;opacity:.7;margin-bottom:6px;color:#fca5a5;">Contador</div>
-        <div style="font-size:16px;font-weight:900;color:#fca5a5;" id="ll-contador">R$ 350,00</div>
-        <div style="font-size:9.5px;opacity:.5;margin-top:3px;color:#fca5a5;">fixo mensal</div>
-      </div>
-      <!-- Total Gastos -->
-      <div style="background:rgba(239,68,68,.2);border-radius:10px;padding:14px 12px;text-align:center;border:1px solid rgba(239,68,68,.35);">
-        <div style="font-size:9px;font-weight:700;letter-spacing:.8px;text-transform:uppercase;opacity:.7;margin-bottom:6px;color:#f87171;">Total Gastos</div>
-        <div style="font-size:16px;font-weight:900;color:#f87171;" id="ll-total-gastos">R$ 0</div>
-        <div style="font-size:9.5px;opacity:.5;margin-top:3px;color:#f87171;">impostos + comissões</div>
-      </div>
-      <!-- Divisor visual -->
-      <div style="display:flex;align-items:center;justify-content:center;">
-        <div style="font-size:28px;opacity:.4;">=</div>
-      </div>
-      <!-- Lucro Líquido -->
-      <div style="background:rgba(74,222,128,.15);border-radius:10px;padding:14px 12px;text-align:center;border:1px solid rgba(74,222,128,.3);">
-        <div style="font-size:9px;font-weight:700;letter-spacing:.8px;text-transform:uppercase;opacity:.7;margin-bottom:6px;color:#4ade80;">Lucro Líquido</div>
-        <div style="font-size:16px;font-weight:900;color:#4ade80;" id="ll-liquido">R$ 0</div>
-        <div style="font-size:9.5px;opacity:.5;margin-top:3px;color:#4ade80;" id="ll-margem">margem —</div>
-      </div>
-    </div>
-
-    <!-- Barra de composição dos gastos -->
-    <div style="margin-top:16px;">
-      <div style="font-size:9px;opacity:.5;margin-bottom:6px;letter-spacing:.6px;text-transform:uppercase;">Composição dos Gastos</div>
-      <div style="display:flex;height:8px;border-radius:4px;overflow:hidden;gap:2px;" id="ll-barra-gastos"></div>
-      <div style="display:flex;gap:16px;margin-top:8px;flex-wrap:wrap;" id="ll-barra-legend"></div>
-    </div>
-  </div>
-
-  <!-- TOP STATS originais -->
+  <!-- TOP STATS -->
   <div class="stats" style="grid-template-columns:repeat(4,1fr);margin-bottom:20px;">
     <div class="stat" style="--sc:var(--grn)"><div class="stat-ic">💰</div><div class="stat-lbl">Faturamento Total</div><div class="stat-val" id="fv-total" style="font-size:20px">R$ 0</div><div class="stat-sub">todas as OS</div></div>
     <div class="stat" style="--sc:var(--acc)"><div class="stat-ic">✅</div><div class="stat-lbl">Recebido (Finalizadas)</div><div class="stat-val" id="fv-rec" style="font-size:20px">R$ 0</div><div class="stat-sub">laudos emitidos</div></div>
@@ -1328,11 +1216,11 @@ tr.row-vencido{animation:none!important;}
           </select>
         </div>
         <div class="fld">
-          <span class="flabel">Fechamento de</span>
+          <span class="flabel">Data início</span>
           <input type="date" id="fat-de" onchange="filtrarFaturas()">
         </div>
         <div class="fld">
-          <span class="flabel">Fechamento até</span>
+          <span class="flabel">Data fim</span>
           <input type="date" id="fat-ate" onchange="filtrarFaturas()">
         </div>
         <div class="fld">
@@ -1346,7 +1234,6 @@ tr.row-vencido{animation:none!important;}
         <div class="fld">
           <span class="flabel">Ordenar por</span>
           <select id="fat-order" onchange="filtrarFaturas()">
-            <option value="dataFechamento">Data de fechamento</option>
             <option value="dataAbertura">Data de abertura</option>
             <option value="prazoFatal">Prazo fatal</option>
             <option value="empresa">Empresa</option>
@@ -1793,6 +1680,24 @@ tr.row-vencido{animation:none!important;}
 </div>
 
 
+<div class="page" id="page-lixeira">
+  <div class="toolbar">
+    <div class="srch"><span style="color:var(--tx3)">🔍</span><input type="text" id="s-lix" placeholder="Empresa, OS, cliente..." oninput="renderLixeira()"></div>
+    <div style="margin-left:auto;display:flex;gap:8px;align-items:center;">
+      <span style="font-size:11.5px;color:var(--tx3);">As OS ficam na lixeira por 30 dias</span>
+      <button class="btn btn-danger btn-sm admin-only" onclick="esvaziarLixeira()">🗑 Esvaziar lixeira</button>
+    </div>
+  </div>
+  <div class="tw">
+    <table>
+      <thead><tr>
+        <th>Empresa</th><th>Tipo</th><th>Referência OS</th>
+        <th>Cliente</th><th>Cidade</th><th>Excluída em</th><th>Por</th><th></th>
+      </tr></thead>
+      <tbody id="tb-lix"></tbody>
+    </table>
+  </div>
+</div>
 
 <div class="page" id="page-roteiro">
 
@@ -1917,7 +1822,28 @@ tr.row-vencido{animation:none!important;}
 
 
 <!-- ═══ DASHBOARD: TENDÊNCIA DE PRAZO ═══ -->
-
+<div class="page" id="page-dash-tendencia">
+  <div class="stats" style="grid-template-columns:repeat(4,1fr);margin-bottom:16px;">
+    <div class="stat" style="--sc:var(--grn)"><div class="stat-ic">✅</div><div class="stat-lbl">No prazo (últ. 6 meses)</div><div class="stat-val" id="tend-ok">0</div><div class="stat-sub" id="tend-ok-pct">—</div></div>
+    <div class="stat" style="--sc:var(--red)"><div class="stat-ic">⚠️</div><div class="stat-lbl">Vencidas (últ. 6 meses)</div><div class="stat-val" id="tend-venc">0</div><div class="stat-sub" id="tend-venc-pct">—</div></div>
+    <div class="stat" style="--sc:var(--acc)"><div class="stat-ic">📈</div><div class="stat-lbl">Melhor mês</div><div class="stat-val" id="tend-best-pct" style="font-size:18px">—</div><div class="stat-sub" id="tend-best-mes">—</div></div>
+    <div class="stat" style="--sc:var(--org)"><div class="stat-ic">📉</div><div class="stat-lbl">Pior mês</div><div class="stat-val" id="tend-worst-pct" style="font-size:18px">—</div><div class="stat-sub" id="tend-worst-mes">—</div></div>
+  </div>
+  <div style="display:grid;grid-template-columns:2fr 1fr;gap:16px;">
+    <div class="card">
+      <div class="card-hd"><h3>📈 Evolução: No Prazo vs Vencidas por Mês</h3><p>Últimos 12 meses · OS finalizadas</p></div>
+      <div id="tend-chart-wrap" style="padding:8px 0;"></div>
+    </div>
+    <div class="card">
+      <div class="card-hd"><h3>🏆 Taxa por Empresa</h3><p>% de OS finalizadas no prazo</p></div>
+      <div id="tend-emp-taxa"></div>
+    </div>
+  </div>
+  <div style="margin-top:16px;" class="card">
+    <div class="card-hd"><h3>🔮 SLA por Tipo de Serviço</h3><p>Taxa de cumprimento de prazo por categoria</p></div>
+    <div id="tend-tipo-sla" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:12px;margin-top:8px;"></div>
+  </div>
+</div>
 
 <!-- ═══ DASHBOARD: RECEITA EMPRESA × TIPO (admin) ═══ -->
 <div class="page" id="page-dash-receita">
@@ -1984,10 +1910,105 @@ tr.row-vencido{animation:none!important;}
   </div>
 </div>
 
+<!-- ═══ DASHBOARD: SAÚDE DA OPERAÇÃO ═══ -->
+<div class="page" id="page-dash-saude">
+  <div class="stats" style="grid-template-columns:repeat(4,1fr);margin-bottom:16px;">
+    <div class="stat" style="--sc:var(--grn)"><div class="stat-ic">🎯</div><div class="stat-lbl">SLA Global</div><div class="stat-val" id="sd-sla">0%</div><div class="stat-sub">OS no prazo</div></div>
+    <div class="stat" style="--sc:var(--acc)"><div class="stat-ic">📋</div><div class="stat-lbl">Em andamento</div><div class="stat-val" id="sd-and">0</div><div class="stat-sub">OS abertas</div></div>
+    <div class="stat" style="--sc:var(--red)"><div class="stat-ic">⚠️</div><div class="stat-lbl">Críticas</div><div class="stat-val" id="sd-crit">0</div><div class="stat-sub">vencidas ou hoje</div></div>
+    <div class="stat" style="--sc:var(--org)"><div class="stat-ic">⏱️</div><div class="stat-lbl">Idade média</div><div class="stat-val" id="sd-idade">—</div><div class="stat-sub">dias em aberto</div></div>
+  </div>
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px;">
+    <div class="card">
+      <div class="card-hd"><h3>🔄 Progresso do Funil</h3><p>% de OS que completaram cada etapa</p></div>
+      <div id="sd-funil" style="padding:8px 0;"></div>
+    </div>
+    <div class="card">
+      <div class="card-hd"><h3>📊 Velocímetro por Empresa</h3><p>Taxa de finalização no prazo</p></div>
+      <div id="sd-velocimetros" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:14px;padding:8px 0;"></div>
+    </div>
+  </div>
+  <div class="card">
+    <div class="card-hd"><h3>🧭 Radar de Etapas</h3><p>Completude de cada fase — todas as OS</p></div>
+    <div id="sd-radar-wrap" style="display:flex;align-items:center;justify-content:center;padding:16px 0;gap:40px;flex-wrap:wrap;"></div>
+  </div>
+</div>
 
+<!-- ═══ DASHBOARD: CALENDÁRIO HEATMAP ═══ -->
+<div class="page" id="page-dash-calendario">
+  <div style="display:grid;grid-template-columns:1fr auto;align-items:center;margin-bottom:14px;gap:12px;">
+    <div></div>
+    <select id="cal-ano" onchange="renderDashCalendario()" style="padding:6px 12px;font-size:12px;background:var(--bg2);border:1px solid var(--br);border-radius:var(--rs);color:var(--tx);">
+      <option>2024</option><option selected>2026</option><option>2025</option><option>2027</option>
+    </select>
+  </div>
+  <div class="card" style="margin-bottom:16px;">
+    <div class="card-hd"><h3>📅 OS Abertas por Dia do Ano</h3><p id="cal-sub">Passe o mouse em um dia para ver detalhes</p></div>
+    <div id="cal-heatmap" style="overflow-x:auto;padding:8px 0;"></div>
+    <div style="display:flex;align-items:center;gap:8px;margin-top:12px;padding-top:10px;border-top:1px solid var(--br);">
+      <span style="font-size:11px;color:var(--tx3);">menos</span>
+      <div id="cal-legend-cells" style="display:flex;gap:3px;"></div>
+      <span style="font-size:11px;color:var(--tx3);">mais</span>
+    </div>
+  </div>
+  <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:16px;">
+    <div class="card"><div class="card-hd"><h3>🏆 Dia mais produtivo</h3></div><div id="cal-top-dia"></div></div>
+    <div class="card"><div class="card-hd"><h3>📆 Mês mais produtivo</h3></div><div id="cal-top-mes"></div></div>
+    <div class="card"><div class="card-hd"><h3>📊 Média diária</h3></div><div id="cal-media-dia"></div></div>
+  </div>
+</div>
 
+<!-- ═══ DASHBOARD: TIMELINE CRÍTICA ═══ -->
+<div class="page" id="page-dash-timeline">
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:14px;" id="tl-stats"></div>
+  <div style="display:grid;grid-template-columns:2fr 1fr;gap:16px;">
+    <div class="card">
+      <div class="card-hd">
+        <h3>⏱️ Timeline de Prazos</h3>
+        <select id="tl-filtro-emp" onchange="renderDashTimeline()" style="font-size:11.5px;padding:4px 8px;background:var(--bg2);border:1px solid var(--br);border-radius:var(--rs);color:var(--tx);">
+          <option value="">Todas as empresas</option>
+        </select>
+      </div>
+      <div id="tl-list" style="overflow-y:auto;max-height:500px;"></div>
+    </div>
+    <div class="card">
+      <div class="card-hd"><h3>🔥 Urgência por empresa</h3></div>
+      <div id="tl-emp-urgencia"></div>
+    </div>
+  </div>
+</div>
 
-
+<!-- ═══ DASHBOARD: METAS E SLA ═══ -->
+<div class="page" id="page-dash-metas">
+  <div class="stats" style="grid-template-columns:repeat(3,1fr);margin-bottom:16px;">
+    <div class="stat" style="--sc:var(--grn)"><div class="stat-ic">🏆</div><div class="stat-lbl">Empresas na meta</div><div class="stat-val" id="mt-ok">0</div><div class="stat-sub" id="mt-ok-sub">de 0</div></div>
+    <div class="stat" style="--sc:var(--red)"><div class="stat-ic">⚠️</div><div class="stat-lbl">Abaixo da meta</div><div class="stat-val" id="mt-fail">0</div><div class="stat-sub">precisam atenção</div></div>
+    <div class="stat" style="--sc:var(--acc)"><div class="stat-ic">🎯</div><div class="stat-lbl">Meta global</div><div class="stat-val" id="mt-meta-val">80%</div><div class="stat-sub">ajustável abaixo</div></div>
+  </div>
+  <div class="card" style="margin-bottom:16px;">
+    <div class="card-hd">
+      <h3>🎯 SLA por Empresa — Meta de Prazo</h3>
+      <div style="display:flex;align-items:center;gap:10px;">
+        <label style="font-size:12px;color:var(--tx3);">Meta:</label>
+        <input type="range" id="mt-meta-slider" min="50" max="100" value="80" step="5"
+          oninput="document.getElementById('mt-meta-pct').textContent=this.value+'%';document.getElementById('mt-meta-val').textContent=this.value+'%';renderDashMetas()"
+          style="width:100px;">
+        <span id="mt-meta-pct" style="font-size:12px;font-weight:700;color:var(--acc);min-width:32px;">80%</span>
+      </div>
+    </div>
+    <div id="mt-bars"></div>
+  </div>
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;">
+    <div class="card">
+      <div class="card-hd"><h3>📊 SLA por Tipo de Serviço</h3></div>
+      <div id="mt-tipo-bars"></div>
+    </div>
+    <div class="card">
+      <div class="card-hd"><h3>📅 Evolução do SLA — últimos 6 meses</h3></div>
+      <div id="mt-evolucao"></div>
+    </div>
+  </div>
+</div>
 
 <!-- ═══ DASHBOARD: FEED DE ATIVIDADE ═══ -->
 <div class="page" id="page-dash-feed">
@@ -2048,102 +2069,6 @@ tr.row-vencido{animation:none!important;}
   <div class="card">
     <div class="card-hd"><h3>🏷️ Variação por Tipo de Serviço</h3></div>
     <div id="cmp-tipo-delta" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:12px;padding:8px 0;"></div>
-  </div>
-</div>
-
-<!-- ═══ COMISSIONAMENTO PAULO ═══ -->
-<div class="page" id="page-comissao-paulo">
-  <div style="max-width:800px;margin:0 auto;">
-    <div style="display:flex;align-items:center;gap:12px;margin-bottom:20px;">
-      <div style="width:44px;height:44px;border-radius:50%;background:linear-gradient(135deg,var(--acc),#7c3aed);display:flex;align-items:center;justify-content:center;font-size:20px;">💵</div>
-      <div>
-        <div style="font-size:18px;font-weight:800;color:var(--tx);" id="cp-titulo">Meu Comissionamento</div>
-        <div style="font-size:12px;color:var(--tx3);" id="cp-subtitulo">OS fechadas com comissão aplicável</div>
-      </div>
-      <div style="margin-left:auto;">
-        <select id="cp-mes-sel" onchange="renderComissaoPaulo()" style="padding:7px 12px;font-size:12px;background:var(--bg2);border:1px solid var(--br);border-radius:var(--rs);color:var(--tx);">
-          <option value="0">Mês atual</option>
-          <option value="1">Mês anterior</option>
-          <option value="2">2 meses atrás</option>
-          <option value="3">3 meses atrás</option>
-          <option value="all">Todos os períodos</option>
-        </select>
-      </div>
-    </div>
-
-    <!-- KPIs -->
-    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-bottom:20px;" id="cp-kpis"></div>
-
-    <!-- Barras por tipo -->
-    <div class="card" style="margin-bottom:16px;">
-      <div class="card-hd"><h3>📊 Comissão por Tipo de Serviço</h3></div>
-      <div id="cp-barras-tipo" style="padding:4px 0;"></div>
-    </div>
-
-    <!-- Tabela de OS -->
-    <div class="card">
-      <div class="card-hd">
-        <h3>📋 OS com Comissão</h3>
-        <div id="cp-total-tag" style="font-size:11px;color:var(--tx3);"></div>
-      </div>
-      <div id="cp-tabela" style="overflow-x:auto;margin-top:8px;"></div>
-    </div>
-  </div>
-</div>
-
-<!-- ═══ DASHBOARD: PAINEL DE RECEBIMENTOS ═══ -->
-<div class="page" id="page-dash-recebimentos">
-  <div class="stats" style="grid-template-columns:repeat(4,1fr);margin-bottom:16px;">
-    <div class="stat" style="--sc:var(--grn)"><div class="stat-ic">💳</div><div class="stat-lbl">A receber (próx. mês)</div><div class="stat-val" id="rec2-prox" style="font-size:18px">R$ 0</div><div class="stat-sub" id="rec2-prox-cnt">0 OS fechadas este mês</div></div>
-    <div class="stat" style="--sc:var(--acc)"><div class="stat-ic">📋</div><div class="stat-lbl">Fechadas este mês</div><div class="stat-val" id="rec2-mes-cnt">0</div><div class="stat-sub" id="rec2-mes-label">—</div></div>
-    <div class="stat" style="--sc:var(--sky)"><div class="stat-ic">📊</div><div class="stat-lbl">Média mensal recebida</div><div class="stat-val" id="rec2-media" style="font-size:18px">R$ 0</div><div class="stat-sub">últimos 6 meses</div></div>
-    <div class="stat" style="--sc:var(--org)"><div class="stat-ic">⏳</div><div class="stat-lbl">OS em aberto (sem fecha.)</div><div class="stat-val" id="rec2-abertas">0</div><div class="stat-sub" id="rec2-abertas-val">valor estimado pendente</div></div>
-  </div>
-  <div style="display:grid;grid-template-columns:2fr 1fr;gap:16px;margin-bottom:16px;">
-    <div class="card">
-      <div class="card-hd"><h3>📅 Histórico de Recebimentos por Mês</h3><p>Valor das OS fechadas em cada mês (recebidas no mês seguinte)</p></div>
-      <div id="rec2-barras" style="padding:8px 0;"></div>
-    </div>
-    <div class="card">
-      <div class="card-hd"><h3>🏢 Valor a Receber por Empresa</h3><p>Fechamentos do mês atual</p></div>
-      <div id="rec2-emp-lista" style="padding:8px 0;"></div>
-    </div>
-  </div>
-  <div class="card">
-    <div class="card-hd">
-      <h3>📋 OS Fechadas este Mês</h3>
-      <select id="rec2-filtro-mes" onchange="renderDashRecebimentos()" style="font-size:11.5px;padding:4px 8px;background:var(--bg2);border:1px solid var(--br);border-radius:var(--rs);color:var(--tx);">
-        <option value="0">Mês atual</option>
-        <option value="1">Mês anterior</option>
-        <option value="2">2 meses atrás</option>
-        <option value="3">3 meses atrás</option>
-      </select>
-    </div>
-    <div id="rec2-os-lista" style="margin-top:8px;"></div>
-  </div>
-</div>
-
-<!-- ═══ DASHBOARD: PRODUTIVIDADE ═══ -->
-<div class="page" id="page-dash-produtividade">
-  <div class="stats" style="grid-template-columns:repeat(4,1fr);margin-bottom:16px;">
-    <div class="stat" style="--sc:var(--acc)"><div class="stat-ic">📥</div><div class="stat-lbl">Recebidas este mês</div><div class="stat-val" id="prod-receb">0</div><div class="stat-sub">OS abertas no mês</div></div>
-    <div class="stat" style="--sc:var(--grn)"><div class="stat-ic">✅</div><div class="stat-lbl">Fechadas este mês</div><div class="stat-val" id="prod-fech">0</div><div class="stat-sub" id="prod-fech-sub">—</div></div>
-    <div class="stat" style="--sc:var(--sky)"><div class="stat-ic">⏱️</div><div class="stat-lbl">Tempo médio fechamento</div><div class="stat-val" id="prod-tmed" style="font-size:18px">—</div><div class="stat-sub">dias · OS do mês</div></div>
-    <div class="stat" style="--sc:var(--org)"><div class="stat-ic">🔁</div><div class="stat-lbl">Taxa de conclusão</div><div class="stat-val" id="prod-taxa" style="font-size:18px">—</div><div class="stat-sub">fechadas / abertas mês</div></div>
-  </div>
-  <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px;">
-    <div class="card">
-      <div class="card-hd"><h3>📊 OS Abertas vs Fechadas por Mês</h3><p>Últimos 6 meses</p></div>
-      <div id="prod-barras" style="padding:8px 0;"></div>
-    </div>
-    <div class="card">
-      <div class="card-hd"><h3>⏱️ Tempo Médio de Fechamento por Empresa</h3><p>Dias entre abertura e fechamento</p></div>
-      <div id="prod-tempo-emp" style="padding:8px 0;"></div>
-    </div>
-  </div>
-  <div class="card">
-    <div class="card-hd"><h3>🏷️ Volume de OS por Tipo de Serviço</h3><p>Distribuição das OS finalizadas</p></div>
-    <div id="prod-tipo-barras" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:12px;padding:8px 0;"></div>
   </div>
 </div>
 
@@ -2332,14 +2257,17 @@ const PAGE_TITLES = {
   andamento:'Em Andamento','vencendo':'Próximo do vencimento','finalizadas':'Finalizadas',
   financeiro:'Dashboard Financeiro','faturas':'Gerar Fatura',
   roteiro:'Roteirização de Vistorias',
+  lixeira:'Lixeira (recuperáveis por 30 dias)',
   chat:'Chat da Equipe',
+  'dash-tendencia':'Tendência de Prazo',
   'dash-receita':'Receita por Empresa × Tipo',
   'dash-cidades':'Distribuição Geográfica',
+  'dash-saude':'Saúde da Operação',
+  'dash-calendario':'Calendário de OS — Heatmap',
+  'dash-timeline':'Timeline de OS Críticas',
+  'dash-metas':'Metas e SLA por Empresa',
   'dash-feed':'Feed de Atividade em Tempo Real',
-  'dash-comparativo':'Comparativo Anual',
-  'dash-recebimentos':'Painel de Recebimentos',
-  'dash-produtividade':'Produtividade',
-  'comissao-paulo':'Meu Comissionamento'
+  'dash-comparativo':'Comparativo Anual'
 };
 
 let DB = [];
@@ -2487,22 +2415,15 @@ async function fbSave(os) {
   catch(e) { console.error(e); _hideSaving(false); toast('Erro ao salvar! Verifique sua conexão.','err'); throw e; }
 }
 async function fbDel(id) {
-  // Exclusão direta
+  // Tenta soft-delete primeiro (vai pra lixeira); fallback para delete hard
   const os = DB.find(o=>o.id===id);
   _showSaving('excluindo…');
   try {
-    if(typeof window._fbSoftDelete === 'function' && os) {
-      await window._fbSoftDelete(os);
-    } else {
-      await window._fbDelete(id);
-    }
+    if(window._fbSoftDelete && os) await window._fbSoftDelete(os);
+    else await window._fbDelete(id);
     _hideSaving(true);
-  } catch(e) {
-    console.error('Erro ao excluir OS:', e);
-    _hideSaving(false);
-    toast('Erro ao excluir! Verifique sua conexão.','err');
-    throw e;
   }
+  catch(e) { console.error(e); _hideSaving(false); toast('Erro ao excluir!','err'); throw e; }
 }
 function setConn(s) {
   const dot = document.getElementById('cdot');
@@ -2626,13 +2547,16 @@ function renderPage(id) {
   else if(id==='financeiro') renderFinanceiro();
   else if(id==='faturas') renderFaturas();
   else if(id==='roteiro') renderRoteiro();
+  else if(id==='lixeira') renderLixeira();
+  else if(id==='dash-tendencia') renderDashTendencia();
   else if(id==='dash-receita') renderDashReceita();
   else if(id==='dash-cidades') renderDashCidades();
+  else if(id==='dash-saude') renderDashSaude();
+  else if(id==='dash-calendario') renderDashCalendario();
+  else if(id==='dash-timeline') renderDashTimeline();
+  else if(id==='dash-metas') renderDashMetas();
   else if(id==='dash-feed') renderDashFeed();
   else if(id==='dash-comparativo') renderDashComparativo();
-  else if(id==='dash-recebimentos') renderDashRecebimentos();
-  else if(id==='dash-produtividade') renderDashProdutividade();
-  else if(id==='comissao-paulo') renderComissaoPaulo();
   // chat agora é widget flutuante — não há mais page-chat
 }
 
@@ -2645,7 +2569,6 @@ function refreshAll() {
 }
 function _refreshAll_impl() {
   updateBadges();
-  atualizarWidgetComissao();
   const pid = document.querySelector('.page.active')?.id?.replace('page-','');
   if(pid) renderPage(pid);
 }
@@ -2721,8 +2644,10 @@ function updateBadges() {
   const semFicha = DB.filter(os=>!isAberto(os)&&!['Realizada','Sem necessidade'].includes(os.fichas)).length;
 
   const vencidas = DB.filter(os=>isAberto(os)&&diasAte(os.prazoFatal)!==null&&diasAte(os.prazoFatal)<0).length;
+  const lixCount = (window.LIX_DB||[]).length;
 
-  [['nb-total',total],['nb-and',abertos.length],['nb-venc',venc],['nb-ficha',semFicha],['nb-fin',fin]].forEach(([id,v])=>{
+  [['nb-total',total],['nb-preen',preen],['nb-vist',vist],['nb-ficha',semFicha],
+   ['nb-and',abertos.length],['nb-venc',venc],['nb-fin',fin],['nb-lix',lixCount]].forEach(([id,v])=>{
     const el=document.getElementById(id); if(el) el.textContent=v;
   });
 
@@ -3019,17 +2944,11 @@ function _findCoords(cidade) {
 }
 
 function renderHeatmapDash() {
-  // Só renderiza se a página dashboard estiver ativa e visível
+  // Só renderiza se dashboard estiver visível
   const dashPage = document.getElementById('page-dashboard');
   if(!dashPage || !dashPage.classList.contains('active')) return;
-
   const container = document.getElementById('brasil-heatmap');
-  if(!container || container.offsetWidth === 0 || container.offsetHeight === 0) {
-    // Container sem dimensões — tenta de novo em 300ms
-    setTimeout(renderHeatmapDash, 300);
-    return;
-  }
-
+  if(!container || container.offsetWidth === 0) { setTimeout(renderHeatmapDash, 500); return; }
   const filtro = document.getElementById('heatmap-filtro')?.value || 'all';
   const base = filtro==='abertas'    ? DB.filter(isAberto)
              : filtro==='finalizadas'? DB.filter(os=>!isAberto(os))
@@ -3057,6 +2976,7 @@ function renderHeatmapDash() {
     }
   }
 
+  const container = document.getElementById('brasil-heatmap');
   const loading   = document.getElementById('heatmap-loading');
 
   if (!_heatmapLeaflet) {
@@ -3167,17 +3087,6 @@ function renderHeatmapDash() {
   // Remover layers anteriores
   if (_heatLayer) { _heatmapLeaflet.removeLayer(_heatLayer); _heatLayer = null; }
   if (_markerGroup) { _heatmapLeaflet.removeLayer(_markerGroup); _markerGroup = null; }
-
-  // Corrige canvas com largura/altura 0 ao trocar abas
-  try {
-    _heatmapLeaflet.invalidateSize(true);
-  } catch(e) {}
-
-  const mapContainer = _heatmapLeaflet && _heatmapLeaflet.getContainer ? _heatmapLeaflet.getContainer() : null;
-  if (!mapContainer || mapContainer.offsetWidth === 0 || mapContainer.offsetHeight === 0) {
-    setTimeout(renderHeatmapDash, 300);
-    return;
-  }
 
   if (pontos.length > 0) {
     const maxVal = Math.max(...pontos.map(p=>p[2]));
@@ -3541,79 +3450,61 @@ function renderDash() {
   if(isAdmin()) {
     // Barras mensais de valor — agora por MÊS DE RECEBIMENTO
     const valMes = Array(12).fill(0);
-    const now = new Date();
-    const anoAtual = now.getFullYear();
-    const mesAtual = now.getMonth();
+    const anoAtual = (new Date()).getFullYear();
     const anoRefMini = dashAno ? parseInt(dashAno) : anoAtual;
     dados.forEach(os=>{
       const {mIdx, ano} = getMesRecebimento(os);
       if(mIdx >= 0 && ano === anoRefMini) valMes[mIdx] += parsVal(os.valor);
     });
-    // ── PAINEL RESULTADO DO MÊS (lucro / despesas / comissão) ──
-    const mesLabel = now.toLocaleDateString('pt-BR',{month:'long',year:'numeric'});
-    const dfEl = id => document.getElementById(id);
+    const vmx=Math.max(...valMes,1);
+    const finBars=document.getElementById('fin-mini-bars');
+    if(finBars) finBars.innerHTML = MESES_ABR.map((m,i)=>`
+      <div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:2px;position:relative;">
+        <div style="width:100%;background:linear-gradient(to top,var(--grn),var(--sky));border-radius:3px 3px 0 0;
+          height:${Math.max(2,valMes[i]/vmx*72)}px;opacity:${valMes[i]>0?.9:.2};
+          position:absolute;bottom:18px;transition:height .7s ease;" title="${m}/${anoRefMini}: ${fmtVal(valMes[i])} (recebimento)"></div>
+        <div style="position:absolute;bottom:2px;font-size:8px;color:var(--tx3);">${m}</div>
+      </div>`).join('');
 
-    // OS fechadas no mês atual
-    const osMesFech = DB.filter(os => {
-      if(!os.dataFechamento || isAberto(os)) return false;
-      const d = new Date(os.dataFechamento.includes('T') ? os.dataFechamento : os.dataFechamento + 'T00:00');
-      return d.getFullYear() === anoAtual && d.getMonth() === mesAtual;
-    });
+    // Top empresas por valor
+    const empValMap={};
+    dados.forEach(os=>{ empValMap[os.empresa]=(empValMap[os.empresa]||0)+parsVal(os.valor); });
+    const empValArr=Object.entries(empValMap).sort((a,b)=>b[1]-a[1]).slice(0,5);
+    const evmx=empValArr[0]?.[1]||1;
+    const fEmpMini=document.getElementById('fin-emp-mini');
+    if(fEmpMini) fEmpMini.innerHTML=empValArr.map(([e,v])=>`
+      <div style="padding:5px 0;border-bottom:1px solid var(--br);">
+        <div style="display:flex;justify-content:space-between;margin-bottom:4px;">
+          <div style="font-size:11px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100px;" title="${e}">${e}</div>
+          <div style="font-size:10px;font-weight:700;color:var(--grn);flex-shrink:0;">${fmtVal(v)}</div>
+        </div>
+        <div style="height:10px;background:var(--bg4);border-radius:4px;overflow:hidden;">
+          <div style="height:100%;width:${v/evmx*100}%;background:linear-gradient(to right,var(--grn),var(--sky));border-radius:4px;transition:width .7s ease;"></div>
+        </div>
+      </div>`).join('');
 
-    const faturadoMes = osMesFech.reduce((s, os) => s + parsVal(os.valor), 0);
-
-    // Impostos 12%
-    const impostosMes = faturadoMes * 0.12;
-
-    // Comissão Paulo
-    const CTIPO = {'A-413':18,'B-438':32,'B-437':30};
-    let comissaoMes = 0, comissaoOS = 0;
-    osMesFech.forEach(os => {
-      const t = (os.tipoServico||'').toUpperCase();
-      for(const [k,v] of Object.entries(CTIPO)) { if(t.includes(k)) { comissaoMes+=v; comissaoOS++; break; } }
-    });
-
-    const salarioJPMes  = 700;
-    const contadorMes   = 350;
-    const totalDespesas = impostosMes + comissaoMes + salarioJPMes + contadorMes;
-    const lucroMes      = faturadoMes - totalDespesas;
-    const margemMes     = faturadoMes > 0 ? Math.round(lucroMes / faturadoMes * 100) : 0;
-    const despPct       = faturadoMes > 0 ? Math.round(totalDespesas / faturadoMes * 100) : 0;
-
-    if(dfEl('dash-fin-mes-label')) dfEl('dash-fin-mes-label').textContent = mesLabel;
-
-    const sv2 = (id, v) => { const e = dfEl(id); if(e) e.textContent = v; };
-    sv2('df-faturado',     fmtVal(faturadoMes));
-    sv2('df-faturado-os',  osMesFech.length + ' OS fechadas');
-    sv2('df-despesas',     fmtVal(totalDespesas));
-    sv2('df-despesas-pct', despPct + '% do faturado');
-    sv2('df-lucro',        fmtVal(lucroMes));
-    sv2('df-margem',       'margem ' + margemMes + '%');
-    sv2('df-impostos',     fmtVal(impostosMes));
-    sv2('df-comissao',     fmtVal(comissaoMes));
-    sv2('df-comissao-os',  comissaoOS + ' OS comissionadas');
-    sv2('df-salario',      fmtVal(salarioJPMes));
-    sv2('df-contador',     fmtVal(contadorMes));
-
-    // Barra de margem
-    const barMargem = dfEl('df-margem-barra');
-    if(barMargem) setTimeout(() => { barMargem.style.width = Math.max(0, Math.min(margemMes, 100)) + '%'; }, 100);
-
-    // Mini breakdown dentro do card Despesas
-    const breakdown = dfEl('df-despesas-breakdown');
-    if(breakdown) {
-      const itens = [
-        {l:'Impostos', v:impostosMes},
-        {l:'Comissão Paulo', v:comissaoMes},
-        {l:'João Paulo', v:salarioJPMes},
-        {l:'Contador', v:contadorMes},
-      ];
-      breakdown.innerHTML = itens.map(it => `
-        <div style="display:flex;justify-content:space-between;font-size:9.5px;color:rgba(255,255,255,.75);">
-          <span>${it.l}</span>
-          <span style="font-weight:700;">${fmtVal(it.v)}</span>
-        </div>`).join('');
-    }
+    // Resumo financeiro
+    const totalVal=dados.reduce((a,o)=>a+parsVal(o.valor),0);
+    const recVal=dados.filter(o=>!isAberto(o)).reduce((a,o)=>a+parsVal(o.valor),0);
+    const aberVal=dados.filter(isAberto).reduce((a,o)=>a+parsVal(o.valor),0);
+    const fRes=document.getElementById('fin-resumo-mini');
+    if(fRes) fRes.innerHTML=`
+      <div style="display:flex;flex-direction:column;gap:10px;">
+        ${[['💰 Total previsto',totalVal,'var(--tx)'],
+           ['✅ Recebido',recVal,'var(--grn)'],
+           ['⏳ A receber',aberVal,'var(--org)'],
+          ].map(([l,v,c])=>`
+          <div style="display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid var(--br);">
+            <span style="font-size:12px;color:var(--tx2);">${l}</span>
+            <span style="font-size:14px;font-weight:800;color:${c};">${fmtVal(v)}</span>
+          </div>`).join('')}
+        <div style="text-align:center;margin-top:4px;">
+          <div style="font-size:10px;color:var(--tx3);margin-bottom:4px;">Taxa de recebimento</div>
+          <div style="font-size:22px;font-weight:800;background:linear-gradient(135deg,var(--grn),var(--sky));-webkit-background-clip:text;-webkit-text-fill-color:transparent;">
+            ${totalVal>0?Math.round(recVal/totalVal*100):0}%
+          </div>
+        </div>
+      </div>`;
   }
 
   // Atualizar mapa de calor
@@ -4268,12 +4159,20 @@ async function excluir() {
   const os = DB.find(o=>o.id===currentId);
   if(!os) return;
   const ref = os.numeroOS || os.id;
-  if(!confirm(`Excluir esta OS?\n\nReferência: ${ref}\nEmpresa: ${os.empresa||'—'}\n\nEsta ação não pode ser desfeita.`)) return;
+  if(!confirm(`Excluir esta OS?\n\nReferência: ${ref}\nEmpresa: ${os.empresa||'—'}\n\nA OS vai para a lixeira e pode ser recuperada por 30 dias.`)) return;
   const id=currentId;
   const snapshot = JSON.parse(JSON.stringify(os));
   closeOv('ov-det');
   await fbDel(id);
-  toast('OS excluída com sucesso.', 'ok');
+  toastUndo('OS movida para a lixeira.', async ()=>{
+    try {
+      _showSaving('restaurando…');
+      if(window._fbRestore) await window._fbRestore(id, snapshot);
+      else await window._fbSave(snapshot);
+      _hideSaving(true);
+      toast('OS restaurada.','ok');
+    } catch(e){ console.error(e); _hideSaving(false); toast('Falha ao restaurar.','err'); }
+  });
 }
 
 // ══════════════════════════════════════
@@ -4858,113 +4757,29 @@ function fmtVal(n) {
 }
 
 function renderFinanceiro() {
-  const sv = (id,v) => { const el=document.getElementById(id); if(el) el.textContent=v; };
-  const ano  = document.getElementById('fin-ano')?.value || '';
+  const ano = document.getElementById('fin-ano')?.value || '';
   const ano2 = document.getElementById('fin-ano2')?.value || '';
-  const anoLucro = document.getElementById('fin-ano-lucro')?.value || '';
 
-  // Filtro por ano de recebimento
+  // Filtro por ano usa o ANO DE RECEBIMENTO (não a data de abertura)
   const filtrar = (os) => {
     if(!ano) return true;
     const {ano:aRec} = getMesRecebimento(os);
     return aRec === parseInt(ano);
   };
-  const filtrarLucro = (os) => {
-    if(!anoLucro) return true;
-    const {ano:aRec} = getMesRecebimento(os);
-    return aRec === parseInt(anoLucro);
-  };
 
   const dados = DB.filter(filtrar);
-  const dadosLucro = DB.filter(filtrarLucro);
 
-  // ── LUCRO LÍQUIDO ────────────────────────────────────────────
-  // Base: apenas OS finalizadas (recebidas)
-  const faturado = dadosLucro.filter(os=>!isAberto(os)).reduce((a,os)=>a+parsVal(os.valor),0);
-
-  // Impostos 12%
-  const impostos = faturado * 0.12;
-
-  // Comissão Paulo — soma de todas as OS finalizadas com tipo comissionado
-  const SALARIO_JP  = 700.00;
-  const CONTADOR    = 350.00;
-  // Calcula meses no período para multiplicar o salário fixo
-  let mesesPeriodo = 1;
-  if(anoLucro) {
-    // Conta meses distintos com OS fechadas no ano
-    const mesesSet = new Set();
-    dadosLucro.filter(os=>!isAberto(os)&&os.dataFechamento).forEach(os=>{
-      const d = new Date(os.dataFechamento.includes('T')?os.dataFechamento:os.dataFechamento+'T00:00');
-      mesesSet.add(d.getFullYear()+'-'+d.getMonth());
-    });
-    mesesPeriodo = Math.max(1, mesesSet.size);
-  } else {
-    // Sem filtro de ano: meses distintos em todos os dados
-    const mesesSet = new Set();
-    DB.filter(os=>!isAberto(os)&&os.dataFechamento).forEach(os=>{
-      const d = new Date(os.dataFechamento.includes('T')?os.dataFechamento:os.dataFechamento+'T00:00');
-      mesesSet.add(d.getFullYear()+'-'+d.getMonth());
-    });
-    mesesPeriodo = Math.max(1, mesesSet.size);
-  }
-
-  // Comissão Paulo (R$18/32/30 por OS de qualquer empresa)
-  const COMISSAO_TIPO = {'A-413':18,'B-438':32,'B-437':30};
-  let comissaoPauloTotal = 0, comissaoPauloOS = 0;
-  dadosLucro.filter(os=>!isAberto(os)).forEach(os=>{
-    const tipo = (os.tipoServico||'').trim().toUpperCase();
-    for(const [t,v] of Object.entries(COMISSAO_TIPO)) {
-      if(tipo.includes(t)) { comissaoPauloTotal+=v; comissaoPauloOS++; break; }
-    }
-  });
-
-  const salarioJP   = SALARIO_JP * mesesPeriodo;
-  const contadorTotal = CONTADOR * mesesPeriodo;
-  const totalGastos = impostos + comissaoPauloTotal + salarioJP + contadorTotal;
-  const liquido = faturado - totalGastos;
-  const margem = faturado > 0 ? Math.round(liquido/faturado*100) : 0;
-
-  sv('ll-faturado',          fmtVal(faturado));
-  sv('ll-impostos',          fmtVal(impostos));
-  sv('ll-comissao-paulo',    fmtVal(comissaoPauloTotal));
-  sv('ll-comissao-paulo-os', comissaoPauloOS+' OS');
-  sv('ll-salario-jp',        fmtVal(salarioJP) + (mesesPeriodo>1?' ('+mesesPeriodo+'m)':''));
-  sv('ll-contador',          fmtVal(contadorTotal) + (mesesPeriodo>1?' ('+mesesPeriodo+'m)':''));
-  sv('ll-total-gastos',      fmtVal(totalGastos));
-  sv('ll-liquido',           fmtVal(liquido));
-  sv('ll-margem',            'margem '+margem+'%');
-
-  // Barra de composição
-  const barEl = document.getElementById('ll-barra-gastos');
-  const legEl = document.getElementById('ll-barra-legend');
-  if(barEl && faturado > 0) {
-    const itens = [
-      {label:'Impostos 12%',      val:impostos,            cor:'#ef4444'},
-      {label:'Comissão Paulo',     val:comissaoPauloTotal,  cor:'#f97316'},
-      {label:'Salário João Paulo', val:salarioJP,           cor:'#eab308'},
-      {label:'Contador',           val:contadorTotal,       cor:'#a78bfa'},
-      {label:'Lucro Líquido',      val:Math.max(0,liquido), cor:'#4ade80'},
-    ];
-    barEl.innerHTML = itens.map(it=>`
-      <div style="flex:${Math.max(it.val,0)/faturado};background:${it.cor};min-width:${it.val>0?'4px':'0'};"></div>`).join('');
-    legEl.innerHTML = itens.map(it=>`
-      <div style="display:flex;align-items:center;gap:5px;font-size:10px;color:rgba(255,255,255,.7);">
-        <div style="width:8px;height:8px;border-radius:2px;background:${it.cor};flex-shrink:0;"></div>
-        ${it.label}: <span style="color:#fff;font-weight:700;">${fmtVal(it.val)}</span>
-        <span style="opacity:.5;">(${faturado>0?Math.round(it.val/faturado*100):0}%)</span>
-      </div>`).join('');
-  }
-
-  // ── STATS ORIGINAIS ──────────────────────────────────────────
-  const total  = dados.reduce((a,os)=>a+parsVal(os.valor),0);
-  const receb  = dados.filter(os=>!isAberto(os)).reduce((a,os)=>a+parsVal(os.valor),0);
-  const aber   = dados.filter(isAberto).reduce((a,os)=>a+parsVal(os.valor),0);
+  // Top stats
+  const total = dados.reduce((a,os)=>a+parsVal(os.valor),0);
+  const receb = dados.filter(os=>!isAberto(os)).reduce((a,os)=>a+parsVal(os.valor),0);
+  const aber  = dados.filter(isAberto).reduce((a,os)=>a+parsVal(os.valor),0);
   const ticket = dados.length ? total/dados.length : 0;
 
-  sv('fv-total',  fmtVal(total));
-  sv('fv-rec',    fmtVal(receb));
-  sv('fv-aber',   fmtVal(aber));
-  sv('fv-ticket', fmtVal(ticket));
+  const sv = (id,v) => { const el=document.getElementById(id); if(el) el.textContent=v; };
+  sv('fv-total', fmtVal(total));
+  sv('fv-rec',   fmtVal(receb));
+  sv('fv-aber',  fmtVal(aber));
+  sv('fv-ticket',fmtVal(ticket));
 
   // Por empresa
   const empMap = {};
@@ -5101,7 +4916,7 @@ function filtrarFaturas() {
   const de      = document.getElementById('fat-de')?.value || '';
   const ate     = document.getElementById('fat-ate')?.value || '';
   const tipo    = document.getElementById('fat-tipo')?.value || '';
-  const order   = document.getElementById('fat-order')?.value || 'dataFechamento';
+  const order   = document.getElementById('fat-order')?.value || 'dataAbertura';
 
   const isValidOS = (os) => {
     const emp = (os.empresa||'').toString().trim().toLowerCase();
@@ -5118,9 +4933,9 @@ function filtrarFaturas() {
     if(status === 'finalizado' && isAberto(os)) return false;
     if(status === 'aberto' && !isAberto(os)) return false;
     if(de || ate) {
-      const d = os.dataFechamento ? os.dataFechamento.split('T')[0] : '';
-      if(de && (!d || d < de)) return false;
-      if(ate && (!d || d > ate)) return false;
+      const d = os.dataAbertura ? os.dataAbertura.split('T')[0] : '';
+      if(de && d < de) return false;
+      if(ate && d > ate) return false;
     }
     return true;
   }).sort((a,b) => {
@@ -5167,7 +4982,7 @@ function renderFaturaList() {
         </div>
         <div class="mono" style="font-size:11px;margin-top:3px;color:var(--tx3);">${os.numeroOS}</div>
         <div style="font-size:11.5px;color:var(--tx2);margin-top:3px;">
-          ${os.cliente||''} ${os.cidade?' · '+os.cidade:''} · Fechamento: ${os.dataFechamento ? fmtDate(os.dataFechamento) : '—'}
+          ${os.cliente||''} ${os.cidade?' · '+os.cidade:''} · Abertura: ${fmtDate(os.dataAbertura)}
         </div>
       </div>
       <div style="text-align:right;flex-shrink:0;">
@@ -5216,400 +5031,155 @@ function gerarFaturaPDF() {
   const selecionadas = fatOsFiltradas.filter(os=>fatSelecionadas.has(os.id));
   if(!selecionadas.length) { toast('Selecione ao menos uma OS!','err'); return; }
 
-  const num      = document.getElementById('fat-num')?.value || 'FAT-001';
-  const dest     = document.getElementById('fat-dest')?.value || '';
-  const destCNPJ = document.getElementById('fat-dest-cnpj')?.value || '';
-  const data     = document.getElementById('fat-data')?.value || '';
-  const venc     = document.getElementById('fat-venc')?.value || '';
-  const obsF     = document.getElementById('fat-obs-fatura')?.value || '';
-  const total    = selecionadas.reduce((a,os)=>a+parsVal(os.valor),0);
+  const num     = document.getElementById('fat-num')?.value || 'FAT-001';
+  const dest    = document.getElementById('fat-dest')?.value || '';
+  const destCNPJ= document.getElementById('fat-dest-cnpj')?.value || '';
+  const data    = document.getElementById('fat-data')?.value || '';
+  const venc    = document.getElementById('fat-venc')?.value || '';
+  const obsF    = document.getElementById('fat-obs-fatura')?.value || '';
+  const total   = selecionadas.reduce((a,os)=>a+parsVal(os.valor),0);
 
-  // ── helpers ────────────────────────────────────────────────────
-  const _fmtDate = s => {
-    if(!s) return '—';
-    const d = new Date(s.includes('T')?s:s+'T00:00');
-    return isNaN(d)?'—':d.toLocaleDateString('pt-BR');
-  };
-  const _fmtMoeda = v => 'R$ ' + v.toFixed(2).replace('.',',').replace(/\B(?=(\d{3})+(?!\d))/g,'.');
-  const _diasEntre = (a,b) => {
-    if(!a||!b) return null;
-    const da=new Date(a.includes('T')?a:a+'T00:00'), db=new Date(b.includes('T')?b:b+'T00:00');
-    return Math.max(0,Math.round((db-da)/86400000));
-  };
-
-  // ── agregações ─────────────────────────────────────────────────
-  const empMap={}, tipoMap={};
+  const agrupado = {};
   selecionadas.forEach(os=>{
-    const e=os.empresa||'Sem empresa', t=os.tipoServico||'—', v=parsVal(os.valor);
-    if(!empMap[e])  empMap[e]  ={cnt:0,val:0};
-    if(!tipoMap[t]) tipoMap[t] ={cnt:0,val:0};
-    empMap[e].cnt++;  empMap[e].val+=v;
-    tipoMap[t].cnt++; tipoMap[t].val+=v;
-  });
-  const empArr  = Object.entries(empMap).sort((a,b)=>b[1].val-a[1].val);
-  const tipoArr = Object.entries(tipoMap).sort((a,b)=>b[1].cnt-a[1].cnt);
-
-  const tempos = selecionadas
-    .map(os=>_diasEntre(os.dataAbertura,os.dataFechamento))
-    .filter(d=>d!==null);
-  const tmed = tempos.length ? Math.round(tempos.reduce((s,x)=>s+x,0)/tempos.length) : null;
-  const tmin = tempos.length ? Math.min(...tempos) : null;
-  const tmax = tempos.length ? Math.max(...tempos) : null;
-
-  const cidMap={};
-  selecionadas.forEach(os=>{ const c=os.cidade||'—'; cidMap[c]=(cidMap[c]||0)+1; });
-  const cidArr=Object.entries(cidMap).sort((a,b)=>b[1]-a[1]).slice(0,5);
-
-  // ── SVG helpers ────────────────────────────────────────────────
-  const AZUL=['#1e3a8a','#1d4ed8','#2563eb','#3b82f6','#60a5fa','#93c5fd','#bfdbfe','#dbeafe'];
-  const VERDE=['#1e3a8a','#0369a1','#0f766e','#15803d','#a16207','#b91c1c','#7e22ce','#c2410c','#0e7490','#166534'];
-
-  function barras(items, maxW, getLabel, getVal, getRight, cor) {
-    const BH=20, G=7, PAD=8;
-    const LW=160, VW=60;
-    const BW=maxW-LW-VW-PAD*2;
-    const maxV=items[0]?.[1]||1;
-    const H=items.length*(BH+G)+PAD*2;
-    return `<svg width="${maxW}" height="${H}" xmlns="http://www.w3.org/2000/svg" font-family="'Segoe UI',Arial,sans-serif">
-      ${items.map(([k,v],i)=>{
-        const bw=Math.max(3,Math.round(getVal(v)/maxV*BW));
-        const y=PAD+i*(BH+G);
-        const lbl=k.length>24?k.slice(0,22)+'…':k;
-        return `<text x="${LW-5}" y="${y+BH/2+4}" text-anchor="end" font-size="10.5" fill="#374151" font-weight="600">${lbl}</text>
-          <rect x="${LW}" y="${y}" width="${BW}" height="${BH}" rx="3" fill="#f1f5f9"/>
-          <rect x="${LW}" y="${y}" width="${bw}" height="${BH}" rx="3" fill="${cor[i%cor.length]}"/>
-          <text x="${LW+bw+5}" y="${y+BH/2+4}" font-size="10" fill="${cor[0]}" font-weight="700">${getRight(v)}</text>`;
-      }).join('')}
-    </svg>`;
-  }
-
-  function donut(items, R, r, CX, CY, W, H, getLabel, getVal) {
-    const tot=items.reduce((s,[,v])=>s+getVal(v),0)||1;
-    let ang=0;
-    const slices=items.map(([k,v],i)=>{
-      const frac=getVal(v)/tot, a=frac*Math.PI*2;
-      const x1=CX+R*Math.sin(ang), y1=CY-R*Math.cos(ang); ang+=a;
-      const x2=CX+R*Math.sin(ang), y2=CY-R*Math.cos(ang);
-      const xi1=CX+r*Math.sin(ang-a), yi1=CY-r*Math.cos(ang-a);
-      const xi2=CX+r*Math.sin(ang),   yi2=CY-r*Math.cos(ang);
-      return {k,v,path:`M${x1},${y1} A${R},${R} 0 ${frac>.5?1:0},1 ${x2},${y2} L${xi2},${yi2} A${r},${r} 0 ${frac>.5?1:0},0 ${xi1},${yi1} Z`,c:VERDE[i%VERDE.length],pct:Math.round(frac*100)};
-    });
-    const leg=items.map(([k,v],i)=>{
-      const pct=Math.round(getVal(v)/tot*100);
-      return `<text x="${CX*2+16}" y="${20+i*19}" font-size="10.5" fill="#374151">
-        <tspan fill="${VERDE[i%VERDE.length]}" font-size="13" font-weight="900">● </tspan>${getLabel(k,v)} <tspan fill="${VERDE[i%VERDE.length]}" font-weight="700">${pct}%</tspan></text>`;
-    }).join('');
-    return `<svg width="${W}" height="${H}" xmlns="http://www.w3.org/2000/svg" font-family="'Segoe UI',Arial,sans-serif">
-      ${slices.map(s=>`<path d="${s.path}" fill="${s.c}" stroke="#fff" stroke-width="2.5"/>`).join('')}
-      <text x="${CX}" y="${CY-6}" text-anchor="middle" font-size="20" font-weight="900" fill="#1e3a8a">${items.reduce((s,[,v])=>s+getVal(v),0)}</text>
-      <text x="${CX}" y="${CY+10}" text-anchor="middle" font-size="9" fill="#6b7280" letter-spacing="1">OS</text>
-      ${leg}
-    </svg>`;
-  }
-
-  function histograma(tempos) {
-    if(!tempos.length) return `<div style="color:#9ca3af;font-size:12px;padding:20px 0;text-align:center;">Sem dados de prazo disponíveis</div>`;
-    const bks=[{l:'0–5d',a:0,b:5},{l:'6–10d',a:6,b:10},{l:'11–20d',a:11,b:20},{l:'21–30d',a:21,b:30},{l:'>30d',a:31,b:9999}];
-    const cnts=bks.map(bk=>tempos.filter(t=>t>=bk.a&&t<=bk.b).length);
-    const mx=Math.max(...cnts,1), BW=52, G=10, PL=10, H=100, PB=24, W=bks.length*(BW+G)+PL*2;
-    return `<svg width="${W}" height="${H+PB}" xmlns="http://www.w3.org/2000/svg" font-family="'Segoe UI',Arial,sans-serif">
-      ${cnts.map((c,i)=>{
-        const bh=Math.max(4,Math.round(c/mx*(H-14)));
-        const x=PL+i*(BW+G), isBest=c===Math.max(...cnts);
-        return `<rect x="${x}" y="${H-bh}" width="${BW}" height="${bh}" rx="5"
-          fill="${isBest?'#1d4ed8':'#93c5fd'}" opacity="${isBest?1:.75}"/>
-          <text x="${x+BW/2}" y="${H-bh-5}" text-anchor="middle" font-size="11" font-weight="800"
-            fill="${isBest?'#1e3a8a':'#64748b'}">${c||''}</text>
-          <text x="${x+BW/2}" y="${H+16}" text-anchor="middle" font-size="9.5" fill="#6b7280">${bks[i].l}</text>`;
-      }).join('')}
-    </svg>`;
-  }
-
-  // ── tabela de OS agrupada por empresa ─────────────────────────
-  let linhas='';
-  empArr.forEach(([emp])=>{
-    const osE=selecionadas.filter(os=>(os.empresa||'Sem empresa')===emp);
-    const sub=osE.reduce((s,os)=>s+parsVal(os.valor),0);
-    linhas+=`<tr>
-      <td colspan="6" style="padding:7px 12px;background:#1e3a8a;color:#fff;font-size:10px;font-weight:700;letter-spacing:.4px;">
-        🏢 ${emp} &nbsp;·&nbsp; ${osE.length} OS &nbsp;·&nbsp; Subtotal: ${_fmtMoeda(sub)}
-      </td>
-      <td style="padding:7px 12px;background:#1e3a8a;color:#fff;font-weight:800;font-size:11px;text-align:right;">${_fmtMoeda(sub)}</td>
-    </tr>`;
-    osE.forEach((os,i)=>{
-      const dias=_diasEntre(os.dataAbertura,os.dataFechamento);
-      linhas+=`<tr style="background:${i%2===0?'#f8faff':'#ffffff'}">
-        <td style="padding:7px 9px;font-size:10px;font-family:monospace;border:1px solid #e5e9f5;color:#374151;">${os.numeroOS||'—'}</td>
-        <td style="padding:7px 9px;font-size:10px;border:1px solid #e5e9f5;">${os.tipoServico||'—'}</td>
-        <td style="padding:7px 9px;font-size:10px;border:1px solid #e5e9f5;">${os.cliente||'—'}</td>
-        <td style="padding:7px 9px;font-size:10px;border:1px solid #e5e9f5;">${os.cidade||'—'}</td>
-        <td style="padding:7px 9px;font-size:10px;border:1px solid #e5e9f5;">${_fmtDate(os.dataFechamento)}</td>
-        <td style="padding:7px 9px;font-size:10px;border:1px solid #e5e9f5;text-align:center;color:${dias!==null&&dias>20?'#b45309':dias!==null&&dias<=5?'#15803d':'#374151'};font-weight:600;">${dias!==null?dias+'d':'—'}</td>
-        <td style="padding:7px 9px;font-size:11px;border:1px solid #e5e9f5;font-weight:700;text-align:right;color:#15803d;">${os.valor?_fmtMoeda(parsVal(os.valor)):'—'}</td>
-      </tr>`;
-    });
+    const k=os.empresa||'Sem empresa';
+    if(!agrupado[k]) agrupado[k]=[];
+    agrupado[k].push(os);
   });
 
-  // ── HTML final ─────────────────────────────────────────────────
-  const html=`<!DOCTYPE html><html lang="pt-BR"><head><meta charset="UTF-8"><title>Fatura ${num}</title>
+  const linhas = selecionadas.map((os,i)=>`
+    <tr style="background:${i%2===0?'#f8f9ff':'#fff'};">
+      <td style="padding:8px 10px;font-size:11px;border:1px solid #e0e4f0;font-family:monospace;">${os.numeroOS}</td>
+      <td style="padding:8px 10px;font-size:11px;border:1px solid #e0e4f0;font-weight:600;">${os.empresa}</td>
+      <td style="padding:8px 10px;font-size:11px;border:1px solid #e0e4f0;">${os.tipoServico}</td>
+      <td style="padding:8px 10px;font-size:11px;border:1px solid #e0e4f0;">${os.cliente||'—'}</td>
+      <td style="padding:8px 10px;font-size:11px;border:1px solid #e0e4f0;">${os.cidade||'—'}</td>
+      <td style="padding:8px 10px;font-size:11px;border:1px solid #e0e4f0;">${fmtDate(os.dataAbertura)}</td>
+      <td style="padding:8px 10px;font-size:12px;border:1px solid #e0e4f0;font-weight:700;text-align:right;color:#1a7a50;">${os.valor?fmtVal(parsVal(os.valor)):'—'}</td>
+    </tr>`).join('');
+
+  const html = `<!DOCTYPE html><html lang="pt-BR"><head><meta charset="UTF-8">
+<title>Fatura ${num}</title>
 <style>
-*{box-sizing:border-box;margin:0;padding:0;}
-body{font-family:'Segoe UI',system-ui,Arial,sans-serif;color:#111827;background:#fff;font-size:12px;}
-.page{max-width:980px;margin:0 auto;padding:48px 44px;}
+  *{box-sizing:border-box;margin:0;padding:0;}
+  body{font-family:'Segoe UI',Arial,sans-serif;color:#1a1d2e;background:#fff;padding:0;}
+  .page{max-width:900px;margin:0 auto;padding:40px;}
+  .header{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:36px;padding-bottom:24px;border-bottom:3px solid #1a2e6e;}
+  .logo-area h1{font-size:22px;font-weight:800;color:#1a2e6e;letter-spacing:-0.5px;}
+  .logo-area p{font-size:12px;color:#666;margin-top:3px;}
+  .fat-badge{background:#1a2e6e;color:#fff;padding:8px 18px;border-radius:8px;text-align:center;}
+  .fat-badge .num{font-size:16px;font-weight:800;letter-spacing:-0.5px;}
+  .fat-badge .lbl{font-size:10px;opacity:.7;margin-top:2px;}
+  .info-grid{display:grid;grid-template-columns:1fr 1fr;gap:24px;margin-bottom:28px;}
+  .info-box{background:#f5f7ff;border:1px solid #dde3f5;border-radius:10px;padding:16px;}
+  .info-box h3{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.8px;color:#666;margin-bottom:10px;}
+  .info-box p{font-size:13px;margin-bottom:4px;}
+  .info-box .dest-name{font-size:15px;font-weight:700;color:#1a2e6e;}
+  .datas{display:flex;gap:16px;margin-bottom:24px;}
+  .data-box{background:#f0f7ff;border:1px solid #c0d8f5;border-radius:8px;padding:10px 16px;text-align:center;flex:1;}
+  .data-box .dl{font-size:9.5px;font-weight:700;text-transform:uppercase;letter-spacing:.7px;color:#666;margin-bottom:4px;}
+  .data-box .dv{font-size:14px;font-weight:700;color:#1a2e6e;}
+  table{width:100%;border-collapse:collapse;margin-bottom:20px;}
+  thead th{background:#1a2e6e;color:#fff;padding:10px 10px;font-size:10.5px;text-align:left;font-weight:600;letter-spacing:.4px;}
+  thead th:last-child{text-align:right;}
+  .total-row{background:#e8f0fe;font-weight:700;}
+  .total-row td{padding:12px 10px;font-size:14px;border:1px solid #c0d0f0;}
+  .total-row td:last-child{font-size:16px;color:#1a7a50;text-align:right;}
+  .obs-box{background:#fffbf0;border:1px solid #f0d060;border-radius:8px;padding:14px;margin-bottom:24px;font-size:12px;white-space:pre-line;}
+  .obs-box h4{font-size:10px;font-weight:700;text-transform:uppercase;color:#a07000;margin-bottom:6px;}
+  .footer{text-align:center;padding-top:20px;border-top:1px solid #eee;font-size:10px;color:#999;}
+  .assinatura{display:grid;grid-template-columns:1fr 1fr;gap:40px;margin-top:36px;}
+  .assin-box{text-align:center;padding-top:40px;border-top:1px solid #333;}
+  .assin-box p{font-size:11px;color:#444;}
+  @media print{.page{padding:20px;}}
 
-/* HEADER */
-.hdr{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:36px;padding-bottom:28px;border-bottom:3px solid #1e3a8a;}
-.hdr-left{}
-.hdr-tag{display:inline-flex;align-items:center;gap:6px;background:#dbeafe;color:#1e40af;font-size:9px;font-weight:700;letter-spacing:1.2px;text-transform:uppercase;padding:4px 10px;border-radius:20px;margin-bottom:10px;}
-.hdr-tag::before{content:'';width:6px;height:6px;border-radius:50%;background:#1d4ed8;}
-.hdr-left h1{font-size:28px;font-weight:900;color:#1e3a8a;letter-spacing:-1px;line-height:1.1;}
-.hdr-left p{font-size:11.5px;color:#6b7280;margin-top:5px;}
-.fat-num{background:linear-gradient(135deg,#1e3a8a 0%,#2563eb 100%);color:#fff;padding:16px 24px;border-radius:14px;text-align:center;min-width:150px;box-shadow:0 6px 20px rgba(30,58,138,.35);}
-.fat-num .fn-lbl{font-size:8.5px;opacity:.7;letter-spacing:1.4px;text-transform:uppercase;margin-bottom:6px;}
-.fat-num .fn-val{font-size:22px;font-weight:900;letter-spacing:-0.5px;}
-.fat-num .fn-dt{font-size:9.5px;opacity:.65;margin-top:6px;}
+#btn-consolidado{background:rgba(255,255,255,.76)!important;border:1px solid rgba(223,230,241,.95)!important;box-shadow:var(--shadow-soft);}
+#btn-consolidado:hover{background:#fff!important;border-color:rgba(76,111,255,.18)!important;color:var(--acc)!important;}
+#btn-consolidado.on{background:linear-gradient(135deg,rgba(76,111,255,.14),rgba(124,92,255,.08))!important;border-color:rgba(76,111,255,.24)!important;color:var(--acc)!important;}
+#chart-ano,#chart-mes{background:rgba(255,255,255,.78)!important;border:1px solid rgba(223,230,241,.95)!important;border-radius:12px!important;box-shadow:var(--shadow-soft);}
+.srch{background:rgba(255,255,255,.78);border:1px solid rgba(223,230,241,.95);box-shadow:var(--shadow-soft);}
+.toast{background:rgba(255,255,255,.9);border:1px solid rgba(255,255,255,.82);backdrop-filter:var(--glass);}
+.login-box{background:rgba(255,255,255,.82);border:1px solid rgba(255,255,255,.74);backdrop-filter:var(--glass);}
 
-/* PARTES */
-.partes{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:24px;}
-.parte{border:1.5px solid #e2e8f0;border-radius:12px;padding:18px 20px;background:#fafbff;}
-.parte.emit{background:linear-gradient(135deg,#eff6ff,#eef2ff);border-color:#c7d7f5;}
-.parte .p-lbl{font-size:8.5px;font-weight:700;letter-spacing:1.2px;text-transform:uppercase;color:#94a3b8;margin-bottom:8px;}
-.parte .p-nome{font-size:15px;font-weight:800;color:#1e3a8a;margin-bottom:4px;}
-.parte .p-det{font-size:11px;color:#4b5563;line-height:1.8;}
 
-/* KPIS */
-.kpis{display:grid;grid-template-columns:repeat(5,1fr);gap:10px;margin-bottom:28px;}
-.kpi{background:#f8faff;border:1.5px solid #e2e8f0;border-radius:10px;padding:14px 10px;text-align:center;}
-.kpi.hi{background:linear-gradient(135deg,#1e3a8a,#2563eb);border:none;box-shadow:0 4px 14px rgba(30,58,138,.3);}
-.kpi .k-lbl{font-size:8.5px;font-weight:700;letter-spacing:.8px;text-transform:uppercase;color:#94a3b8;margin-bottom:5px;}
-.kpi.hi .k-lbl{color:rgba(255,255,255,.65);}
-.kpi .k-val{font-size:21px;font-weight:900;color:#1e3a8a;line-height:1.1;}
-.kpi.hi .k-val{color:#fff;font-size:18px;}
-.kpi .k-sub{font-size:9.5px;color:#6b7280;margin-top:3px;}
-.kpi.hi .k-sub{color:rgba(255,255,255,.6);}
+/* ─── Apple / Notion executivo ─── */
+th{font-size:10.5px;letter-spacing:.08em;color:#7a8190;}
+td{color:#1f2937;}
+.mono{color:#667085;}
+.badge{font-weight:700;}
+.bg-blue{background:rgba(79,70,229,.08);color:#4f46e5;border:1px solid rgba(79,70,229,.12);}
+.bg-green{background:rgba(22,163,74,.08);color:#15803d;border:1px solid rgba(22,163,74,.12);}
+.bg-yellow{background:rgba(183,121,31,.08);color:#a16207;border:1px solid rgba(183,121,31,.14);}
+.bg-red{background:rgba(224,90,109,.08);color:#d9485f;border:1px solid rgba(224,90,109,.14);}
+.bg-orange{background:rgba(217,119,6,.08);color:#b45309;border:1px solid rgba(217,119,6,.14);}
+.bg-gray{background:rgba(17,24,39,.05);color:#4b5563;border:1px solid rgba(17,24,39,.08);}
+.bg-sky{background:rgba(15,118,110,.08);color:#0f766e;border:1px solid rgba(15,118,110,.14);}
+.bg-purple{background:rgba(99,102,241,.08);color:#4f46e5;border:1px solid rgba(99,102,241,.14);}
+.badge.blink-vencido,.badge.blink-hoje{animation:none!important;}
+tr.row-vencido{animation:none!important;}
 
-/* SEÇÕES */
-.sec-ttl{font-size:9.5px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:#475569;margin-bottom:10px;padding-bottom:6px;border-bottom:2px solid #e2e8f0;display:flex;align-items:center;gap:6px;}
-.sec-ttl::before{content:'';display:block;width:3px;height:14px;background:#2563eb;border-radius:2px;}
-.cards2{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px;}
-.cards3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:16px;margin-bottom:16px;}
-.card{border:1.5px solid #e2e8f0;border-radius:12px;padding:18px;background:#fafbff;}
-.card-full{grid-column:1/-1;}
-
-/* PRAZO strip */
-.prazo-strip{display:flex;gap:0;margin-bottom:16px;border-radius:10px;overflow:hidden;border:1.5px solid #e2e8f0;}
-.ps-item{flex:1;padding:14px 12px;text-align:center;background:#fafbff;border-right:1px solid #e2e8f0;}
-.ps-item:last-child{border-right:none;}
-.ps-item.hi{background:linear-gradient(135deg,#ecfdf5,#d1fae5);}
-.ps-lbl{font-size:8.5px;font-weight:700;letter-spacing:.8px;text-transform:uppercase;color:#94a3b8;margin-bottom:4px;}
-.ps-val{font-size:20px;font-weight:900;color:#15803d;}
-.ps-val.warn{color:#b45309;}
-.ps-val.neu{color:#1e3a8a;}
-.ps-sub{font-size:9.5px;color:#6b7280;margin-top:2px;}
-
-/* TABELA */
-table{width:100%;border-collapse:collapse;margin-bottom:20px;}
-thead th{background:#1e3a8a;color:#fff;padding:9px 10px;font-size:9.5px;font-weight:700;letter-spacing:.5px;text-align:left;}
-thead th:last-child{text-align:right;}
-.grp-row td{background:#1e3a8a;color:#fff;font-size:10px;font-weight:700;padding:7px 10px;letter-spacing:.3px;}
-.grp-row td:last-child{text-align:right;}
-.tot-row td{background:#dbeafe;font-weight:800;font-size:13px;padding:12px 10px;border:1.5px solid #bfdbfe;}
-.tot-row td:last-child{font-size:16px;color:#15803d;text-align:right;}
-
-/* RODAPÉ */
-.obs{background:#fffbeb;border:1.5px solid #fde68a;border-radius:10px;padding:16px;margin-bottom:24px;font-size:11px;line-height:1.8;white-space:pre-line;}
-.obs-ttl{font-size:8.5px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:#92400e;margin-bottom:6px;}
-.assinaturas{display:grid;grid-template-columns:1fr 1fr;gap:60px;margin-top:40px;}
-.assin{text-align:center;padding-top:44px;border-top:1.5px solid #374151;}
-.assin .assin-nome{font-size:12px;font-weight:700;color:#1e3a8a;margin-top:6px;}
-.assin .assin-cargo{font-size:10px;color:#6b7280;margin-top:2px;}
-.footer{text-align:center;padding-top:20px;border-top:1px solid #f1f5f9;margin-top:28px;font-size:9.5px;color:#9ca3af;line-height:1.7;}
-@media print{
-  .page{padding:24px 28px;}
-  body{-webkit-print-color-adjust:exact;print-color-adjust:exact;}
-}
 </style>
 </head><body><div class="page">
 
-<!-- ══ HEADER ══════════════════════════════════════════════════ -->
-<div class="hdr">
-  <div class="hdr-left">
-    <div class="hdr-tag">Documento Fiscal · Serviços de Engenharia</div>
-    <h1>FATURA DE SERVIÇOS</h1>
-    <p>Caixa Econômica Federal — Ordens de Serviço de Engenharia e Avaliações</p>
-  </div>
-  <div class="fat-num">
-    <div class="fn-lbl">Fatura Nº</div>
-    <div class="fn-val">${num}</div>
-    <div class="fn-dt">Emissão: ${_fmtDate(data)||new Date().toLocaleDateString('pt-BR')}</div>
-  </div>
-</div>
-
-<!-- ══ PARTES ══════════════════════════════════════════════════ -->
-<div class="partes">
-  <div class="parte emit">
-    <div class="p-lbl">📤 Prestador de Serviços</div>
-    <div class="p-nome">LC Rissati Engenharia Ltda</div>
-    <div class="p-det">CNPJ: 49.910.739/0001-20<br>São José do Rio Preto — SP</div>
-  </div>
-  <div class="parte">
-    <div class="p-lbl">📥 Destinatário / Tomador</div>
-    <div class="p-nome">${dest||'—'}</div>
-    <div class="p-det">${destCNPJ?'CNPJ: '+destCNPJ:''}</div>
-  </div>
-</div>
-
-<!-- ══ KPIs ══════════════════════════════════════════════════ -->
-<div class="kpis">
-  <div class="kpi">
-    <div class="k-lbl">Data da Fatura</div>
-    <div class="k-val" style="font-size:15px;">${_fmtDate(data)||'—'}</div>
-  </div>
-  <div class="kpi">
-    <div class="k-lbl">Vencimento</div>
-    <div class="k-val" style="font-size:15px;color:${venc?'#b45309':'#1e3a8a'};">${_fmtDate(venc)||'—'}</div>
-  </div>
-  <div class="kpi">
-    <div class="k-lbl">Total de OS</div>
-    <div class="k-val">${selecionadas.length}</div>
-    <div class="k-sub">${empArr.length} empresa${empArr.length!==1?'s':''}</div>
-  </div>
-  <div class="kpi">
-    <div class="k-lbl">Prazo médio</div>
-    <div class="k-val">${tmed!==null?tmed+'d':'—'}</div>
-    <div class="k-sub">${tmin!==null?'mín '+tmin+'d · máx '+tmax+'d':'sem dados'}</div>
-  </div>
-  <div class="kpi hi">
-    <div class="k-lbl">Valor Total</div>
-    <div class="k-val">${_fmtMoeda(total)}</div>
-    <div class="k-sub">a receber</div>
-  </div>
-</div>
-
-<!-- ══ PRAZO STRIP ═════════════════════════════════════════════ -->
-<div class="prazo-strip">
-  <div class="ps-item hi">
-    <div class="ps-lbl">Prazo Médio</div>
-    <div class="ps-val">${tmed!==null?tmed+'d':'—'}</div>
-    <div class="ps-sub">dias até fechamento</div>
-  </div>
-  <div class="ps-item">
-    <div class="ps-lbl">Mais Rápida</div>
-    <div class="ps-val">${tmin!==null?tmin+'d':'—'}</div>
-    <div class="ps-sub">menor prazo</div>
-  </div>
-  <div class="ps-item">
-    <div class="ps-lbl">Mais Lenta</div>
-    <div class="ps-val warn">${tmax!==null?tmax+'d':'—'}</div>
-    <div class="ps-sub">maior prazo</div>
-  </div>
-  <div class="ps-item">
-    <div class="ps-lbl">Com Data Registrada</div>
-    <div class="ps-val neu">${tempos.length}</div>
-    <div class="ps-sub">de ${selecionadas.length} OS</div>
-  </div>
-  <div class="ps-item">
-    <div class="ps-lbl">Ticket Médio</div>
-    <div class="ps-val neu" style="font-size:15px;">${selecionadas.length?_fmtMoeda(total/selecionadas.length):'—'}</div>
-    <div class="ps-sub">por OS</div>
-  </div>
-</div>
-
-<!-- ══ GRÁFICOS ════════════════════════════════════════════════ -->
-<div class="cards2">
-  <div class="card">
-    <div class="sec-ttl">Valor Faturado por Empresa</div>
-    ${barras(empArr, 440, ([,d])=>d.val, d=>d.val, d=>`${d.cnt} OS · ${Math.round(d.val/total*100)}%`, AZUL)}
-  </div>
-  <div class="card">
-    <div class="sec-ttl">OS por Tipo de Serviço</div>
-    ${donut(tipoArr, 72, 44, 80, 82, 370, 165, (k,v)=>`${k} (${v.cnt})`, v=>v.cnt)}
-  </div>
-</div>
-
-<div class="cards2">
-  <div class="card">
-    <div class="sec-ttl">Distribuição do Prazo de Fechamento</div>
-    <div style="display:flex;gap:20px;align-items:flex-start;margin-top:6px;">
-      ${histograma(tempos)}
-      <div style="font-size:10.5px;color:#374151;line-height:1.9;padding-top:4px;">
-        <div>⬛ <b>0–5d</b> entregas imediatas</div>
-        <div>🟦 <b>6–10d</b> prazo normal</div>
-        <div>🟦 <b>11–20d</b> atenção moderada</div>
-        <div>🟦 <b>21–30d</b> prazo longo</div>
-        <div>🟦 <b>>30d</b> crítico</div>
-      </div>
+  <div class="header">
+    <div class="logo-area">
+      <h1>FATURA DE SERVIÇOS</h1>
+      <p>Controle de Ordens de Serviço — Caixa Econômica Federal</p>
+    </div>
+    <div class="fat-badge">
+      <div class="lbl">FATURA Nº</div>
+      <div class="num">${num}</div>
     </div>
   </div>
-  <div class="card">
-    <div class="sec-ttl">Top Municípios</div>
-    ${barras(cidArr, 380, ([,n])=>n, n=>n, n=>`${n} OS`, VERDE)}
-    ${cidArr.length===0?'<div style="color:#9ca3af;font-size:11px;padding:12px 0;text-align:center;">Sem dados de cidade</div>':''}
-  </div>
-</div>
 
-<!-- ══ TABELA ══════════════════════════════════════════════════ -->
-<div class="sec-ttl" style="margin-bottom:10px;">Detalhamento das Ordens de Serviço</div>
-<table>
-  <thead>
-    <tr>
-      <th>Referência OS</th><th>Tipo</th><th>Cliente / Mutuário</th>
-      <th>Município</th><th>Fechamento</th>
-      <th style="text-align:center;">Prazo</th>
-      <th style="text-align:right;">Valor</th>
+  <div class="info-grid">
+    <div class="info-box">
+      <h3>📤 Prestador de Serviços</h3>
+      <p class="dest-name">LC Rissati Engenharia Ltda</p>
+      <p style="font-size:11.5px;color:#444;margin-top:6px;">CNPJ: 49.910.739/0001-20</p>
+      <p style="font-size:11.5px;color:#444;">São José do Rio Preto — SP</p>
+    </div>
+    <div class="info-box">
+      <h3>📥 Destinatário</h3>
+      <p class="dest-name">${dest||'—'}</p>
+      ${destCNPJ?`<p style="font-size:11.5px;color:#444;margin-top:6px;">CNPJ: ${destCNPJ}</p>`:''}
+    </div>
+  </div>
+
+  <div class="datas">
+    <div class="data-box"><div class="dl">Data da Fatura</div><div class="dv">${fmtDate(data)}</div></div>
+    <div class="data-box"><div class="dl">Vencimento</div><div class="dv">${fmtDate(venc)}</div></div>
+    <div class="data-box"><div class="dl">Total de OS</div><div class="dv">${selecionadas.length}</div></div>
+    <div class="data-box" style="background:#e8f5e9;border-color:#a5d6a7;"><div class="dl">Valor Total</div><div class="dv" style="color:#1a7a50;">${fmtVal(total)}</div></div>
+  </div>
+
+  <table>
+    <thead><tr>
+      <th>Referência OS</th><th>Empresa</th><th>Tipo</th><th>Cliente</th>
+      <th>Cidade</th><th>Data Abertura</th><th style="text-align:right;">Valor</th>
+    </tr></thead>
+    <tbody>${linhas}</tbody>
+    <tr class="total-row">
+      <td colspan="6" style="border:1px solid #c0d0f0;padding:12px 10px;letter-spacing:.3px;">TOTAL GERAL — ${selecionadas.length} Ordem(ns) de Serviço</td>
+      <td>${fmtVal(total)}</td>
     </tr>
-  </thead>
-  <tbody>${linhas}</tbody>
-  <tr class="tot-row">
-    <td colspan="6" style="border:1.5px solid #bfdbfe;">
-      TOTAL GERAL &nbsp;·&nbsp; ${selecionadas.length} Ordem(ns) &nbsp;·&nbsp; ${empArr.length} Empresa${empArr.length!==1?'s':''}
-    </td>
-    <td style="border:1.5px solid #bfdbfe;">${_fmtMoeda(total)}</td>
-  </tr>
-</table>
+  </table>
 
-${obsF?`<div class="obs"><div class="obs-ttl">📝 Observações</div>${obsF}</div>`:''}
+  ${obsF?`<div class="obs-box"><h4>💳 Informações para Pagamento</h4>${obsF}</div>`:''}
 
-<div class="obs" style="background:#f0f9ff;border-color:#bae6fd;">
-  <div class="obs-ttl" style="color:#0369a1;">💳 Informações para Pagamento</div>
-  <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px 32px;font-size:11px;color:#1e3a8a;line-height:1.9;">
-    <div><span style="color:#64748b;">Banco:</span> <strong>Caixa Econômica Federal</strong></div>
-    <div><span style="color:#64748b;">Razão Social:</span> <strong>LC Rissati Engenharia Ltda</strong></div>
-    <div><span style="color:#64748b;">Agência:</span> <strong>1610</strong></div>
-    <div><span style="color:#64748b;">Conta Corrente:</span> <strong>579045854-4</strong></div>
-    <div><span style="color:#64748b;">Operação:</span> <strong>1292</strong></div>
-    <div><span style="color:#64748b;">Chave PIX:</span> <strong style="font-family:monospace;font-size:10.5px;">ce4f4e77-662d-4144-b35c-028a09c365f9</strong></div>
+  <div class="assinatura">
+    <div class="assin-box"><p>Prestador de Serviços</p><p style="font-weight:600;margin-top:4px;">LC Rissati Engenharia Ltda</p></div>
+    <div class="assin-box"><p>Destinatário / Aprovação</p><p style="font-weight:600;margin-top:4px;">${dest||'___________________'}</p></div>
   </div>
-</div>
 
-<!-- ══ ASSINATURAS ═════════════════════════════════════════════ -->
-<div class="assinaturas">
-  <div class="assin">
-    <div class="assin-nome">LC Rissati Engenharia Ltda</div>
-    <div class="assin-cargo">Prestador de Serviços · CNPJ 49.910.739/0001-20</div>
-  </div>
-  <div class="assin">
-    <div class="assin-nome">${dest||'___________________________'}</div>
-    <div class="assin-cargo">Destinatário · Aprovação</div>
-  </div>
+  <div class="footer">Documento gerado em ${new Date().toLocaleString('pt-BR')} · Sistema de Controle OS</div>
 </div>
-
-<div class="footer">
-  Documento gerado em ${new Date().toLocaleString('pt-BR')} &nbsp;·&nbsp;
-  Sistema de Controle OS — Caixa Econômica Federal &nbsp;·&nbsp;
-  LC Rissati Engenharia Ltda &nbsp;·&nbsp; CNPJ 49.910.739/0001-20
-</div>
-
-</div>
-<scr\ipt>window.onload=()=>setTimeout(()=>window.print(),400);</scr\ipt>
+<scr\ipt>window.onload=()=>window.print();</scr\ipt>
 </body></html>`;
 
-  const win = window.open('', '_blank');
-  if(!win) { toast('Permita pop-ups para gerar a fatura', 'err'); return; }
+  const win = window.open('','_blank');
   win.document.write(html);
   win.document.close();
 }
-
 
 
 
@@ -5751,14 +5321,6 @@ async function _carregarPerfil(user) {
   return { uid: user.uid, email: user.email, nome, perfil, cargo, user: user.email };
 }
 
-function isPauloUser() {
-  if(!USUARIO_ATUAL) return false;
-  return (USUARIO_ATUAL.email || '').toLowerCase().trim() === 'paauloccp@gmail.com';
-}
-function isAdminUser() {
-  return (USUARIO_ATUAL?.email || '').toLowerCase().trim() === 'lcrissatiengenharia@gmail.com';
-}
-
 function aplicarPerfil() {
   if(!PERFIL_ATUAL) return;
 
@@ -5768,23 +5330,6 @@ function aplicarPerfil() {
   // Aplica classe ao body para CSS admin-only funcionar
   document.body.classList.remove('admin','estagiario');
   document.body.classList.add(PERFIL_ATUAL);
-
-  // Botão de comissão: visível para admin (lcrissatiengenharia) e Paulo (paauloccp)
-  // Usamos setTimeout para rodar APÓS o CSS admin-only ser aplicado
-  setTimeout(() => {
-    const btnComissao = document.getElementById('btn-comissao-paulo');
-    if(btnComissao) {
-      const paulo = isPauloUser();
-      const admin = isAdmin();
-      if(paulo || admin) {
-        btnComissao.style.setProperty('display','flex','important');
-        const lbl = btnComissao.querySelector('.lbl');
-        if(lbl) lbl.textContent = paulo && !admin ? 'Meu Comissionamento' : 'Comissão — Paulo';
-      } else {
-        btnComissao.style.setProperty('display','none','important');
-      }
-    }
-  }, 0);
 
   // Badge do usuário na sidebar
   const wrap = document.getElementById('user-badge-wrap');
@@ -5807,8 +5352,10 @@ function aplicarPerfil() {
     if(typeof window._fbListen === 'function' && !window._fbStarted) {
       window._fbStarted = true;
       window._fbUnsub = window._fbListen();
+      if(typeof window._fbListenLixeira === 'function') {
+        window._fbUnsubLix = window._fbListenLixeira();
+      }
     }
-    atualizarWidgetComissao();
     if(typeof refreshAll === 'function') refreshAll();
   } catch(err) {
     console.error('Erro ao abrir sistema após login:', err);
@@ -7216,31 +6763,117 @@ dashConsolidado = false;
 // ══════════════════════════════════════
 // LIXEIRA — listener + render + ações
 // ══════════════════════════════════════
+window.LIX_DB = [];
 
+window._fbListenLixeira = () => {
+  try {
+    const colLix = collection(db, "ordens_servico_lixeira");
+    return onSnapshot(colLix,
+      snap => {
+        try {
+          window.LIX_DB = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+          if(typeof updateBadges === 'function') updateBadges();
+          const active = document.querySelector('.page.active')?.id;
+          if(active === 'page-lixeira' && typeof renderLixeira === 'function') renderLixeira();
+        } catch(err){ console.error('Lixeira parse:', err); }
+      },
+      err => { console.error('Lixeira listener:', err); }
+    );
+  } catch(err){ console.error('Lixeira init:', err); }
+};
+// Listener da lixeira iniciado pelo aplicarPerfil após login
 
+function fmtDtLix(ts){
+  try {
+    if(!ts) return '—';
+    if(ts.toDate) ts = ts.toDate();
+    else if(typeof ts === 'string') ts = new Date(ts);
+    else if(typeof ts === 'number') ts = new Date(ts);
+    if(!(ts instanceof Date) || isNaN(ts)) return '—';
+    return ts.toLocaleString('pt-BR', {day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit'});
+  } catch(e){ return '—'; }
+}
 
+function renderLixeira(){
+  const tb = document.getElementById('tb-lix');
+  if(!tb) return;
+  const q = (document.getElementById('s-lix')?.value||'').toLowerCase().trim();
+  let arr = (window.LIX_DB||[]).slice();
+  if(q) arr = arr.filter(o=>[o.empresa,o.numeroOS,o.tipoServico,o.cliente,o.cidade].some(v=>(v||'').toString().toLowerCase().includes(q)));
+  arr.sort((a,b)=>{
+    const ta = a.deletedAt?.toDate ? a.deletedAt.toDate().getTime() : 0;
+    const tb_ = b.deletedAt?.toDate ? b.deletedAt.toDate().getTime() : 0;
+    return tb_ - ta;
+  });
+  if(!arr.length){
+    tb.innerHTML = '<tr><td colspan="8" style="text-align:center;padding:30px;color:var(--tx3);">Lixeira vazia</td></tr>';
+    return;
+  }
+  tb.innerHTML = arr.map(os=>`
+    <tr>
+      <td>${os.empresa||'—'}</td>
+      <td>${tipoBadge(os.tipoServico||'—')}</td>
+      <td style="font-family:'JetBrains Mono',monospace;font-size:11px;">${os.numeroOS||'—'}</td>
+      <td>${os.cliente||'—'}</td>
+      <td>${os.cidade||'—'}</td>
+      <td style="font-size:11.5px;color:var(--tx3);">${fmtDtLix(os.deletedAt)}</td>
+      <td style="font-size:11.5px;color:var(--tx3);">${os.deletedByNome||os.deletedBy||'—'}</td>
+      <td style="white-space:nowrap;">
+        <button class="btn btn-ghost btn-sm" onclick="restaurarLixeira('${os.id}')" title="Restaurar OS">↩ Restaurar</button>
+        <button class="btn btn-danger btn-sm admin-only" onclick="excluirDefinitivo('${os.id}')" title="Excluir permanentemente">🗑 Excluir</button>
+      </td>
+    </tr>
+  `).join('');
+}
+
+async function restaurarLixeira(id){
+  const os = (window.LIX_DB||[]).find(o=>o.id===id);
+  if(!os) return;
+  if(!confirm(`Restaurar a OS ${os.numeroOS||id}?`)) return;
+  try {
+    _showSaving('restaurando…');
+    if(window._fbRestore) await window._fbRestore(id, os);
+    _hideSaving(true);
+    toast('OS restaurada com sucesso!','ok');
+  } catch(e){ console.error(e); _hideSaving(false); toast('Falha ao restaurar.','err'); }
+}
 
 async function excluirDefinitivo(id){
   if(typeof isAdmin === 'function' && !isAdmin()){ toast('Apenas administradores podem excluir definitivamente','err'); return; }
-  const os = (window.LIX_DB||[]).find(o=>o.id===id) || DB.find(o=>o.id===id);
-  if(!os) { toast('OS não encontrada','err'); return; }
+  const os = (window.LIX_DB||[]).find(o=>o.id===id);
+  if(!os) return;
   if(!confirm(`⚠ EXCLUIR PERMANENTEMENTE a OS ${os.numeroOS||id}?\n\nEsta ação NÃO pode ser desfeita.`)) return;
   try {
     _showSaving('excluindo…');
-    if(typeof window._fbHardDeleteLix === 'function') {
-      await window._fbHardDeleteLix(id);
-    } else if(typeof window._fbDelete === 'function') {
-      await window._fbDelete(id);
-    }
+    await deleteDoc(doc(db, "ordens_servico_lixeira", id));
     _hideSaving(true);
     toast('OS excluída permanentemente.','ok');
   } catch(e){
-    console.error('Erro ao excluir definitivamente:', e);
-    _hideSaving(false);
-    toast('Erro ao excluir. Tente novamente.','err');
+    // fallback: importar deleteDoc/doc do escopo do módulo
+    console.error(e);
+    try {
+      if(window._fbHardDeleteLix) await window._fbHardDeleteLix(id);
+      _hideSaving(true);
+      toast('OS excluída permanentemente.','ok');
+    } catch(e2){ _hideSaving(false); toast('Falha ao excluir.','err'); }
   }
 }
 
+async function esvaziarLixeira(){
+  if(typeof isAdmin === 'function' && !isAdmin()){ toast('Apenas administradores','err'); return; }
+  const n = (window.LIX_DB||[]).length;
+  if(!n) { toast('Lixeira já está vazia.','ok'); return; }
+  if(!confirm(`⚠ Esvaziar a lixeira?\n\n${n} OS serão excluídas PERMANENTEMENTE.\nEsta ação NÃO pode ser desfeita.`)) return;
+  let ok=0, fail=0;
+  for(const os of [...(window.LIX_DB||[])]){
+    try {
+      if(window._fbHardDeleteLix) await window._fbHardDeleteLix(os.id);
+      else await deleteDoc(doc(db, "ordens_servico_lixeira", os.id));
+      ok++;
+    } catch(e){ console.error(e); fail++; }
+  }
+  toast(`Lixeira esvaziada: ${ok} excluídas${fail?` · ${fail} falharam`:''}`, fail?'err':'ok');
+}
 
 updateBadges();
 renderDash();
@@ -8410,480 +8043,6 @@ function chatTyping() {
 
 // Finalizar listeners ao fazer logout
 const _origLogout = window.logout;
-window.logout = async function() {
-  if(_chatUnsub)   { try { _chatUnsub(); } catch(e){} }
-  if(_presencaUnsub){ try { _presencaUnsub(); } catch(e){} }
-  await _marcarPresenca('offline');
-  _chatIniciado = false;
-  _chatUnsub = null;
-  _presencaUnsub = null;
-  if(_origLogout) await _origLogout();
-};
-
-// ═══ COMISSIONAMENTO PAULO ═══
-// Emails fixos para identificação
-const EMAIL_ADMIN = 'lcrissatiengenharia@gmail.com';
-const EMAIL_PAULO = 'paauloccp@gmail.com';
-
-// Regras de comissionamento
-const COMISSAO_PAULO = {
-  EMPRESAS: ['ATX','Gusmão Filho Engenharia','JOP','Ribeiro Albuquerque',
-             'LC Rissati Engenharia','L&L Engenharia','Mattos e Periotto','Álvares filho'],
-  VALOR_TIPO: { 'A-413': 18.00, 'B-438': 32.00, 'B-437': 30.00 },
-};
-
-function calcComissaoPaulo(os) {
-  const emp = (os.empresa || '').trim();
-  const tipo = (os.tipoServico || '').trim().toUpperCase();
-  // Verifica empresa (busca parcial case-insensitive)
-  const temEmpresa = COMISSAO_PAULO.EMPRESAS.some(e =>
-    emp.toLowerCase().includes(e.toLowerCase()) ||
-    e.toLowerCase().includes(emp.toLowerCase())
-  );
-  if(!temEmpresa) return 0;
-  // Verifica tipo
-  for(const [t, val] of Object.entries(COMISSAO_PAULO.VALOR_TIPO)) {
-    if(tipo.includes(t)) return val;
-  }
-  return 0; // tipos sem comissão
-}
-
-function atualizarWidgetComissao() {
-  const widget = document.getElementById('comissao-widget');
-  if(!widget) return;
-
-  const paulo = isPauloUser();
-  const admin = isAdmin();
-
-  // Só mostra para admin ou Paulo
-  if(!paulo && !admin) {
-    widget.style.setProperty('display','none','important');
-    return;
-  }
-  widget.style.setProperty('display','block','important');
-
-  // Calcula comissão do mês atual
-  const now = new Date();
-  const ay = now.getFullYear(), am = now.getMonth();
-
-  const osMes = DB.filter(os => {
-    if(!os.dataFechamento) return false;
-    const d = new Date(os.dataFechamento.includes('T') ? os.dataFechamento : os.dataFechamento + 'T00:00');
-    return d.getFullYear() === ay && d.getMonth() === am;
-  });
-
-  const comItems = osMes.map(os => ({ ...os, comissao: calcComissaoPaulo(os) }))
-                        .filter(os => os.comissao > 0);
-  const total = comItems.reduce((s, os) => s + os.comissao, 0);
-  const cnt   = comItems.length;
-
-  const mesLabel = now.toLocaleDateString('pt-BR', { month: 'short', year: '2-digit' });
-
-  const labelEl = document.getElementById('cw-label');
-  const totalEl = document.getElementById('cw-total');
-  const subEl   = document.getElementById('cw-sub');
-
-  if(labelEl) labelEl.textContent = admin && !paulo ? '💵 Comissão — Paulo' : '💵 Meu Comissionamento';
-  if(totalEl) totalEl.textContent = fmtVal(total);
-  if(subEl)   subEl.textContent   = `${cnt} OS · ${mesLabel}`;
-}
-
-function renderComissaoPaulo() {
-  const now = new Date();
-  const sel = document.getElementById('cp-mes-sel');
-  const offset = sel ? sel.value : '0';
-
-  // Filtra OS por período
-  let osList;
-  if(offset === 'all') {
-    osList = DB.filter(os => os.dataFechamento);
-  } else {
-    const off = parseInt(offset)||0;
-    const alvo = new Date(now.getFullYear(), now.getMonth()-off, 1);
-    const ay = alvo.getFullYear(), am = alvo.getMonth();
-    osList = DB.filter(os => {
-      if(!os.dataFechamento) return false;
-      const d = new Date(os.dataFechamento.includes('T')?os.dataFechamento:os.dataFechamento+'T00:00');
-      return d.getFullYear()===ay && d.getMonth()===am;
-    });
-  }
-
-  // Calcula comissão de cada OS
-  const comItems = osList.map(os => ({
-    ...os,
-    comissao: calcComissaoPaulo(os)
-  })).filter(os => os.comissao > 0)
-    .sort((a,b)=>(b.dataFechamento||'').localeCompare(a.dataFechamento||''));
-
-  const totalComissao = comItems.reduce((s,os)=>s+os.comissao, 0);
-  const totalOS = comItems.length;
-
-  // Título dinâmico
-  const titulo = isAdmin() && !isPauloUser() ? 'Comissionamento — Paulo' : 'Meu Comissionamento';
-  const el = id => document.getElementById(id);
-  if(el('cp-titulo')) el('cp-titulo').textContent = titulo;
-  if(el('cp-subtitulo')) el('cp-subtitulo').textContent =
-    offset==='all' ? 'Todos os períodos · OS fechadas' :
-    (() => { const d=new Date(now.getFullYear(),now.getMonth()-parseInt(offset),1);
-             return d.toLocaleDateString('pt-BR',{month:'long',year:'numeric'}); })();
-
-  // KPIs
-  const tipoMap = {};
-  comItems.forEach(os=>{
-    const t=os.tipoServico||'—';
-    if(!tipoMap[t]) tipoMap[t]={cnt:0,val:0};
-    tipoMap[t].cnt++; tipoMap[t].val+=os.comissao;
-  });
-  const tipoArr = Object.entries(tipoMap).sort((a,b)=>b[1].val-a[1].val);
-
-  if(el('cp-kpis')) el('cp-kpis').innerHTML = `
-    <div class="stat" style="--sc:var(--grn)">
-      <div class="stat-ic">💵</div>
-      <div class="stat-lbl">Total a Receber</div>
-      <div class="stat-val" style="font-size:20px;">${fmtVal(totalComissao)}</div>
-      <div class="stat-sub">${totalOS} OS com comissão</div>
-    </div>
-    <div class="stat" style="--sc:var(--acc)">
-      <div class="stat-ic">📋</div>
-      <div class="stat-lbl">OS Comissionadas</div>
-      <div class="stat-val">${totalOS}</div>
-      <div class="stat-sub">${tipoArr.length} tipo${tipoArr.length!==1?'s':''} distintos</div>
-    </div>
-    <div class="stat" style="--sc:var(--sky)">
-      <div class="stat-ic">⚙️</div>
-      <div class="stat-lbl">Média por OS</div>
-      <div class="stat-val" style="font-size:20px;">${totalOS ? fmtVal(totalComissao/totalOS) : '—'}</div>
-      <div class="stat-sub">valor de comissão</div>
-    </div>`;
-
-  // Barras por tipo
-  const barEl = el('cp-barras-tipo');
-  if(barEl) {
-    if(!tipoArr.length) {
-      barEl.innerHTML = '<div style="color:var(--tx3);font-size:12px;text-align:center;padding:20px 0;">Nenhuma OS com comissão no período</div>';
-    } else {
-      const maxV = tipoArr[0][1].val;
-      // Regras visuais
-      const REGRAS = {'A-413':'20% de R$ 90,00','B-438':'20% de R$ 160,00','B-437':'20% de R$ 150,00'};
-      barEl.innerHTML = tipoArr.map(([tipo,d])=>`
-        <div style="display:flex;align-items:center;gap:12px;margin-bottom:12px;">
-          <div style="width:60px;text-align:right;font-weight:700;font-size:12px;color:var(--tx);">${tipo}</div>
-          <div style="flex:1;background:var(--bg3);border-radius:6px;height:28px;overflow:hidden;position:relative;">
-            <div style="width:${Math.round(d.val/maxV*100)}%;height:100%;background:linear-gradient(90deg,var(--acc),var(--sky));border-radius:6px;transition:width .4s;"></div>
-            <div style="position:absolute;left:10px;top:50%;transform:translateY(-50%);font-size:11px;font-weight:700;color:#fff;">${d.cnt} OS</div>
-          </div>
-          <div style="text-align:right;min-width:90px;">
-            <div style="font-weight:800;color:var(--grn);font-size:13px;">${fmtVal(d.val)}</div>
-            <div style="font-size:9px;color:var(--tx3);">${REGRAS[tipo]||''}</div>
-          </div>
-        </div>`).join('');
-
-      // Tipos SEM comissão no período (informativo)
-      const tiposSemComissao = ['E-401','E-005','E-004','AVA-01','AVA-04'];
-      barEl.innerHTML += `<div style="margin-top:14px;padding:10px 12px;background:var(--bg3);border-radius:var(--rs);font-size:11px;color:var(--tx3);">
-        ℹ️ <strong>Tipos sem comissão:</strong> ${tiposSemComissao.join(' · ')}
-      </div>`;
-    }
-  }
-
-  // Tabela
-  const tabEl = el('cp-tabela');
-  if(el('cp-total-tag')) el('cp-total-tag').textContent = totalOS ? `${totalOS} OS · ${fmtVal(totalComissao)}` : '';
-  if(tabEl) {
-    if(!comItems.length) {
-      tabEl.innerHTML = '<div style="color:var(--tx3);font-size:12px;text-align:center;padding:24px 0;">Nenhuma OS com comissão no período selecionado</div>';
-    } else {
-      tabEl.innerHTML = `<table style="width:100%;border-collapse:collapse;font-size:12px;">
-        <thead><tr style="background:var(--bg3);">
-          <th style="padding:8px 10px;text-align:left;font-weight:700;color:var(--tx2);">OS</th>
-          <th style="padding:8px 10px;text-align:left;font-weight:700;color:var(--tx2);">Empresa</th>
-          <th style="padding:8px 10px;text-align:left;font-weight:700;color:var(--tx2);">Tipo</th>
-          <th style="padding:8px 10px;text-align:left;font-weight:700;color:var(--tx2);">Cidade</th>
-          <th style="padding:8px 10px;text-align:right;font-weight:700;color:var(--tx2);">Fechamento</th>
-
-          <th style="padding:8px 10px;text-align:right;font-weight:700;color:var(--grn);">Comissão</th>
-        </tr></thead>
-        <tbody>
-          ${comItems.map((os,i)=>`
-            <tr style="border-bottom:1px solid var(--br);background:${i%2===0?'transparent':'var(--bg2)'};">
-              <td style="padding:7px 10px;" class="mono">${os.numeroOS||'—'}</td>
-              <td style="padding:7px 10px;font-weight:600;">${os.empresa||'—'}</td>
-              <td style="padding:7px 10px;">${os.tipoServico||'—'}</td>
-              <td style="padding:7px 10px;color:var(--tx2);">${os.cidade||'—'}</td>
-              <td style="padding:7px 10px;text-align:right;">${fmtDate(os.dataFechamento)}</td>
-
-              <td style="padding:7px 10px;text-align:right;font-weight:800;color:var(--grn);">${fmtVal(os.comissao)}</td>
-            </tr>`).join('')}
-          <tr style="background:var(--bg3);font-weight:800;border-top:2px solid var(--br);">
-            <td colspan="5" style="padding:10px 10px;font-size:13px;">TOTAL</td>
-            <td style="padding:10px 10px;text-align:right;font-size:15px;color:var(--grn);">${fmtVal(totalComissao)}</td>
-          </tr>
-        </tbody>
-      </table>`;
-    }
-  }
-}
-
-// ═══ PAINEL DE RECEBIMENTOS ═══
-function renderDashRecebimentos() {
-  const now = new Date();
-  const anoAtual = now.getFullYear();
-  const mesAtual = now.getMonth(); // 0-indexed
-
-  // helper: extrai ano/mes de uma data string
-  function ymOf(dateStr) {
-    if(!dateStr) return null;
-    const d = new Date(dateStr.includes('T') ? dateStr : dateStr + 'T00:00');
-    if(isNaN(d)) return null;
-    return { y: d.getFullYear(), m: d.getMonth() };
-  }
-
-  // OS com fechamento no mês atual
-  const fechadasEsteMes = DB.filter(os => {
-    const ym = ymOf(os.dataFechamento);
-    return ym && ym.y === anoAtual && ym.m === mesAtual;
-  });
-
-  const totalProx = fechadasEsteMes.reduce((s, os) => s + parsVal(os.valor||0), 0);
-  const el = id => document.getElementById(id);
-
-  const mLabel = now.toLocaleDateString('pt-BR',{month:'long',year:'numeric'});
-
-  if(el('rec2-prox'))       el('rec2-prox').textContent       = fmtVal(totalProx);
-  if(el('rec2-prox-cnt'))   el('rec2-prox-cnt').textContent   = `${fechadasEsteMes.length} OS fechadas em ${mLabel}`;
-  if(el('rec2-mes-cnt'))    el('rec2-mes-cnt').textContent    = fechadasEsteMes.length;
-  if(el('rec2-mes-label'))  el('rec2-mes-label').textContent  = mLabel;
-
-  // OS abertas sem fechamento
-  const abertas = DB.filter(os => isAberto(os));
-  const valorAbertas = abertas.reduce((s, os) => s + parsVal(os.valor||0), 0);
-  if(el('rec2-abertas'))    el('rec2-abertas').textContent    = abertas.length;
-  if(el('rec2-abertas-val'))el('rec2-abertas-val').textContent= `≈ ${fmtVal(valorAbertas)} pendente`;
-
-  // Histórico últimos 6 meses
-  const meses = [];
-  for(let i = 5; i >= 0; i--) {
-    const d = new Date(anoAtual, mesAtual - i, 1);
-    meses.push({ y: d.getFullYear(), m: d.getMonth(), label: d.toLocaleDateString('pt-BR',{month:'short',year:'2-digit'}) });
-  }
-  const valPorMes = meses.map(mes => {
-    const total = DB.filter(os => {
-      const ym = ymOf(os.dataFechamento);
-      return ym && ym.y === mes.y && ym.m === mes.m;
-    }).reduce((s, os) => s + parsVal(os.valor||0), 0);
-    return { ...mes, total };
-  });
-
-  const media6 = valPorMes.reduce((s,x)=>s+x.total,0) / (valPorMes.filter(x=>x.total>0).length||1);
-  if(el('rec2-media')) el('rec2-media').textContent = fmtVal(media6);
-
-  // Barras do histórico
-  const maxBar = Math.max(...valPorMes.map(x=>x.total), 1);
-  const barWrap = el('rec2-barras');
-  if(barWrap) {
-    barWrap.innerHTML = `<div style="display:flex;align-items:flex-end;gap:8px;height:130px;padding:0 4px;">
-      ${valPorMes.map((x,i) => {
-        const pct = Math.round((x.total/maxBar)*100);
-        const isCurrentMonth = i === 5;
-        return `<div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:4px;">
-          <div style="font-size:9px;color:var(--tx3);font-weight:600;">${fmtVal(x.total,true)}</div>
-          <div style="width:100%;background:${isCurrentMonth?'var(--acc)':'var(--sky)'};border-radius:4px 4px 0 0;height:${Math.max(pct,3)}%;opacity:${isCurrentMonth?1:0.65};transition:height .3s;"></div>
-          <div style="font-size:9px;color:var(--tx3);text-align:center;">${x.label}</div>
-        </div>`;
-      }).join('')}
-    </div>`;
-  }
-
-  // Por empresa — mês atual
-  const empMap = {};
-  fechadasEsteMes.forEach(os => {
-    if(!os.empresa) return;
-    empMap[os.empresa] = (empMap[os.empresa]||0) + parsVal(os.valor||0);
-  });
-  const empLista = el('rec2-emp-lista');
-  if(empLista) {
-    const sorted = Object.entries(empMap).sort((a,b)=>b[1]-a[1]);
-    if(!sorted.length) {
-      empLista.innerHTML = '<div style="color:var(--tx3);font-size:12px;text-align:center;padding:20px 0;">Nenhuma OS fechada este mês</div>';
-    } else {
-      const maxEmp = sorted[0][1];
-      empLista.innerHTML = sorted.map(([emp,val])=>`
-        <div style="margin-bottom:10px;">
-          <div style="display:flex;justify-content:space-between;font-size:12px;margin-bottom:3px;">
-            <span style="font-weight:600;">${emp}</span>
-            <span style="color:var(--grn);font-weight:700;">${fmtVal(val)}</span>
-          </div>
-          <div style="background:var(--bg3);border-radius:4px;height:6px;overflow:hidden;">
-            <div style="width:${Math.round(val/maxEmp*100)}%;height:100%;background:var(--acc);border-radius:4px;"></div>
-          </div>
-        </div>`).join('');
-    }
-  }
-
-  // Lista de OS fechadas — com filtro de mês
-  const sel = el('rec2-filtro-mes');
-  const offset = sel ? parseInt(sel.value)||0 : 0;
-  const targetD = new Date(anoAtual, mesAtual - offset, 1);
-  const ty = targetD.getFullYear(), tm = targetD.getMonth();
-  const osFiltradas = DB.filter(os => {
-    const ym = ymOf(os.dataFechamento);
-    return ym && ym.y === ty && ym.m === tm;
-  }).sort((a,b)=>(b.dataFechamento||'').localeCompare(a.dataFechamento||''));
-
-  const listaEl = el('rec2-os-lista');
-  if(listaEl) {
-    if(!osFiltradas.length) {
-      listaEl.innerHTML = '<div style="color:var(--tx3);font-size:12px;text-align:center;padding:20px 0;">Nenhuma OS encontrada para o período selecionado</div>';
-    } else {
-      listaEl.innerHTML = `
-        <table style="width:100%;border-collapse:collapse;font-size:12px;">
-          <thead><tr style="background:var(--bg3);">
-            <th style="padding:8px 10px;text-align:left;font-weight:700;color:var(--tx2);">OS</th>
-            <th style="padding:8px 10px;text-align:left;font-weight:700;color:var(--tx2);">Empresa</th>
-            <th style="padding:8px 10px;text-align:left;font-weight:700;color:var(--tx2);">Tipo</th>
-            <th style="padding:8px 10px;text-align:right;font-weight:700;color:var(--tx2);">Fechamento</th>
-            <th style="padding:8px 10px;text-align:right;font-weight:700;color:var(--tx2);">Valor</th>
-          </tr></thead>
-          <tbody>
-            ${osFiltradas.map((os,i)=>`
-              <tr style="border-bottom:1px solid var(--br);background:${i%2===0?'transparent':'var(--bg2)'};">
-                <td style="padding:7px 10px;" class="mono">${os.numeroOS||'—'}</td>
-                <td style="padding:7px 10px;">${os.empresa||'—'}</td>
-                <td style="padding:7px 10px;">${os.tipoServico||'—'}</td>
-                <td style="padding:7px 10px;text-align:right;">${fmtDate(os.dataFechamento)}</td>
-                <td style="padding:7px 10px;text-align:right;font-weight:700;color:var(--grn);">${os.valor?fmtVal(parsVal(os.valor)):'—'}</td>
-              </tr>`).join('')}
-          </tbody>
-        </table>`;
-    }
-  }
-}
-
-// ═══ PRODUTIVIDADE ═══
-function renderDashProdutividade() {
-  const now = new Date();
-  const anoAtual = now.getFullYear();
-  const mesAtual = now.getMonth();
-
-  function ymOf(dateStr) {
-    if(!dateStr) return null;
-    const d = new Date(dateStr.includes('T') ? dateStr : dateStr + 'T00:00');
-    if(isNaN(d)) return null;
-    return { y: d.getFullYear(), m: d.getMonth() };
-  }
-
-  const abertoMes = DB.filter(os => {
-    const ym = ymOf(os.dataAbertura);
-    return ym && ym.y === anoAtual && ym.m === mesAtual;
-  });
-  const fechMes = DB.filter(os => {
-    const ym = ymOf(os.dataFechamento);
-    return ym && ym.y === anoAtual && ym.m === mesAtual;
-  });
-
-  const el = id => document.getElementById(id);
-  const mLabel = now.toLocaleDateString('pt-BR',{month:'long',year:'numeric'});
-
-  if(el('prod-receb'))   el('prod-receb').textContent   = abertoMes.length;
-  if(el('prod-fech'))    el('prod-fech').textContent    = fechMes.length;
-  if(el('prod-fech-sub'))el('prod-fech-sub').textContent= mLabel;
-
-  // Taxa de conclusão
-  const taxa = abertoMes.length ? Math.round(fechMes.length/abertoMes.length*100) : 0;
-  if(el('prod-taxa'))    el('prod-taxa').textContent    = taxa + '%';
-
-  // Tempo médio de fechamento (para todas as OS fechadas do mês com abertura conhecida)
-  const tempos = fechMes.filter(os=>os.dataAbertura&&os.dataFechamento).map(os=>{
-    const a = new Date(os.dataAbertura.includes('T')?os.dataAbertura:os.dataAbertura+'T00:00');
-    const f = new Date(os.dataFechamento.includes('T')?os.dataFechamento:os.dataFechamento+'T00:00');
-    return Math.max(0, Math.round((f-a)/(1000*60*60*24)));
-  });
-  const tmed = tempos.length ? Math.round(tempos.reduce((s,x)=>s+x,0)/tempos.length) : null;
-  if(el('prod-tmed'))    el('prod-tmed').textContent    = tmed !== null ? tmed + 'd' : '—';
-
-  // Barras: abertas vs fechadas últimos 6 meses
-  const meses = [];
-  for(let i=5;i>=0;i--){
-    const d=new Date(anoAtual, mesAtual-i, 1);
-    meses.push({ y:d.getFullYear(), m:d.getMonth(), label:d.toLocaleDateString('pt-BR',{month:'short',year:'2-digit'}) });
-  }
-  const dadosMeses = meses.map(mes => ({
-    ...mes,
-    abertos: DB.filter(os=>{ const ym=ymOf(os.dataAbertura); return ym&&ym.y===mes.y&&ym.m===mes.m; }).length,
-    fechados: DB.filter(os=>{ const ym=ymOf(os.dataFechamento); return ym&&ym.y===mes.y&&ym.m===mes.m; }).length
-  }));
-
-  const maxB = Math.max(...dadosMeses.map(x=>Math.max(x.abertos,x.fechados)), 1);
-  const barWrap = el('prod-barras');
-  if(barWrap) {
-    barWrap.innerHTML = `
-      <div style="display:flex;align-items:flex-end;gap:6px;height:130px;padding:0 4px;">
-        ${dadosMeses.map((x,i)=>`
-          <div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:2px;">
-            <div style="width:100%;display:flex;gap:2px;align-items:flex-end;height:110px;">
-              <div style="flex:1;background:var(--sky);border-radius:3px 3px 0 0;height:${Math.max(x.abertos/maxB*100,2)}%;opacity:${i===5?1:0.7};" title="Abertas: ${x.abertos}"></div>
-              <div style="flex:1;background:var(--grn);border-radius:3px 3px 0 0;height:${Math.max(x.fechados/maxB*100,2)}%;opacity:${i===5?1:0.7};" title="Fechadas: ${x.fechados}"></div>
-            </div>
-            <div style="font-size:9px;color:var(--tx3);">${x.label}</div>
-          </div>`).join('')}
-      </div>
-      <div style="display:flex;gap:16px;margin-top:8px;justify-content:center;">
-        <div style="display:flex;align-items:center;gap:5px;font-size:11px;color:var(--tx2);"><div style="width:10px;height:10px;background:var(--sky);border-radius:2px;"></div>Abertas</div>
-        <div style="display:flex;align-items:center;gap:5px;font-size:11px;color:var(--tx2);"><div style="width:10px;height:10px;background:var(--grn);border-radius:2px;"></div>Fechadas</div>
-      </div>`;
-  }
-
-  // Tempo médio por empresa
-  const empTempos = {};
-  DB.filter(os=>os.dataAbertura&&os.dataFechamento&&!isAberto(os)).forEach(os=>{
-    if(!os.empresa) return;
-    const a=new Date(os.dataAbertura.includes('T')?os.dataAbertura:os.dataAbertura+'T00:00');
-    const f=new Date(os.dataFechamento.includes('T')?os.dataFechamento:os.dataFechamento+'T00:00');
-    const dias=Math.max(0,Math.round((f-a)/(1000*60*60*24)));
-    if(!empTempos[os.empresa]) empTempos[os.empresa]={total:0,cnt:0};
-    empTempos[os.empresa].total+=dias;
-    empTempos[os.empresa].cnt++;
-  });
-  const empT = Object.entries(empTempos).map(([e,v])=>({emp:e,med:Math.round(v.total/v.cnt)})).sort((a,b)=>a.med-b.med);
-  const empWrap = el('prod-tempo-emp');
-  if(empWrap) {
-    if(!empT.length) { empWrap.innerHTML='<div style="color:var(--tx3);font-size:12px;text-align:center;padding:20px 0;">Sem dados suficientes</div>'; }
-    else {
-      const maxT = Math.max(...empT.map(x=>x.med),1);
-      empWrap.innerHTML = empT.map(x=>`
-        <div style="margin-bottom:10px;">
-          <div style="display:flex;justify-content:space-between;font-size:12px;margin-bottom:3px;">
-            <span style="font-weight:600;">${x.emp}</span>
-            <span style="color:var(--acc);font-weight:700;">${x.med}d</span>
-          </div>
-          <div style="background:var(--bg3);border-radius:4px;height:6px;overflow:hidden;">
-            <div style="width:${Math.round(x.med/maxT*100)}%;height:100%;background:var(--sky);border-radius:4px;"></div>
-          </div>
-        </div>`).join('');
-    }
-  }
-
-  // Por tipo de serviço
-  const tipoCnt = {};
-  DB.filter(os=>!isAberto(os)).forEach(os=>{
-    if(!os.tipoServico) return;
-    tipoCnt[os.tipoServico] = (tipoCnt[os.tipoServico]||0)+1;
-  });
-  const tipoWrap = el('prod-tipo-barras');
-  if(tipoWrap) {
-    const sorted = Object.entries(tipoCnt).sort((a,b)=>b[1]-a[1]);
-    const maxC = sorted[0]?.[1]||1;
-    tipoWrap.innerHTML = sorted.map(([tipo,cnt])=>`
-      <div style="background:var(--bg2);border:1px solid var(--br);border-radius:var(--rs);padding:14px;">
-        <div style="font-size:13px;font-weight:700;margin-bottom:6px;">${tipo}</div>
-        <div style="font-size:22px;font-weight:800;color:var(--acc);">${cnt}</div>
-        <div style="background:var(--bg3);border-radius:4px;height:5px;margin-top:8px;overflow:hidden;">
-          <div style="width:${Math.round(cnt/maxC*100)}%;height:100%;background:var(--acc);border-radius:4px;"></div>
-        </div>
-        <div style="font-size:10px;color:var(--tx3);margin-top:4px;">OS finalizadas</div>
-      </div>`).join('');
-  }
-}
 window.logout = async function() {
   if(_chatUnsub)   { try { _chatUnsub(); } catch(e){} }
   if(_presencaUnsub){ try { _presencaUnsub(); } catch(e){} }
