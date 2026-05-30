@@ -3432,37 +3432,36 @@ function _findCoords(cidade) {
 function renderHeatmapDash() { /* mapa removido */ }
 
 function renderIndicadoresDash() {
-  const dados = getDadosFiltrados();
-  const el = id => document.getElementById(id);
+  // Usa SEMPRE o DB completo para indicadores históricos
+  // O filtro só afeta os cards do topo (getDadosFiltrados)
+  const el  = id => document.getElementById(id);
   const now = new Date();
+  const _pv = v  => parseFloat(v||0)||0;
+  const _dt = s  => { if(!s) return null; const d=new Date(s.includes('T')?s:s+'T00:00'); return isNaN(d)?null:d; };
 
-  // ── helpers ──
-  const _pv = v => parseFloat(v||0)||0;
-  const _dt = s => { if(!s) return null; const d=new Date(s.includes('T')?s:s+'T00:00'); return isNaN(d)?null:d; };
-
-  // ── 1. TOP EMPRESAS ──
+  // ── 1. TOP EMPRESAS (base: todas as OS finalizadas no DB) ──
   const empMap={};
-  dados.forEach(os=>{
+  DB.forEach(os=>{
     const e=os.empresa||'—';
-    if(!empMap[e]) empMap[e]={tot:0,fech:0,val:0};
-    empMap[e].tot++;
+    if(!empMap[e]) empMap[e]={fech:0,val:0};
     if(!isAberto(os)) { empMap[e].fech++; empMap[e].val+=_pv(os.valor); }
   });
-  const empArr=Object.entries(empMap).sort((a,b)=>b[1].fech-a[1].fech).slice(0,7);
+  const empArr=Object.entries(empMap).filter(([,d])=>d.fech>0).sort((a,b)=>b[1].fech-a[1].fech).slice(0,7);
   const maxEmp=empArr[0]?.[1].fech||1;
   const empEl=el('ind-empresas');
-  if(empEl) empEl.innerHTML=empArr.map(([emp,d])=>`
+  if(empEl) empEl.innerHTML=empArr.length ? empArr.map(([emp,d])=>`
     <div style="margin-bottom:9px;">
       <div style="display:flex;justify-content:space-between;font-size:11.5px;margin-bottom:3px;">
         <span style="font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:140px;" title="${emp}">${emp}</span>
-        <span style="color:var(--tx3);font-size:11px;flex-shrink:0;margin-left:6px;">${d.fech} fechadas · ${fmtVal(d.val)}</span>
+        <span style="color:var(--tx3);font-size:11px;flex-shrink:0;margin-left:6px;">${d.fech} OS · ${fmtVal(d.val)}</span>
       </div>
       <div style="background:var(--bg3);border-radius:4px;height:7px;overflow:hidden;">
         <div style="width:${Math.round(d.fech/maxEmp*100)}%;height:100%;background:linear-gradient(90deg,var(--acc),var(--sky));border-radius:4px;"></div>
       </div>
-    </div>`).join('');
+    </div>`).join('')
+  : '<div style="color:var(--tx3);font-size:12px;padding:12px 0;text-align:center;">Sem dados</div>';
 
-  // ── 2. FLUXO MENSAL (últimos 6 meses) ──
+  // ── 2. FLUXO MENSAL (últimos 6 meses, sempre DB completo) ──
   const meses6=[];
   for(let i=5;i>=0;i--){
     const d=new Date(now.getFullYear(),now.getMonth()-i,1);
@@ -3470,8 +3469,8 @@ function renderIndicadoresDash() {
   }
   const fluxo=meses6.map(mes=>({
     ...mes,
-    ab: DB.filter(os=>{ const d=_dt(os.dataAbertura); return d&&d.getFullYear()===mes.y&&d.getMonth()===mes.m; }).length,
-    fc: DB.filter(os=>{ if(!os.dataFechamento||isAberto(os)) return false; const d=_dt(os.dataFechamento); return d&&d.getFullYear()===mes.y&&d.getMonth()===mes.m; }).length
+    ab: DB.filter(os=>{ const d=_dt(os.dataAbertura);   return d&&d.getFullYear()===mes.y&&d.getMonth()===mes.m; }).length,
+    fc: DB.filter(os=>{ const d=_dt(os.dataFechamento); return !isAberto(os)&&d&&d.getFullYear()===mes.y&&d.getMonth()===mes.m; }).length
   }));
   const maxF=Math.max(...fluxo.map(x=>Math.max(x.ab,x.fc)),1);
   const fluxEl=el('ind-fluxo');
@@ -3491,7 +3490,7 @@ function renderIndicadoresDash() {
       <div style="display:flex;align-items:center;gap:4px;font-size:10.5px;color:var(--tx2);"><div style="width:9px;height:9px;background:var(--grn);border-radius:2px;"></div>Fechadas</div>
     </div>`;
 
-  // ── 3. PRAZO MÉDIO POR TIPO ──
+  // ── 3. PRAZO MÉDIO POR TIPO (base: todas as finalizadas com data) ──
   const tipoTempos={};
   DB.filter(os=>!isAberto(os)&&os.dataAbertura&&os.dataFechamento).forEach(os=>{
     const t=os.tipoServico||'—';
@@ -3514,50 +3513,50 @@ function renderIndicadoresDash() {
         <div style="width:${Math.round(x.med/maxT*100)}%;height:100%;background:${x.med<=10?'var(--grn)':x.med<=20?'var(--org)':'var(--red)'};border-radius:4px;"></div>
       </div>
       <div style="font-size:9.5px;color:var(--tx3);margin-top:2px;">${x.cnt} OS finalizadas</div>
-    </div>`).join('') : '<div style="color:var(--tx3);font-size:12px;padding:12px 0;">Sem dados suficientes</div>';
+    </div>`).join('')
+  : '<div style="color:var(--tx3);font-size:12px;padding:12px 0;">Sem dados suficientes</div>';
 
-  // ── 4. MIX DE SERVIÇOS ──
+  // ── 4. MIX DE SERVIÇOS (base: DB completo) ──
   const mixMap={};
-  dados.forEach(os=>{ const t=os.tipoServico||'—'; mixMap[t]=(mixMap[t]||0)+1; });
+  DB.forEach(os=>{ const t=os.tipoServico||'—'; mixMap[t]=(mixMap[t]||0)+1; });
   const mixArr=Object.entries(mixMap).sort((a,b)=>b[1]-a[1]);
   const mixTot=mixArr.reduce((s,[,v])=>s+v,0)||1;
   const CORES=['#2563eb','#16a34a','#d97706','#dc2626','#7c3aed','#0891b2','#be185d'];
   const mixEl=el('ind-mix');
-  if(mixEl) {
-    // Mini donut SVG
+  if(mixEl){
     let ang=0;
     const R=36,r=22,CX=42,CY=42;
-    const slices=mixArr.slice(0,6).map(([t,v],i)=>{
+    const slices=mixArr.slice(0,7).map(([t,v],i)=>{
       const frac=v/mixTot, a=frac*Math.PI*2;
       const x1=CX+R*Math.sin(ang),y1=CY-R*Math.cos(ang); ang+=a;
       const x2=CX+R*Math.sin(ang),y2=CY-R*Math.cos(ang);
       const xi1=CX+r*Math.sin(ang-a),yi1=CY-r*Math.cos(ang-a);
       const xi2=CX+r*Math.sin(ang),yi2=CY-r*Math.cos(ang);
-      return `<path d="M${x1},${y1} A${R},${R} 0 ${frac>.5?1:0},1 ${x2},${y2} L${xi2},${yi2} A${r},${r} 0 ${frac>.5?1:0},0 ${xi1},${yi1} Z" fill="${CORES[i%CORES.length]}" stroke="#fff" stroke-width="1.5"/>`;
+      const lg=frac>.5?1:0;
+      return `<path d="M${x1.toFixed(2)},${y1.toFixed(2)} A${R},${R} 0 ${lg},1 ${x2.toFixed(2)},${y2.toFixed(2)} L${xi2.toFixed(2)},${yi2.toFixed(2)} A${r},${r} 0 ${lg},0 ${xi1.toFixed(2)},${yi1.toFixed(2)} Z" fill="${CORES[i%CORES.length]}" stroke="#fff" stroke-width="1.5"/>`;
     }).join('');
-    const legend=mixArr.slice(0,6).map(([t,v],i)=>`
+    const legend=mixArr.slice(0,7).map(([t,v],i)=>`
       <div style="display:flex;align-items:center;gap:6px;margin-bottom:5px;">
         <div style="width:9px;height:9px;border-radius:2px;background:${CORES[i%CORES.length]};flex-shrink:0;"></div>
         <span style="font-size:11px;font-weight:600;">${t}</span>
         <span style="font-size:11px;color:var(--tx3);margin-left:auto;">${v} · ${Math.round(v/mixTot*100)}%</span>
       </div>`).join('');
     mixEl.innerHTML=`<div style="display:flex;gap:14px;align-items:center;">
-      <svg width="84" height="84" xmlns="http://www.w3.org/2000/svg" style="flex-shrink:0;">
-        ${slices}
-        <text x="${CX}" y="${CY-4}" text-anchor="middle" font-size="12" font-weight="800" fill="var(--tx)">${dados.length}</text>
+      <svg width="84" height="84" xmlns="http://www.w3.org/2000/svg" style="flex-shrink:0;">${slices}
+        <text x="${CX}" y="${CY-4}" text-anchor="middle" font-size="12" font-weight="800" fill="var(--tx)">${DB.length}</text>
         <text x="${CX}" y="${CY+8}" text-anchor="middle" font-size="9" fill="var(--tx3)">OS</text>
       </svg>
       <div style="flex:1;">${legend}</div>
     </div>`;
   }
 
-  // ── 5. TOP CIDADES ──
+  // ── 5. TOP CIDADES (base: DB completo) ──
   const cidMap={};
-  dados.forEach(os=>{ const c=os.cidade||'—'; cidMap[c]=(cidMap[c]||0)+1; });
-  const cidArr=Object.entries(cidMap).sort((a,b)=>b[1]-a[1]).slice(0,8);
+  DB.forEach(os=>{ const c=(os.cidade||'—').trim(); cidMap[c]=(cidMap[c]||0)+1; });
+  const cidArr=Object.entries(cidMap).filter(([c])=>c&&c!=='—').sort((a,b)=>b[1]-a[1]).slice(0,8);
   const maxC=cidArr[0]?.[1]||1;
   const cidEl=el('ind-cidades');
-  if(cidEl) cidEl.innerHTML=cidArr.map(([cid,cnt],i)=>`
+  if(cidEl) cidEl.innerHTML=cidArr.length ? cidArr.map(([cid,cnt],i)=>`
     <div style="display:flex;align-items:center;gap:8px;margin-bottom:7px;">
       <div style="width:18px;height:18px;border-radius:50%;background:${i<3?'var(--acc)':'var(--bg3)'};display:flex;align-items:center;justify-content:center;font-size:9.5px;font-weight:700;color:${i<3?'#fff':'var(--tx3)'};flex-shrink:0;">${i+1}</div>
       <div style="flex:1;min-width:0;">
@@ -3567,13 +3566,17 @@ function renderIndicadoresDash() {
         </div>
       </div>
       <div style="font-size:11.5px;font-weight:700;color:var(--tx2);flex-shrink:0;">${cnt}</div>
-    </div>`).join('');
+    </div>`).join('')
+  : '<div style="color:var(--tx3);font-size:12px;padding:12px 0;text-align:center;">Sem dados</div>';
 
-  // ── 6. VELOCIDADE DE FECHAMENTO ──
+  // ── 6. VELOCIDADE DE FECHAMENTO (sempre data real, não filtro) ──
   const hoje=now.getTime();
-  const os30=DB.filter(os=>{ if(!os.dataFechamento||isAberto(os)) return false; const d=_dt(os.dataFechamento); return d&&(hoje-d.getTime())<=30*86400000; }).length;
-  const os60=DB.filter(os=>{ if(!os.dataFechamento||isAberto(os)) return false; const d=_dt(os.dataFechamento); return d&&(hoje-d.getTime())<=60*86400000; }).length;
-  const os90=DB.filter(os=>{ if(!os.dataFechamento||isAberto(os)) return false; const d=_dt(os.dataFechamento); return d&&(hoje-d.getTime())<=90*86400000; }).length;
+  const filt=(dias)=>DB.filter(os=>{
+    if(!os.dataFechamento||isAberto(os)) return false;
+    const d=_dt(os.dataFechamento);
+    return d&&(hoje-d.getTime())<=dias*86400000;
+  }).length;
+  const os30=filt(30), os60=filt(60), os90=filt(90);
   const velEl=el('ind-velocidade');
   if(velEl) velEl.innerHTML=`
     <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;text-align:center;">
@@ -3595,9 +3598,10 @@ function renderIndicadoresDash() {
     </div>
     <div style="margin-top:12px;padding:10px 14px;background:var(--bg3);border-radius:10px;display:flex;justify-content:space-between;align-items:center;">
       <span style="font-size:11.5px;color:var(--tx2);">Projeção mensal (ritmo atual)</span>
-      <span style="font-size:14px;font-weight:800;color:var(--acc);">${Math.round(os30/30*30)} OS</span>
+      <span style="font-size:14px;font-weight:800;color:var(--acc);">≈${Math.round(os30/30*30)} OS</span>
     </div>`;
 }
+
 
 
 let _tickerRAF = null;
@@ -3936,7 +3940,7 @@ function renderDash() {
     const _imp = _fat * 0.12;
     const _CTIPO = {'A-413':18,'B-438':32,'B-437':30};
     let _com=0, _comOS=0;
-    osMesFech.forEach(os=>{ const t=(os.tipoServico||'').toUpperCase(); for(const[k,v] of Object.entries(_CTIPO)){if(t.includes(k)){_com+=v;_comOS++;break;}} });
+    osMesFech.forEach(os=>{ const t=(os.tipoServico||'').trim(); const v=_CTIPO[t]; if(v){_com+=v;_comOS++;} });
     // Fixos: multiplicar por nº de meses quando filtro é anual
     const _nMeses = _mesFiltro !== null ? 1 : (() => {
       const ms = new Set();
@@ -5308,8 +5312,8 @@ function renderFinanceiro() {
   const CTIPO_LL = {'A-413':18,'B-438':32,'B-437':30};
   let comPaulo=0, comPauloOS=0;
   dadosLucro.filter(os=>!isAberto(os)).forEach(os=>{
-    const t=(os.tipoServico||'').toUpperCase();
-    for(const[k,v] of Object.entries(CTIPO_LL)){if(t.includes(k)){comPaulo+=v;comPauloOS++;break;}}
+    const t=(os.tipoServico||'').trim();
+    const v=CTIPO_LL[t]; if(v){comPaulo+=v;comPauloOS++;}
   });
   // Meses com OS fechadas no período (para multiplicar fixos)
   const mesesSet = new Set();
@@ -8658,19 +8662,19 @@ const EMAIL_PAULO = 'paauloccp@gmail.com';
 const EMPRESAS_PAULO = ['ATX','Gusmão Filho Engenharia','JOP','Ribeiro Albuquerque',
                         'LC Rissati Engenharia','L&L Engenharia','Mattos e Periotto','Álvares filho'];
 
-// Tabela de comissão: A-413=R$18, B-438=R$32, B-437=R$30, apenas empresas da lista
+// Tipos com comissão — EXATOS (somente esses três)
 const COMISSAO_TIPO = {'A-413':18,'B-438':32,'B-437':30};
 
 function calcComissaoPaulo(os) {
   const emp  = (os.empresa||'').trim().toLowerCase();
-  const tipo = (os.tipoServico||'').trim().toUpperCase();
-  // Verifica se a empresa está na lista (busca parcial, case-insensitive)
+  const tipo = (os.tipoServico||'').trim();
+  // Verifica empresa
   const temEmpresa = EMPRESAS_PAULO.some(e =>
     emp.includes(e.toLowerCase()) || e.toLowerCase().includes(emp)
   );
   if(!temEmpresa) return 0;
-  for(const [t,v] of Object.entries(COMISSAO_TIPO)) { if(tipo.includes(t)) return v; }
-  return 0;
+  // Match EXATO no tipo — evita que AVA-101, A-032, etc. entrem
+  return COMISSAO_TIPO[tipo] || 0;
 }
 
 function atualizarWidgetComissao() {
@@ -8760,7 +8764,7 @@ function renderComissaoPaulo() {
             <div style="font-size:9px;color:var(--tx3);">${REGRAS[tipo]||''}</div>
           </div>
         </div>`).join('')+
-        `<div style="margin-top:10px;padding:8px 12px;background:var(--bg3);border-radius:var(--rs);font-size:11px;color:var(--tx3);">ℹ️ <strong>Sem comissão:</strong> E-401 · E-005 · E-004 · AVA-01 · AVA-04 · G-416 · G-402</div>`;
+        `<div style="margin-top:10px;padding:8px 12px;background:var(--bg3);border-radius:var(--rs);font-size:11px;color:var(--tx3);">ℹ️ <strong>Sem comissão:</strong> AVA-101 · AVA-04 · A-032 · E-005 · E-004 · E-401 · G-416 · G-402</div>`;
     }
   }
 
