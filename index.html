@@ -283,7 +283,6 @@ import {
   EmailAuthProvider, reauthenticateWithCredential,
   createUserWithEmailAndPassword, sendPasswordResetEmail
 } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
-import { getFunctions, httpsCallable } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-functions.js";
 
 const firebaseConfig = {
   apiKey: "AIzaSyBQFQcoeTIUyosiFqRea6u03Co5S6NuH1s",
@@ -299,8 +298,6 @@ const db   = getFirestore(app);
 window._fbDb = db;
 const auth = getAuth(app);
 const col  = collection(db, "ordens_servico");
-const fns  = getFunctions(app, "us-central1");
-window._fbAnalisarDocumentos = httpsCallable(fns, "analisarDocumentos");
 
 // Sessão fecha junto com o navegador (igual ao comportamento anterior)
 setPersistence(auth, browserSessionPersistence).catch(e => console.warn('persist:', e));
@@ -965,7 +962,6 @@ tr.row-vencido{animation:none!important;}
 .bg-tipo-g{background:rgba(124,58,237,.09);color:#6d28d9;border:1px solid rgba(124,58,237,.2);}
 .bg-tipo-ava{background:rgba(220,38,38,.09);color:#b91c1c;border:1px solid rgba(220,38,38,.18);}
 </style>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 </head>
 <body>
 
@@ -1431,7 +1427,7 @@ tr.row-vencido{animation:none!important;}
 <div class="page" id="page-preenchidas"><div class="tw"><table><thead><tr><th onclick="srtSub('preen','empresa')">Empresa</th><th onclick="srtSub('preen','tipoServico')">Tipo</th><th onclick="srtSub('preen','numeroOS')">Referência OS</th><th onclick="srtSub('preen','cliente')">Cliente</th><th onclick="srtSub('preen','cidade')">Cidade</th><th onclick="srtSub('preen','vistoria')">Vistoria</th><th onclick="srtSub('preen','preenchimento')">Preenchimento</th><th onclick="srtSub('preen','avaliacao')">Avaliação</th><th onclick="srtSub('preen','conferencia')">Conferência</th><th onclick="srtSub('preen','prazoFatal')" class="sort-asc">Prazo Fatal ↕</th><th onclick="srtSub('preen','dias')">Dias</th><th></th></tr></thead><tbody id="tb-preenchidas"></tbody></table></div></div>
 <div class="page" id="page-vistoriadas"><div class="tw"><table><thead><tr><th onclick="srtSub('vist','empresa')">Empresa</th><th onclick="srtSub('vist','tipoServico')">Tipo</th><th onclick="srtSub('vist','numeroOS')">Referência OS</th><th onclick="srtSub('vist','cliente')">Cliente</th><th onclick="srtSub('vist','cidade')">Cidade</th><th onclick="srtSub('vist','vistoria')">Vistoria</th><th onclick="srtSub('vist','dataAbertura')">Abertura</th><th onclick="srtSub('vist','prazoFatal')" class="sort-asc">Prazo Fatal ↕</th><th onclick="srtSub('vist','dias')">Dias</th><th>Próxima etapa</th><th></th></tr></thead><tbody id="tb-vistoriadas"></tbody></table></div></div>
 <div class="page" id="page-sem-ficha"><div class="tw"><table><thead><tr><th onclick="srtSub('ficha','empresa')">Empresa</th><th onclick="srtSub('ficha','tipoServico')">Tipo</th><th onclick="srtSub('ficha','numeroOS')">Referência OS</th><th onclick="srtSub('ficha','cliente')">Cliente</th><th onclick="srtSub('ficha','cidade')">Cidade</th><th onclick="srtSub('ficha','finalizacao')">Finalização</th><th onclick="srtSub('ficha','fichas')">Ficha Pesquisa</th><th onclick="srtSub('ficha','prazoFatal')" class="sort-asc">Prazo Fatal ↕</th><th onclick="srtSub('ficha','dias')">Dias</th><th></th></tr></thead><tbody id="tb-sem-ficha"></tbody></table></div></div>
-<div class="page" id="page-andamento"><div class="toolbar"><div class="srch"><span style="color:var(--tx3)">🔍</span><input type="text" id="s-and" placeholder="Buscar..." oninput="renderSimple('andamento')"></div><div class="chips" id="chips-and"><div class="chip on" onclick="setChipAnd('all',this)">Todas</div><div class="chip" onclick="setChipAnd('prioridade',this)" style="display:flex;align-items:center;gap:4px;">⭐ Prioritárias</div><div class="chip" onclick="setChipAnd('vistoria',this)">Ag. vistoria</div><div class="chip" onclick="setChipAnd('estagiario',this)">Com estagiário</div><div class="chip" onclick="setChipAnd('conferencia',this)">Ag. conferência</div></div><div class="toolbar-filters"><select id="f-and-dias" class="toolbar-select" onchange="setAndDias(this.value)"><option value="">Dias restantes</option><option value="critico">Até 1 dia</option><option value="3">Até 3 dias</option><option value="5">Até 5 dias</option><option value="7">Até 7 dias</option><option value="8+">Mais de 7 dias</option><option value="vencido">Vencidas</option></select><select id="f-and-acao" class="toolbar-select" onchange="setAndAcao(this.value)"><option value="">Próxima ação</option><option value="vistoria">Realizar vistoria</option><option value="preenchimento">A preencher</option><option value="avaliacao">Realizar avaliação</option><option value="conferencia">Sua conferência</option><option value="finalizacao">Emitir laudo</option></select><button id="btn-analisar-pasta" class="toolbar-select" style="cursor:pointer;background:var(--org);color:#fff;font-weight:600;border:none;display:flex;align-items:center;gap:6px;" onclick="analisarPastaOS()">📁 Analisar pasta</button></div></div><div class="tw"><table><thead><tr><th onclick="srtSub('and','prioridade')" style="width:42px;text-align:center;" title="Prioridade">⭐</th><th onclick="srtSub('and','empresa')">Empresa</th><th onclick="srtSub('and','tipoServico')">Tipo</th><th onclick="srtSub('and','numeroOS')">Referência OS</th><th onclick="srtSub('and','cliente')">Cliente</th><th onclick="srtSub('and','cidade')">Cidade</th><th onclick="srtSub('and','prazoFatal')" class="sort-asc">Prazo Fatal ↕</th><th onclick="srtSub('and','dias')">Dias Rest.</th><th onclick="srtSub('and','proximaAcao')">Próxima ação ↕</th><th onclick="srtSub('and','analise')">Análise</th><th onclick="srtSub('and','checkIA')">Check IA</th><th onclick="srtSub('and','valor')" class="admin-only valor-col">Valor</th><th></th></tr></thead><tbody id="tb-and"></tbody></table></div></div>
+<div class="page" id="page-andamento"><div class="toolbar"><div class="srch"><span style="color:var(--tx3)">🔍</span><input type="text" id="s-and" placeholder="Buscar..." oninput="renderSimple('andamento')"></div><div class="chips" id="chips-and"><div class="chip on" onclick="setChipAnd('all',this)">Todas</div><div class="chip" onclick="setChipAnd('prioridade',this)" style="display:flex;align-items:center;gap:4px;">⭐ Prioritárias</div><div class="chip" onclick="setChipAnd('vistoria',this)">Ag. vistoria</div><div class="chip" onclick="setChipAnd('estagiario',this)">Com estagiário</div><div class="chip" onclick="setChipAnd('conferencia',this)">Ag. conferência</div></div><div class="toolbar-filters"><select id="f-and-dias" class="toolbar-select" onchange="setAndDias(this.value)"><option value="">Dias restantes</option><option value="critico">Até 1 dia</option><option value="3">Até 3 dias</option><option value="5">Até 5 dias</option><option value="7">Até 7 dias</option><option value="8+">Mais de 7 dias</option><option value="vencido">Vencidas</option></select><select id="f-and-acao" class="toolbar-select" onchange="setAndAcao(this.value)"><option value="">Próxima ação</option><option value="vistoria">Realizar vistoria</option><option value="preenchimento">A preencher</option><option value="avaliacao">Realizar avaliação</option><option value="conferencia">Sua conferência</option><option value="finalizacao">Emitir laudo</option></select></div></div><div class="tw"><table><thead><tr><th onclick="srtSub('and','prioridade')" style="width:42px;text-align:center;" title="Prioridade">⭐</th><th onclick="srtSub('and','empresa')">Empresa</th><th onclick="srtSub('and','tipoServico')">Tipo</th><th onclick="srtSub('and','numeroOS')">Referência OS</th><th onclick="srtSub('and','cliente')">Cliente</th><th onclick="srtSub('and','cidade')">Cidade</th><th onclick="srtSub('and','prazoFatal')" class="sort-asc">Prazo Fatal ↕</th><th onclick="srtSub('and','dias')">Dias Rest.</th><th onclick="srtSub('and','proximaAcao')">Próxima ação ↕</th><th onclick="srtSub('and','analise')">Análise</th><th onclick="srtSub('and','valor')" class="admin-only valor-col">Valor</th><th></th></tr></thead><tbody id="tb-and"></tbody></table></div></div>
 <div class="page" id="page-vencendo"><div class="tw"><table><thead><tr><th onclick="srtSub('venc','empresa')">Empresa</th><th onclick="srtSub('venc','tipoServico')">Tipo</th><th onclick="srtSub('venc','numeroOS')">Referência OS</th><th onclick="srtSub('venc','cliente')">Cliente</th><th onclick="srtSub('venc','cidade')">Cidade</th><th onclick="srtSub('venc','prazoFatal')" class="sort-asc">Prazo Fatal ↕</th><th onclick="srtSub('venc','dias')">Dias</th><th>Status</th><th></th></tr></thead><tbody id="tb-venc"></tbody></table></div></div>
 <div class="page" id="page-finalizadas">
   <div class="toolbar" style="flex-wrap:wrap;gap:10px;margin-bottom:14px;">
@@ -2970,197 +2966,6 @@ async function setAnalise(e, id, valor) {
 }
 
 // ══════════════════════════════════════
-// CHECK IA — Análise automática de documentos via Cloud Function
-// ══════════════════════════════════════
-
-function checkIABadge(os) {
-  if (!os.checkIA) return '<span style="font-size:11px;color:var(--tx3);">—</span>';
-  if (os.checkIA === 'OK') {
-    return '<span class="badge bg-green">✓ OK</span>';
-  }
-  const motivos = escHtml(os.checkIA);
-  const detalhes = escHtml(os.checkIADetalhes||'');
-  return `<span class="badge bg-red" style="cursor:help;" title="${detalhes}">⚠ ${motivos}</span>`;
-}
-
-function escHtml(s){ return (s||'').toString().replace(/"/g,'&quot;').replace(/</g,'&lt;'); }
-
-// Normaliza uma string mantendo só os dígitos (usado pra comparar Referência OS)
-function _soDigitos(s) { return (s||'').toString().replace(/\D/g,''); }
-
-// Lê todos os arquivos PDF de um FileSystemDirectoryHandle
-async function _lerPdfsDaPasta(dirHandle) {
-  const arquivos = [];
-  for await (const [nome, handle] of dirHandle.entries()) {
-    if (handle.kind === 'file' && /\.pdf$/i.test(nome)) {
-      const file = await handle.getFile();
-      arquivos.push({ nome, file });
-    }
-  }
-  return arquivos;
-}
-
-function _fileParaBase64(file) {
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader();
-    reader.onload = () => resolve(reader.result.split(',')[1]);
-    reader.onerror = () => reject(new Error('Falha ao ler arquivo: ' + file.name));
-    reader.readAsDataURL(file);
-  });
-}
-
-// Acha a OS correspondente ao nome da pasta selecionada (padrão "TIPO - Referência")
-function _acharOSPelaPasta(nomePasta) {
-  const partes = nomePasta.split(' - ');
-  if (partes.length < 2) return null;
-  const tipoPasta = partes[0].trim().toUpperCase();
-  const refPasta = _soDigitos(partes.slice(1).join(' - '));
-  if (!refPasta) return null;
-  return DB.find(o => {
-    const tipoOS = (o.tipoServico||'').trim().toUpperCase();
-    const refOS = _soDigitos(o.numeroOS);
-    return refOS && refOS === refPasta && tipoOS === tipoPasta;
-  }) || null;
-}
-
-async function analisarPastaOS() {
-  if (!window.showDirectoryPicker) {
-    toast('Esse recurso só funciona no Chrome ou Edge.', 'err');
-    return;
-  }
-  let dirHandle;
-  try {
-    dirHandle = await window.showDirectoryPicker({ mode: 'readwrite' });
-  } catch(e) {
-    return; // usuário cancelou
-  }
-
-  const nomePasta = dirHandle.name;
-  const os = _acharOSPelaPasta(nomePasta);
-  if (!os) {
-    toast(`Não encontrei nenhuma OS correspondente à pasta "${nomePasta}". Confira o padrão "TIPO - Referência".`, 'err');
-    return;
-  }
-
-  toast(`Lendo documentos da pasta de ${os.numeroOS}...`, 'warn');
-
-  let arquivos;
-  try {
-    arquivos = await _lerPdfsDaPasta(dirHandle);
-  } catch(e) {
-    console.error(e);
-    toast('Erro ao ler os arquivos da pasta.', 'err');
-    return;
-  }
-
-  if (!arquivos.length) {
-    toast('Nenhum PDF encontrado dentro da pasta selecionada.', 'err');
-    return;
-  }
-
-  toast(`Analisando ${arquivos.length} documento(s) com IA — isso pode levar um minuto...`, 'warn');
-
-  let documentos;
-  try {
-    documentos = await Promise.all(arquivos.map(async a => ({
-      nome: a.nome,
-      mediaType: 'application/pdf',
-      base64: await _fileParaBase64(a.file)
-    })));
-  } catch(e) {
-    console.error(e);
-    toast('Erro ao converter os arquivos.', 'err');
-    return;
-  }
-
-  try {
-    const resp = await window._fbAnalisarDocumentos({
-      tipoServico: os.tipoServico,
-      osId: os.id,
-      documentos
-    });
-    const { isRelatorio, resultado } = resp.data;
-
-    if (isRelatorio) {
-      await _gerarRelatorioA413(dirHandle, os, resultado);
-      toast('Relatório gerado e salvo na pasta com sucesso!', 'ok');
-    } else {
-      if (resultado.status === 'OK') {
-        toast(`OS ${os.numeroOS}: documentação OK ✓`, 'ok');
-      } else {
-        toast(`OS ${os.numeroOS}: pendências encontradas — ${(resultado.motivos||[]).join(', ')}`, 'err');
-      }
-      // O Firestore já foi atualizado pela própria Cloud Function (onSnapshot reflete automaticamente)
-    }
-  } catch(e) {
-    console.error('Erro ao analisar documentos:', e);
-    toast('Erro ao chamar a análise: ' + (e.message||e), 'err');
-  }
-}
-
-async function _gerarRelatorioA413(dirHandle, os, dados) {
-  const { jsPDF } = window.jspdf;
-  const doc = new jsPDF();
-  const linhaAltura = 9;
-  let y = 20;
-
-  doc.setFontSize(16);
-  doc.setFont(undefined, 'bold');
-  doc.text('Relatório de Dados do Imóvel', 15, y); y += 10;
-
-  doc.setFontSize(10);
-  doc.setFont(undefined, 'normal');
-  doc.text(`OS: ${os.numeroOS}  |  Tipo: ${os.tipoServico}  |  Cliente: ${os.cliente||'—'}`, 15, y); y += 6;
-  doc.text(`Gerado em: ${new Date().toLocaleString('pt-BR')}`, 15, y); y += 12;
-
-  doc.setFontSize(12);
-  doc.setFont(undefined, 'bold');
-  doc.text('Dados extraídos da Matrícula', 15, y); y += 8;
-  doc.setFontSize(10);
-  doc.setFont(undefined, 'normal');
-
-  const linhas = [
-    ['Endereço', dados.endereco || '—'],
-    ['Quadra', dados.quadra || '—'],
-    ['Lote', dados.lote || '—'],
-    ['Área de terreno', dados.areaTerreno || '—'],
-    ['Área construída', dados.areaConstruida || '—'],
-  ];
-  linhas.forEach(([label, valor]) => {
-    doc.setFont(undefined, 'bold');
-    doc.text(`${label}:`, 15, y);
-    doc.setFont(undefined, 'normal');
-    doc.text(String(valor), 60, y);
-    y += linhaAltura;
-  });
-
-  y += 4;
-  doc.setFontSize(12);
-  doc.setFont(undefined, 'bold');
-  doc.text('Averbação de retificação de endereço', 15, y); y += 8;
-  doc.setFontSize(10);
-  doc.setFont(undefined, 'normal');
-
-  const av = dados.averbacaoEndereco || {};
-  if (av.encontrada) {
-    doc.text('Encontrada averbação de retificação de endereço na matrícula.', 15, y); y += linhaAltura;
-    doc.setFont(undefined, 'bold'); doc.text('Endereço original:', 15, y);
-    doc.setFont(undefined, 'normal'); doc.text(String(av.enderecoOriginal||'—'), 60, y); y += linhaAltura;
-    doc.setFont(undefined, 'bold'); doc.text('Endereço atualizado:', 15, y);
-    doc.setFont(undefined, 'normal'); doc.text(String(av.enderecoAtualizado||'—'), 60, y); y += linhaAltura;
-  } else {
-    doc.text('Nenhuma averbação de retificação de endereço encontrada.', 15, y); y += linhaAltura;
-  }
-
-  const pdfBlob = doc.output('blob');
-  const nomeArquivo = `Relatorio_Dados_${_soDigitos(os.numeroOS)}.pdf`;
-  const fileHandle = await dirHandle.getFileHandle(nomeArquivo, { create: true });
-  const writable = await fileHandle.createWritable();
-  await writable.write(pdfBlob);
-  await writable.close();
-}
-
-// ══════════════════════════════════════
 // FIREBASE
 // ══════════════════════════════════════
 function _showSaving(msg='salvando…') {
@@ -4564,7 +4369,7 @@ function renderSimple(mode) {
   const tb=document.getElementById(tbId);
   if(!tb) return;
 
-  if(!d.length) { tb.innerHTML=emptyRow(mode==='andamento'?12:10); return; }
+  if(!d.length) { tb.innerHTML=emptyRow(mode==='andamento'?11:10); return; }
 
   if(mode==='andamento') {
     const isAdm = (typeof PERFIL_ATUAL !== 'undefined' && PERFIL_ATUAL === 'admin');
@@ -4592,7 +4397,6 @@ function renderSimple(mode) {
         <td>${diasBadge(dias)}</td>
         <td style="font-size:12px;color:var(--tx2);">${proxAcao(os)}</td>
         <td>${analiseSelect(os)}</td>
-        <td>${checkIABadge(os)}</td>
         <td class="admin-only valor-col" style="color:var(--grn);font-weight:600;">${os.valor?'R$ '+os.valor:'—'}</td>
         <td><button class="btn btn-primary btn-xs" onclick="abrirDetalhe('${os.id}')">Atualizar</button></td>
       </tr>`;
