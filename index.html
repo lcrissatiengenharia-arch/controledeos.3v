@@ -550,6 +550,29 @@ tr:hover td{background:rgba(76,111,255,.045);}
 .el{max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
 
 /* ─── BADGES ─── */
+/* ═══════════ KANBAN ═══════════ */
+.kb-board{display:flex;gap:14px;align-items:flex-start;overflow-x:auto;padding:4px 2px 18px;min-height:60vh;}
+.kb-col{flex:0 0 288px;width:288px;background:var(--bg1);border:1px solid var(--br);border-radius:var(--rs);display:flex;flex-direction:column;max-height:calc(100vh - 210px);backdrop-filter:blur(8px);transition:border-color .18s,background .18s,box-shadow .18s;}
+.kb-col.kb-over{border-color:var(--acc);background:rgba(79,70,229,.06);box-shadow:0 0 0 3px rgba(79,70,229,.12);}
+.kb-col-hd{display:flex;align-items:center;gap:8px;padding:11px 13px;border-bottom:1px solid var(--br);position:sticky;top:0;background:var(--bg2);border-radius:var(--rs) var(--rs) 0 0;z-index:2;}
+.kb-dot{width:9px;height:9px;border-radius:50%;flex:none;}
+.kb-col-ttl{font-size:12px;font-weight:800;letter-spacing:.2px;color:var(--tx1);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.kb-col-cnt{margin-left:auto;font-size:11px;font-weight:800;color:var(--tx2);background:var(--bg3);border:1px solid var(--br);border-radius:999px;padding:1px 8px;flex:none;}
+.kb-list{padding:10px;display:flex;flex-direction:column;gap:9px;overflow-y:auto;flex:1;min-height:110px;}
+.kb-card{background:var(--bg2);border:1px solid var(--br2);border-left:4px solid var(--kbc,var(--acc));border-radius:12px;padding:10px 11px;cursor:grab;user-select:none;touch-action:none;transition:box-shadow .15s,transform .12s,opacity .15s;box-shadow:0 2px 6px rgba(24,39,75,.05);}
+.kb-card:hover{box-shadow:0 6px 16px rgba(24,39,75,.11);transform:translateY(-1px);}
+.kb-card:active{cursor:grabbing;}
+.kb-card.kb-src{opacity:.35;}
+.kb-card.kb-prio{background:linear-gradient(0deg,rgba(245,185,0,.07),rgba(245,185,0,.07)),var(--bg2);}
+.kb-ghost{position:fixed;z-index:9999;pointer-events:none;width:262px;opacity:.95;transform:rotate(-1.5deg) scale(1.02);box-shadow:0 18px 40px rgba(24,39,75,.28)!important;cursor:grabbing;}
+.kb-c-top{display:flex;align-items:center;gap:6px;margin-bottom:5px;}
+.kb-c-emp{font-size:12px;font-weight:800;color:var(--tx1);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;flex:1;}
+.kb-c-ref{font-size:10.5px;color:var(--tx3);font-family:ui-monospace,SFMono-Regular,Menlo,monospace;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-bottom:6px;}
+.kb-c-cli{font-size:11.5px;color:var(--tx2);margin-bottom:7px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.kb-c-ft{display:flex;align-items:center;gap:6px;flex-wrap:wrap;}
+.kb-resp{display:inline-flex;align-items:center;gap:4px;font-size:10.5px;font-weight:700;padding:2px 8px;border-radius:999px;white-space:nowrap;}
+.kb-empty{text-align:center;padding:26px 10px;font-size:11.5px;color:var(--tx3);border:1.5px dashed var(--br2);border-radius:12px;}
+@media(max-width:820px){.kb-col{flex:0 0 250px;width:250px;}.kb-ghost{width:230px;}}
 .badge{display:inline-flex;align-items:center;gap:4px;padding:3px 9px;border-radius:20px;font-size:11px;font-weight:600;white-space:nowrap;}
 .bg-blue{background:rgba(78,123,255,.14);color:#8ab0ff;border:1px solid rgba(78,123,255,.28);}
 .bg-green{background:rgba(24,212,160,.12);color:var(--grn);border:1px solid rgba(24,212,160,.25);}
@@ -1005,6 +1028,7 @@ tr.row-vencido{animation:none!important;}
 
     <div class="sb-sec">Por situação</div>
     <button class="ni" data-page="andamento" onclick="go('andamento')"><span class="ic">⏳</span><span class="lbl">Em Andamento</span><span class="cnt warn" id="nb-and">0</span></button>
+    <button class="ni" data-page="kanban" onclick="go('kanban')"><span class="ic">🗂️</span><span class="lbl">Kanban</span><span class="cnt" id="nb-kb">0</span></button>
     <button class="ni" data-page="sem-ficha" onclick="go('sem-ficha')"><span class="ic">📝</span><span class="lbl">Fichas de Pesquisa</span><span class="cnt warn" id="nb-ficha">0</span></button>
     <button class="ni" data-page="vencendo" onclick="go('vencendo')"><span class="ic">🔴</span><span class="lbl">Próximo do vencimento</span><span class="cnt danger" id="nb-venc">0</span></button>
     <button class="ni" data-page="lixeira" onclick="go('lixeira')"><span class="ic">🗑️</span><span class="lbl">Lixeira</span><span class="cnt" id="nb-lix">0</span></button>
@@ -1427,7 +1451,40 @@ tr.row-vencido{animation:none!important;}
 <div class="page" id="page-preenchidas"><div class="tw"><table><thead><tr><th onclick="srtSub('preen','empresa')">Empresa</th><th onclick="srtSub('preen','tipoServico')">Tipo</th><th onclick="srtSub('preen','numeroOS')">Referência OS</th><th onclick="srtSub('preen','cliente')">Cliente</th><th onclick="srtSub('preen','cidade')">Cidade</th><th onclick="srtSub('preen','vistoria')">Vistoria</th><th onclick="srtSub('preen','preenchimento')">Preenchimento</th><th onclick="srtSub('preen','avaliacao')">Avaliação</th><th onclick="srtSub('preen','conferencia')">Conferência</th><th onclick="srtSub('preen','prazoFatal')" class="sort-asc">Prazo Fatal ↕</th><th onclick="srtSub('preen','dias')">Dias</th><th></th></tr></thead><tbody id="tb-preenchidas"></tbody></table></div></div>
 <div class="page" id="page-vistoriadas"><div class="tw"><table><thead><tr><th onclick="srtSub('vist','empresa')">Empresa</th><th onclick="srtSub('vist','tipoServico')">Tipo</th><th onclick="srtSub('vist','numeroOS')">Referência OS</th><th onclick="srtSub('vist','cliente')">Cliente</th><th onclick="srtSub('vist','cidade')">Cidade</th><th onclick="srtSub('vist','vistoria')">Vistoria</th><th onclick="srtSub('vist','dataAbertura')">Abertura</th><th onclick="srtSub('vist','prazoFatal')" class="sort-asc">Prazo Fatal ↕</th><th onclick="srtSub('vist','dias')">Dias</th><th>Próxima etapa</th><th></th></tr></thead><tbody id="tb-vistoriadas"></tbody></table></div></div>
 <div class="page" id="page-sem-ficha"><div class="tw"><table><thead><tr><th onclick="srtSub('ficha','empresa')">Empresa</th><th onclick="srtSub('ficha','tipoServico')">Tipo</th><th onclick="srtSub('ficha','numeroOS')">Referência OS</th><th onclick="srtSub('ficha','cliente')">Cliente</th><th onclick="srtSub('ficha','cidade')">Cidade</th><th onclick="srtSub('ficha','finalizacao')">Finalização</th><th onclick="srtSub('ficha','fichas')">Ficha Pesquisa</th><th onclick="srtSub('ficha','prazoFatal')" class="sort-asc">Prazo Fatal ↕</th><th onclick="srtSub('ficha','dias')">Dias</th><th></th></tr></thead><tbody id="tb-sem-ficha"></tbody></table></div></div>
-<div class="page" id="page-andamento"><div class="toolbar"><div class="srch"><span style="color:var(--tx3)">🔍</span><input type="text" id="s-and" placeholder="Buscar..." oninput="renderSimple('andamento')"></div><div class="chips" id="chips-and"><div class="chip on" onclick="setChipAnd('all',this)">Todas</div><div class="chip" onclick="setChipAnd('prioridade',this)" style="display:flex;align-items:center;gap:4px;">⭐ Prioritárias</div><div class="chip" onclick="setChipAnd('vistoria',this)">Ag. vistoria</div><div class="chip" onclick="setChipAnd('estagiario',this)">Com estagiário</div><div class="chip" onclick="setChipAnd('conferencia',this)">Ag. conferência</div></div><div class="toolbar-filters"><select id="f-and-dias" class="toolbar-select" onchange="setAndDias(this.value)"><option value="">Dias restantes</option><option value="critico">Até 1 dia</option><option value="3">Até 3 dias</option><option value="5">Até 5 dias</option><option value="7">Até 7 dias</option><option value="8+">Mais de 7 dias</option><option value="vencido">Vencidas</option></select><select id="f-and-acao" class="toolbar-select" onchange="setAndAcao(this.value)"><option value="">Próxima ação</option><option value="vistoria">Realizar vistoria</option><option value="preenchimento">A preencher</option><option value="avaliacao">Realizar avaliação</option><option value="conferencia">Sua conferência</option><option value="finalizacao">Emitir laudo</option></select></div></div><div class="tw"><table><thead><tr><th onclick="srtSub('and','prioridade')" style="width:42px;text-align:center;" title="Prioridade">⭐</th><th onclick="srtSub('and','empresa')">Empresa</th><th onclick="srtSub('and','tipoServico')">Tipo</th><th onclick="srtSub('and','numeroOS')">Referência OS</th><th onclick="srtSub('and','cliente')">Cliente</th><th onclick="srtSub('and','cidade')">Cidade</th><th onclick="srtSub('and','prazoFatal')" class="sort-asc">Prazo Fatal ↕</th><th onclick="srtSub('and','dias')">Dias Rest.</th><th onclick="srtSub('and','proximaAcao')">Próxima ação ↕</th><th onclick="srtSub('and','analise')">Análise</th><th onclick="srtSub('and','valor')" class="admin-only valor-col">Valor</th><th></th></tr></thead><tbody id="tb-and"></tbody></table></div></div>
+<div class="page" id="page-andamento"><div class="toolbar"><div class="srch"><span style="color:var(--tx3)">🔍</span><input type="text" id="s-and" placeholder="Buscar..." oninput="renderSimple('andamento')"></div><div class="chips" id="chips-and"><div class="chip on" onclick="setChipAnd('all',this)">Todas</div><div class="chip" onclick="setChipAnd('prioridade',this)" style="display:flex;align-items:center;gap:4px;">⭐ Prioritárias</div><div class="chip" onclick="setChipAnd('vistoria',this)">Ag. vistoria</div><div class="chip" onclick="setChipAnd('estagiario',this)">Com estagiário</div><div class="chip" onclick="setChipAnd('conferencia',this)">Ag. conferência</div></div><div class="toolbar-filters"><select id="f-and-dias" class="toolbar-select" onchange="setAndDias(this.value)"><option value="">Dias restantes</option><option value="critico">Até 1 dia</option><option value="3">Até 3 dias</option><option value="5">Até 5 dias</option><option value="7">Até 7 dias</option><option value="8+">Mais de 7 dias</option><option value="vencido">Vencidas</option></select><select id="f-and-acao" class="toolbar-select" onchange="setAndAcao(this.value)"><option value="">Próxima ação</option><option value="vistoria">Realizar vistoria</option><option value="preenchimento">A preencher</option><option value="avaliacao">Realizar avaliação</option><option value="conferencia">Sua conferência</option><option value="finalizacao">Emitir laudo</option></select></div></div><div class="tw"><table><thead><tr><th onclick="srtSub('and','prioridade')" style="width:42px;text-align:center;" title="Prioridade">⭐</th><th onclick="srtSub('and','empresa')">Empresa</th><th onclick="srtSub('and','tipoServico')">Tipo</th><th onclick="srtSub('and','numeroOS')">Referência OS</th><th onclick="srtSub('and','cliente')">Cliente</th><th onclick="srtSub('and','cidade')">Cidade</th><th onclick="srtSub('and','prazoFatal')" class="sort-asc">Prazo Fatal ↕</th><th onclick="srtSub('and','dias')">Dias Rest.</th><th onclick="srtSub('and','proximaAcao')">Próxima ação ↕</th><th onclick="srtSub('and','analise')" style="min-width:165px;">Análise</th><th onclick="srtSub('and','responsavel')" style="min-width:118px;">Responsável</th><th onclick="srtSub('and','valor')" class="admin-only valor-col">Valor</th><th></th></tr></thead><tbody id="tb-and"></tbody></table></div></div>
+<div class="page" id="page-kanban">
+  <div class="toolbar">
+    <div class="srch"><span style="color:var(--tx3)">🔍</span><input type="text" id="s-kb" placeholder="Buscar OS, cliente, cidade..." oninput="renderKanban()"></div>
+    <div class="toolbar-filters">
+      <select id="f-kb-resp" class="toolbar-select" onchange="renderKanban()">
+        <option value="">Todos os responsáveis</option>
+        <option value="__sem__">Sem responsável</option>
+        <option value="Leonardo">Leonardo</option>
+        <option value="Paulo">Paulo</option>
+        <option value="Aline">Aline</option>
+        <option value="João Paulo">João Paulo</option>
+      </select>
+      <select id="f-kb-dias" class="toolbar-select" onchange="renderKanban()">
+        <option value="">Dias restantes</option>
+        <option value="vencido">Vencidas</option>
+        <option value="critico">Até 1 dia</option>
+        <option value="3">Até 3 dias</option>
+        <option value="5">Até 5 dias</option>
+        <option value="7">Até 7 dias</option>
+      </select>
+      <select id="f-kb-tipo" class="toolbar-select" onchange="renderKanban()">
+        <option value="">Todos os tipos</option>
+        <option value="B-438">B-438</option>
+        <option value="B-437">B-437</option>
+        <option value="__naoanalisada__">⚠ Falta analisar (B-438/B-437)</option>
+      </select>
+    </div>
+    <div style="margin-left:auto;font-size:11px;color:var(--tx3);display:flex;align-items:center;gap:6px;">
+      <span style="font-size:14px;">🖱️</span> Arraste os cards entre as colunas para mudar a etapa
+    </div>
+  </div>
+  <div class="kb-board" id="kb-board"></div>
+</div>
 <div class="page" id="page-vencendo"><div class="tw"><table><thead><tr><th onclick="srtSub('venc','empresa')">Empresa</th><th onclick="srtSub('venc','tipoServico')">Tipo</th><th onclick="srtSub('venc','numeroOS')">Referência OS</th><th onclick="srtSub('venc','cliente')">Cliente</th><th onclick="srtSub('venc','cidade')">Cidade</th><th onclick="srtSub('venc','prazoFatal')" class="sort-asc">Prazo Fatal ↕</th><th onclick="srtSub('venc','dias')">Dias</th><th>Status</th><th></th></tr></thead><tbody id="tb-venc"></tbody></table></div></div>
 <div class="page" id="page-finalizadas">
   <div class="toolbar" style="flex-wrap:wrap;gap:10px;margin-bottom:14px;">
@@ -1904,6 +1961,15 @@ tr.row-vencido{animation:none!important;}
         <div class="su-blk"><span class="su-lbl">Conferência</span><select id="ed-confer"><option>Aguardando</option><option>Conferido</option><option>Sem necessidade</option></select></div>
         <div class="su-blk"><span class="su-lbl">Finalização</span><select id="ed-final"><option>Laudo em Andamento</option><option>Laudo Finalizado</option></select></div>
         <div class="su-blk"><span class="su-lbl">Fichas de Pesquisa</span><select id="ed-fichas"><option>Não iniciada</option><option>Realizada</option><option>Sem necessidade</option></select></div>
+        <div class="su-blk"><span class="su-lbl">Responsável p/ preenchimento</span><select id="ed-resp"><option value="">— definir —</option><option>Leonardo</option><option>Paulo</option><option>Aline</option><option>João Paulo</option></select></div>
+      </div>
+      <div class="su-blk" style="margin-bottom:12px;"><span class="su-lbl">Análise</span>
+        <select id="ed-analise" style="margin-bottom:7px;"><option value="">—</option><option>Matrícula sem averbação</option><option>PCI Errada</option><option>ART Errada</option><option>ART inexistente</option><option>Sem Projeto</option></select>
+        <textarea id="ed-analise-txt" rows="3" placeholder="Escreva aqui as informações da análise…" style="width:100%;font-family:inherit;font-size:12.5px;padding:8px 10px;border-radius:var(--rxs);border:1px solid var(--br);background:var(--bg3);color:var(--tx1);resize:vertical;"></textarea>
+        <label id="ed-analisada-wr" style="display:none;align-items:center;gap:8px;margin-top:8px;font-size:12.5px;font-weight:600;color:var(--tx2);cursor:pointer;">
+          <input type="checkbox" id="ed-analisada" style="width:16px;height:16px;accent-color:var(--grn);cursor:pointer;">
+          <span id="ed-analisada-lbl">Análise já conferida (B-438 / B-437)</span>
+        </label>
       </div>
       <div style="display:flex;align-items:center;gap:10px;padding:10px 14px;background:var(--bg3);border-radius:var(--rs);border:1px solid var(--br);">
         <span style="font-size:12px;color:var(--tx2);font-weight:600;white-space:nowrap;">Data de Fechamento:</span>
@@ -2792,7 +2858,7 @@ const EMPRESAS_LIST = ['L&L Engenharia','Caldeira Engenharia','ATX Avaliações'
 const PAGE_TITLES = {
   dashboard:'Dashboard','lista':'Todas as OS','preenchidas':'OS Preenchidas',
   'vistoriadas':'OS Vistoriadas','sem-ficha':'Fichas de Pesquisa',
-  andamento:'Em Andamento','vencendo':'Próximo do vencimento','finalizadas':'Finalizadas',
+  andamento:'Em Andamento',kanban:'Kanban — OS em Andamento','vencendo':'Próximo do vencimento','finalizadas':'Finalizadas',
   financeiro:'Dashboard Financeiro','faturas':'Gerar Fatura','exportar-art':'Exportar para ART','comissao-paulo':'Comissionamento — Paulo',
   roteiro:'Roteirização de Vistorias',
   lixeira:'Lixeira (recuperáveis por 30 dias)',
@@ -2936,17 +3002,80 @@ let loteOSs = []; // for bulk import
 
 const ANALISE_OPCOES = ['Matrícula sem averbação','PCI Errada','ART Errada','ART inexistente','Sem Projeto'];
 
+// Tipos de OS que exigem conferência de análise (checkbox "analisada")
+const TIPOS_ANALISE_OBRIG = ['B-438','B-437'];
+function exigeAnalise(os) {
+  return TIPOS_ANALISE_OBRIG.includes(String(os.tipoServico||'').trim());
+}
+
+// Responsáveis pelo preenchimento
+const RESPONSAVEIS = ['Leonardo','Paulo','Aline','João Paulo'];
+const RESP_CORES = {
+  'Leonardo':  '#2563eb',
+  'Paulo':     '#16a34a',
+  'Aline':     '#c026d3',
+  'João Paulo':'#ea580c'
+};
+function respCor(nome){ return RESP_CORES[nome] || 'var(--tx3)'; }
+function escAttr(s){ return String(s==null?'':s).replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+
 function analiseSelect(os) {
   const val = os.analise || '';
   const opts = ['<option value="">—</option>'].concat(
     ANALISE_OPCOES.map(o => `<option value="${o}"${val===o?' selected':''}>${o}</option>`)
   ).join('');
   const hasVal = !!val;
-  return `<select onclick="event.stopPropagation()" onchange="setAnalise(event,'${os.id}',this.value)" style="
-      font-size:11.5px;padding:4px 6px;border-radius:7px;max-width:150px;
+  const txt = os.analiseTexto || '';
+  const hasTxt = !!txt;
+  const precisa = exigeAnalise(os);
+  const ok = !!os.analisada;
+
+  const check = precisa ? `
+    <label onclick="event.stopPropagation()" title="${ok?'Análise já conferida':'Marcar como analisada'}" style="
+      display:inline-flex;align-items:center;gap:5px;cursor:pointer;font-size:11px;font-weight:600;
+      padding:3px 8px;border-radius:999px;white-space:nowrap;
+      background:${ok?'rgba(34,197,94,.12)':'rgba(217,119,6,.10)'};
+      border:1px solid ${ok?'rgba(34,197,94,.35)':'rgba(217,119,6,.28)'};
+      color:${ok?'var(--grn)':'#b45309'};">
+      <input type="checkbox" ${ok?'checked':''} onclick="event.stopPropagation()"
+        onchange="setAnalisada(event,'${os.id}',this.checked)"
+        style="width:14px;height:14px;cursor:pointer;accent-color:var(--grn);margin:0;">
+      ${ok?'Analisada' : '⚠ Analisar'}
+    </label>` : '';
+
+  return `<div style="display:flex;flex-direction:column;gap:4px;min-width:158px;" onclick="event.stopPropagation()">
+    <select onclick="event.stopPropagation()" onchange="setAnalise(event,'${os.id}',this.value)" style="
+      font-size:11.5px;padding:4px 6px;border-radius:7px;width:100%;max-width:172px;
       background:${hasVal?'rgba(255,120,80,.10)':'var(--bg3)'};
       border:1px solid ${hasVal?'rgba(255,120,80,.35)':'var(--br)'};
       color:${hasVal?'var(--tx1)':'var(--tx3)'};cursor:pointer;
+    ">${opts}</select>
+    <textarea rows="1" placeholder="Escreva a análise…" title="${escAttr(txt)}"
+      onclick="event.stopPropagation()"
+      oninput="this.style.height='auto';this.style.height=Math.min(this.scrollHeight,96)+'px';"
+      onfocus="this.style.height='auto';this.style.height=Math.min(this.scrollHeight,96)+'px';"
+      onchange="setAnaliseTexto(event,'${os.id}',this.value)"
+      onblur="setAnaliseTexto(event,'${os.id}',this.value)"
+      style="font-size:11.5px;padding:4px 6px;border-radius:7px;width:100%;max-width:172px;
+        min-height:26px;resize:vertical;font-family:inherit;line-height:1.35;
+        background:${hasTxt?'rgba(37,99,235,.07)':'var(--bg3)'};
+        border:1px solid ${hasTxt?'rgba(37,99,235,.30)':'var(--br)'};
+        color:var(--tx1);">${escAttr(txt)}</textarea>
+    ${check}
+  </div>`;
+}
+
+function respSelect(os) {
+  const val = os.responsavel || '';
+  const opts = ['<option value="">— definir —</option>'].concat(
+    RESPONSAVEIS.map(o => `<option value="${o}"${val===o?' selected':''}>${o}</option>`)
+  ).join('');
+  const c = val ? respCor(val) : '';
+  return `<select onclick="event.stopPropagation()" onchange="setResponsavel(event,'${os.id}',this.value)" style="
+      font-size:11.5px;padding:4px 6px;border-radius:7px;max-width:118px;font-weight:${val?'700':'400'};
+      background:${val?'color-mix(in srgb, '+c+' 12%, transparent)':'var(--bg3)'};
+      border:1px solid ${val?'color-mix(in srgb, '+c+' 40%, transparent)':'var(--br)'};
+      color:${val?c:'var(--tx3)'};cursor:pointer;
     ">${opts}</select>`;
 }
 
@@ -2964,6 +3093,310 @@ async function setAnalise(e, id, valor) {
     renderSimple('andamento');
   }
 }
+
+// Texto livre da análise — salva sem re-renderizar (para não perder o foco enquanto digita)
+async function setAnaliseTexto(e, id, valor) {
+  if(e) e.stopPropagation();
+  const os = DB.find(o=>o.id===id); if(!os) return;
+  const novo = (valor||'').trim();
+  if((os.analiseTexto||'') === novo) return;
+  const anterior = os.analiseTexto;
+  os.analiseTexto = novo;
+  try {
+    await fbSave(os);
+    const el = e && e.target;
+    if(el){
+      el.style.background = novo ? 'rgba(37,99,235,.07)' : 'var(--bg3)';
+      el.style.borderColor = novo ? 'rgba(37,99,235,.30)' : 'var(--br)';
+      el.title = novo;
+    }
+    updateBadges();
+  } catch(err) {
+    console.error('Erro ao salvar texto da análise:', err);
+    os.analiseTexto = anterior;
+    renderSimple('andamento');
+  }
+}
+
+async function setAnalisada(e, id, marcado) {
+  if(e) e.stopPropagation();
+  const os = DB.find(o=>o.id===id); if(!os) return;
+  const anterior = !!os.analisada;
+  os.analisada = !!marcado;
+  if(os.analisada) os.analisadaEm = new Date().toISOString();
+  try {
+    await fbSave(os);
+    renderSimple('andamento');
+    updateBadges();
+  } catch(err) {
+    console.error('Erro ao salvar checkbox de análise:', err);
+    os.analisada = anterior;
+    renderSimple('andamento');
+  }
+}
+
+async function setResponsavel(e, id, valor) {
+  if(e) e.stopPropagation();
+  const os = DB.find(o=>o.id===id); if(!os) return;
+  const anterior = os.responsavel;
+  os.responsavel = valor || '';
+  try {
+    await fbSave(os);
+    renderSimple('andamento');
+    if(document.getElementById('page-kanban')?.classList.contains('active')) renderKanban();
+  } catch(err) {
+    console.error('Erro ao salvar responsável:', err);
+    os.responsavel = anterior;
+    renderSimple('andamento');
+  }
+}
+
+// ══════════════════════════════════════
+// KANBAN — OS em andamento
+// ══════════════════════════════════════
+const KB_COLS = [
+  {id:'vistoria',      titulo:'Realizar vistoria', icone:'📌', cor:'#64748b'},
+  {id:'preenchimento', titulo:'A preencher',       icone:'✍️', cor:'#2563eb'},
+  {id:'avaliacao',     titulo:'Realizar avaliação',icone:'📊', cor:'#0891b2'},
+  {id:'conferencia',   titulo:'Sua conferência',   icone:'🔍', cor:'#d97706'},
+  {id:'finalizacao',   titulo:'Emitir laudo',      icone:'📄', cor:'#7c3aed'},
+  {id:'finalizado',    titulo:'Finalizado',        icone:'✅', cor:'#16a34a'}
+];
+const KB_ORDEM = KB_COLS.map(c=>c.id);
+
+// Ajusta os campos de status da OS para que statusOS() passe a devolver a etapa alvo
+function aplicarEtapa(os, etapa) {
+  const i = KB_ORDEM.indexOf(etapa);
+  if(i < 0) return false;
+  const naoPreenchido = ['Não Iniciado','Em preenchimento','Copiar'];
+
+  os.vistoria = i >= 1 ? 'Imóvel vistoriado' : 'Aguardando vistoria';
+
+  if(i <= 1) {
+    if(!naoPreenchido.includes(os.preenchimento)) os.preenchimento = (i===1 ? 'Em preenchimento' : 'Não Iniciado');
+  } else if(naoPreenchido.includes(os.preenchimento) || !os.preenchimento) {
+    os.preenchimento = 'Preenchido';
+  }
+
+  if(i <= 2) {
+    if(['Avaliação Pronta','Sem necessidade'].includes(os.avaliacao)) os.avaliacao = 'Avaliação não iniciada';
+    if(!os.avaliacao) os.avaliacao = 'Avaliação não iniciada';
+  } else if(!['Avaliação Pronta','Sem necessidade'].includes(os.avaliacao)) {
+    os.avaliacao = 'Avaliação Pronta';
+  }
+
+  if(i <= 3) {
+    if(['Conferido','Sem necessidade'].includes(os.conferencia)) os.conferencia = 'Aguardando';
+    if(!os.conferencia) os.conferencia = 'Aguardando';
+  } else if(!['Conferido','Sem necessidade'].includes(os.conferencia)) {
+    os.conferencia = 'Conferido';
+  }
+
+  os.finalizacao = (i >= 5) ? 'Laudo Finalizado' : 'Laudo em Andamento';
+
+  if(i >= 5) {
+    if(!os.dataFechamento) os.dataFechamento = new Date().toISOString().split('T')[0];
+    try {
+      const {mes:mRec, ano:aRec} = calcMesRecebimento(os.dataFechamento, os.dataAbertura);
+      if(mRec && aRec) os.mesRecebimento = `${mRec}/${aRec}`;
+    } catch(e){}
+  }
+  return true;
+}
+
+function kbFiltrar() {
+  const q = (document.getElementById('s-kb')?.value||'').toLowerCase().trim();
+  const fResp = document.getElementById('f-kb-resp')?.value || '';
+  const fDias = document.getElementById('f-kb-dias')?.value || '';
+  const fTipo = document.getElementById('f-kb-tipo')?.value || '';
+
+  let d = DB.filter(o => !o.excluida && (isAberto(o) || statusOS(o)==='finalizado'));
+  // No Kanban mostramos as abertas + as finalizadas recentes (para a coluna Finalizado)
+  d = d.filter(o => {
+    if(isAberto(o)) return true;
+    const dt = o.dataFechamento ? parseDt(o.dataFechamento) : null;
+    if(!dt) return false;
+    return (Date.now() - dt.getTime()) <= 30*86400000; // últimos 30 dias
+  });
+
+  if(q) d = d.filter(o => [o.empresa,o.numeroOS,o.tipoServico,o.cliente,o.cidade,o.responsavel,o.analise,o.analiseTexto]
+    .some(v => (v||'').toLowerCase().includes(q)));
+
+  if(fResp === '__sem__') d = d.filter(o => !o.responsavel);
+  else if(fResp) d = d.filter(o => o.responsavel === fResp);
+
+  if(fDias) d = d.filter(o => {
+    const dias = diasAte(o.prazoFatal);
+    if(dias===null) return false;
+    if(fDias==='vencido') return dias < 0;
+    if(fDias==='critico') return dias <= 1;
+    return dias <= Number(fDias);
+  });
+
+  if(fTipo === '__naoanalisada__') d = d.filter(o => exigeAnalise(o) && !o.analisada);
+  else if(fTipo) d = d.filter(o => String(o.tipoServico||'').trim() === fTipo);
+
+  return d;
+}
+
+function kbCard(os) {
+  const dias = diasAte(os.prazoFatal);
+  const prio = !!os.prioridade;
+  const resp = os.responsavel || '';
+  const c = resp ? respCor(resp) : '';
+  const falta = exigeAnalise(os) && !os.analisada;
+  const corBorda = dias!==null && dias < 0 ? '#e84d6e' : (dias!==null && dias <= 2 ? '#ea580c' : (KB_COLS.find(k=>k.id===statusOS(os))||{}).cor || 'var(--acc)');
+
+  return `<div class="kb-card${prio?' kb-prio':''}" data-id="${os.id}" style="--kbc:${corBorda};" title="Arraste para mudar a etapa · clique para abrir">
+    <div class="kb-c-top">
+      ${prio?'<span style="font-size:13px;line-height:1;">⭐</span>':''}
+      <span class="kb-c-emp">${escAttr(os.empresa||'—')}</span>
+      ${tipoBadge(os.tipoServico)}
+    </div>
+    <div class="kb-c-ref">${escAttr(os.numeroOS||'—')}</div>
+    <div class="kb-c-cli">👤 ${escAttr(os.cliente||'—')}${os.cidade?' · '+escAttr(os.cidade):''}</div>
+    <div class="kb-c-ft">
+      ${dias!==null?diasBadge(dias):''}
+      ${resp?`<span class="kb-resp" style="background:color-mix(in srgb, ${c} 13%, transparent);color:${c};border:1px solid color-mix(in srgb, ${c} 32%, transparent);">${escAttr(resp)}</span>`
+            :`<span class="kb-resp" style="background:var(--bg3);color:var(--tx3);border:1px dashed var(--br2);">sem responsável</span>`}
+      ${falta?'<span class="badge bg-orange" title="Ainda não conferida">⚠ Analisar</span>':''}
+      ${os.analise?`<span class="badge bg-red" title="${escAttr(os.analise)}">${escAttr(os.analise)}</span>`:''}
+    </div>
+    ${os.analiseTexto?`<div style="margin-top:6px;font-size:10.5px;color:var(--tx2);background:var(--bg3);border-radius:8px;padding:5px 7px;line-height:1.4;max-height:52px;overflow:hidden;" title="${escAttr(os.analiseTexto)}">📝 ${escAttr(os.analiseTexto)}</div>`:''}
+  </div>`;
+}
+
+function renderKanban() {
+  const board = document.getElementById('kb-board');
+  if(!board) return;
+  const dados = kbFiltrar();
+  const grupos = {};
+  KB_ORDEM.forEach(k => grupos[k] = []);
+  dados.forEach(os => {
+    const s = statusOS(os);
+    if(grupos[s]) grupos[s].push(os);
+  });
+  // Prioritárias no topo, depois por prazo mais apertado
+  KB_ORDEM.forEach(k => grupos[k].sort((a,b) => {
+    const p = (b.prioridade?1:0) - (a.prioridade?1:0);
+    if(p) return p;
+    const da = diasAte(a.prazoFatal), db = diasAte(b.prazoFatal);
+    return (da===null?99999:da) - (db===null?99999:db);
+  }));
+
+  board.innerHTML = KB_COLS.map(col => `
+    <div class="kb-col" data-col="${col.id}">
+      <div class="kb-col-hd">
+        <span class="kb-dot" style="background:${col.cor};"></span>
+        <span class="kb-col-ttl">${col.icone} ${col.titulo}</span>
+        <span class="kb-col-cnt">${grupos[col.id].length}</span>
+      </div>
+      <div class="kb-list" data-col="${col.id}">
+        ${grupos[col.id].length ? grupos[col.id].map(kbCard).join('')
+          : '<div class="kb-empty">Solte um card aqui</div>'}
+      </div>
+    </div>`).join('');
+
+  const el = document.getElementById('nb-kb');
+  if(el) el.textContent = dados.filter(isAberto).length;
+}
+
+// ─── Drag & drop (mouse + toque) ───
+let _kbDrag = null;
+function kbPointerDown(e) {
+  if(e.button !== undefined && e.button !== 0) return;
+  const card = e.target.closest('.kb-card');
+  if(!card || !document.getElementById('page-kanban')?.classList.contains('active')) return;
+  const r = card.getBoundingClientRect();
+  _kbDrag = {
+    card, id: card.dataset.id, moved:false,
+    x0:e.clientX, y0:e.clientY,
+    dx:e.clientX - r.left, dy:e.clientY - r.top,
+    origem: card.closest('.kb-list')?.dataset.col || null,
+    ghost:null, alvo:null
+  };
+  try { card.setPointerCapture(e.pointerId); } catch(err){}
+}
+function kbPointerMove(e) {
+  if(!_kbDrag) return;
+  const dist = Math.hypot(e.clientX - _kbDrag.x0, e.clientY - _kbDrag.y0);
+  if(!_kbDrag.moved) {
+    if(dist < 6) return;
+    _kbDrag.moved = true;
+    const g = _kbDrag.card.cloneNode(true);
+    g.classList.add('kb-ghost');
+    document.body.appendChild(g);
+    _kbDrag.ghost = g;
+    _kbDrag.card.classList.add('kb-src');
+    document.body.style.userSelect = 'none';
+  }
+  e.preventDefault();
+  _kbDrag.ghost.style.left = (e.clientX - _kbDrag.dx) + 'px';
+  _kbDrag.ghost.style.top  = (e.clientY - _kbDrag.dy) + 'px';
+
+  const sob = document.elementFromPoint(e.clientX, e.clientY);
+  const col = sob ? sob.closest('.kb-col') : null;
+  if(col !== _kbDrag.alvo) {
+    if(_kbDrag.alvo) _kbDrag.alvo.classList.remove('kb-over');
+    _kbDrag.alvo = col;
+    if(col) col.classList.add('kb-over');
+  }
+  // auto-scroll horizontal do board
+  const board = document.getElementById('kb-board');
+  if(board) {
+    const br = board.getBoundingClientRect();
+    if(e.clientX > br.right - 70) board.scrollLeft += 14;
+    else if(e.clientX < br.left + 70) board.scrollLeft -= 14;
+  }
+}
+async function kbPointerUp(e) {
+  if(!_kbDrag) return;
+  const d = _kbDrag; _kbDrag = null;
+  document.body.style.userSelect = '';
+  if(d.ghost) d.ghost.remove();
+  d.card.classList.remove('kb-src');
+  if(d.alvo) d.alvo.classList.remove('kb-over');
+
+  if(!d.moved) { abrirDetalhe(d.id); return; }
+
+  const destino = d.alvo ? d.alvo.dataset.col : null;
+  if(!destino || destino === d.origem) { renderKanban(); return; }
+
+  const os = DB.find(o => o.id === d.id);
+  if(!os) { renderKanban(); return; }
+
+  const snapshot = {
+    vistoria:os.vistoria, preenchimento:os.preenchimento, avaliacao:os.avaliacao,
+    conferencia:os.conferencia, finalizacao:os.finalizacao,
+    dataFechamento:os.dataFechamento, mesRecebimento:os.mesRecebimento
+  };
+  aplicarEtapa(os, destino);
+  renderKanban();
+  let ok = true;
+  try { await fbSave(os); }
+  catch(err) { ok = false; console.error('Erro ao mover card:', err); }
+
+  if(!ok) {
+    Object.assign(os, snapshot);
+    renderKanban();
+    try { toast('Não foi possível mover a OS. Alteração desfeita.','err'); } catch(e){}
+    return;
+  }
+  const col = KB_COLS.find(c => c.id === destino);
+  try { toast(`${os.numeroOS||'OS'} → ${col?col.titulo:destino}`, 'ok'); } catch(e){}
+  try { updateBadges(); } catch(e){}
+}
+document.addEventListener('pointerdown', kbPointerDown);
+document.addEventListener('pointermove', kbPointerMove, {passive:false});
+document.addEventListener('pointerup', kbPointerUp);
+document.addEventListener('pointercancel', () => {
+  if(!_kbDrag) return;
+  if(_kbDrag.ghost) _kbDrag.ghost.remove();
+  _kbDrag.card.classList.remove('kb-src');
+  if(_kbDrag.alvo) _kbDrag.alvo.classList.remove('kb-over');
+  _kbDrag = null;
+  document.body.style.userSelect = '';
+});
 
 // ══════════════════════════════════════
 // FIREBASE
@@ -3111,6 +3544,7 @@ function renderPage(id) {
   else if(id==='vistoriadas') renderVistoriadas();
   else if(id==='sem-ficha')   renderSemFicha();
   else if(id==='andamento') renderSimple('andamento');
+  else if(id==='kanban') renderKanban();
   else if(id==='vencendo') renderSimple('vencendo');
   else if(id==='finalizadas') renderSimple('finalizadas');
   else if(id==='financeiro') renderFinanceiro();
@@ -3144,8 +3578,28 @@ function _refreshAll_impl() {
   updateBadges();
   if(typeof atualizarWidgetComissao === 'function') atualizarWidgetComissao();
   const pid = document.querySelector('.page.active')?.id?.replace('page-','');
-  if(pid) renderPage(pid);
+  if(!pid) return;
+  // Não re-renderiza enquanto o usuário está digitando dentro de uma linha da tabela
+  // (senão o campo de análise perde o foco no meio da frase)
+  const ae = document.activeElement;
+  if(ae && ae.closest && ae.closest('tbody') &&
+     ['TEXTAREA','INPUT'].includes(ae.tagName)) { _refreshPendente = true; return; }
+  if(_kbDrag) { _refreshPendente = true; return; } // nem durante um arraste no Kanban
+  _refreshPendente = false;
+  renderPage(pid);
 }
+let _refreshPendente = false;
+document.addEventListener('focusout', (e) => {
+  if(!_refreshPendente) return;
+  setTimeout(() => {
+    const ae = document.activeElement;
+    if(ae && ae.closest && ae.closest('tbody') && ['TEXTAREA','INPUT'].includes(ae.tagName)) return;
+    if(_kbDrag) return;
+    _refreshPendente = false;
+    const pid = document.querySelector('.page.active')?.id?.replace('page-','');
+    if(pid) renderPage(pid);
+  }, 220);
+});
 
 // ══════════════════════════════════════
 // BADGES / STATS
@@ -3221,7 +3675,7 @@ function updateBadges() {
   const lixCount = (window.LIX_DB||[]).length;
 
   [['nb-total',total],['nb-preen',preen],['nb-vist',vist],['nb-ficha',semFicha],
-   ['nb-and',abertos.length],['nb-venc',venc],['nb-fin',fin],['nb-lix',lixCount]].forEach(([id,v])=>{
+   ['nb-and',abertos.length],['nb-kb',abertos.length],['nb-venc',venc],['nb-fin',fin],['nb-lix',lixCount]].forEach(([id,v])=>{
     const el=document.getElementById(id); if(el) el.textContent=v;
   });
 
@@ -4369,7 +4823,7 @@ function renderSimple(mode) {
   const tb=document.getElementById(tbId);
   if(!tb) return;
 
-  if(!d.length) { tb.innerHTML=emptyRow(mode==='andamento'?11:10); return; }
+  if(!d.length) { tb.innerHTML=emptyRow(mode==='andamento'?13:10); return; }
 
   if(mode==='andamento') {
     const isAdm = (typeof PERFIL_ATUAL !== 'undefined' && PERFIL_ATUAL === 'admin');
@@ -4396,7 +4850,8 @@ function renderSimple(mode) {
         <td>${fmtDate(os.prazoFatal)}</td>
         <td>${diasBadge(dias)}</td>
         <td style="font-size:12px;color:var(--tx2);">${proxAcao(os)}</td>
-        <td>${analiseSelect(os)}</td>
+        <td style="vertical-align:top;">${analiseSelect(os)}</td>
+        <td style="vertical-align:top;">${respSelect(os)}</td>
         <td class="admin-only valor-col" style="color:var(--grn);font-weight:600;">${os.valor?'R$ '+os.valor:'—'}</td>
         <td><button class="btn btn-primary btn-xs" onclick="abrirDetalhe('${os.id}')">Atualizar</button></td>
       </tr>`;
@@ -4726,6 +5181,20 @@ function abrirDetalhe(id) {
   document.getElementById('ed-final').value=os.finalizacao||'Laudo em Andamento';
   document.getElementById('ed-fichas').value=os.fichas||'Não iniciada';
   document.getElementById('ed-fech').value=os.dataFechamento||'';
+  const _r=document.getElementById('ed-resp'); if(_r) _r.value=os.responsavel||'';
+  const _a=document.getElementById('ed-analise'); if(_a) _a.value=os.analise||'';
+  const _at=document.getElementById('ed-analise-txt'); if(_at) _at.value=os.analiseTexto||'';
+  const _aw=document.getElementById('ed-analisada-wr'), _ac=document.getElementById('ed-analisada');
+  if(_aw && _ac){
+    if(exigeAnalise(os)){
+      _aw.style.display='flex';
+      _ac.checked=!!os.analisada;
+      const lbl=document.getElementById('ed-analisada-lbl');
+      if(lbl) lbl.innerHTML = os.analisada
+        ? 'Análise já conferida'
+        : '<span style="color:#b45309;font-weight:700;">⚠ Pendente — marque quando analisar</span>';
+    } else { _aw.style.display='none'; _ac.checked=false; }
+  }
 
   openOv('ov-det');
 }
@@ -4767,6 +5236,11 @@ async function salvarStatus() {
   os.finalizacao=document.getElementById('ed-final').value;
   os.fichas=document.getElementById('ed-fichas').value;
   os.dataFechamento=document.getElementById('ed-fech').value;
+  const _r=document.getElementById('ed-resp'); if(_r) os.responsavel=_r.value||'';
+  const _a=document.getElementById('ed-analise'); if(_a) os.analise=_a.value||'';
+  const _at=document.getElementById('ed-analise-txt'); if(_at) os.analiseTexto=(_at.value||'').trim();
+  const _ac=document.getElementById('ed-analisada');
+  if(_ac && exigeAnalise(os)){ os.analisada=!!_ac.checked; if(os.analisada && !os.analisadaEm) os.analisadaEm=new Date().toISOString(); }
   if(os.finalizacao==='Laudo Finalizado'&&!os.dataFechamento)
     os.dataFechamento=new Date().toISOString().split('T')[0];
   // Recalcula mês de recebimento pela data de ENCERRAMENTO (regra correta)
@@ -5161,7 +5635,7 @@ document.addEventListener('keydown', (e)=>{
     setTimeout(()=>{ window._gPrefix=false; }, 800);
   } else if(window._gPrefix) {
     window._gPrefix=false;
-    const map = {d:'dashboard', l:'lista', a:'andamento', v:'vencendo', f:'finalizadas', i:'financeiro'};
+    const map = {d:'dashboard', l:'lista', a:'andamento', k:'kanban', v:'vencendo', f:'finalizadas', i:'financeiro'};
     const target = map[e.key.toLowerCase()];
     if(target){ e.preventDefault(); go(target); }
   }
