@@ -1461,7 +1461,7 @@ tr.row-vencido{animation:none!important;}
         <option value="__sem__">Sem responsável</option>
         <option value="Leonardo">Leonardo</option>
         <option value="Paulo">Paulo</option>
-        <option value="Aline">Aline</option>
+        <option value="Otávio">Otávio</option>
         <option value="João Paulo">João Paulo</option>
       </select>
       <select id="f-kb-dias" class="toolbar-select" onchange="renderKanban()">
@@ -1961,7 +1961,7 @@ tr.row-vencido{animation:none!important;}
         <div class="su-blk"><span class="su-lbl">Conferência</span><select id="ed-confer"><option>Aguardando</option><option>Conferido</option><option>Sem necessidade</option></select></div>
         <div class="su-blk"><span class="su-lbl">Finalização</span><select id="ed-final"><option>Laudo em Andamento</option><option>Laudo Finalizado</option></select></div>
         <div class="su-blk"><span class="su-lbl">Fichas de Pesquisa</span><select id="ed-fichas"><option>Não iniciada</option><option>Realizada</option><option>Sem necessidade</option></select></div>
-        <div class="su-blk"><span class="su-lbl">Responsável p/ preenchimento</span><select id="ed-resp"><option value="">— definir —</option><option>Leonardo</option><option>Paulo</option><option>Aline</option><option>João Paulo</option></select></div>
+        <div class="su-blk"><span class="su-lbl">Responsável p/ preenchimento</span><select id="ed-resp"><option value="">— definir —</option><option>Leonardo</option><option>Paulo</option><option>Otávio</option><option>João Paulo</option></select></div>
       </div>
       <div class="su-blk" style="margin-bottom:12px;"><span class="su-lbl">Análise</span>
         <select id="ed-analise" style="margin-bottom:7px;" title="Motivo padronizado (opcional)"><option value="">— sem motivo padronizado —</option><option>Matrícula sem averbação</option><option>PCI Errada</option><option>ART Errada</option><option>ART inexistente</option><option>Sem Projeto</option></select>
@@ -3009,14 +3009,43 @@ function exigeAnalise(os) {
 }
 
 // Responsáveis pelo preenchimento
-const RESPONSAVEIS = ['Leonardo','Paulo','Aline','João Paulo'];
+const RESPONSAVEIS = ['Leonardo','Paulo','Otávio','João Paulo'];
 const RESP_CORES = {
   'Leonardo':  '#2563eb',
   'Paulo':     '#16a34a',
-  'Aline':     '#c026d3',
+  'Otávio':    '#c026d3',
   'João Paulo':'#ea580c'
 };
+// Colaboradores desligados: somem da lista de escolha, mas continuam legíveis
+// nas OS antigas (histórico de quem preencheu o quê).
+const RESP_INATIVOS = ['Aline'];
 function respCor(nome){ return RESP_CORES[nome] || 'var(--tx3)'; }
+
+// ── Saída de colaborador: libera as OS EM ABERTO que estavam com quem se desligou.
+//    As já finalizadas mantêm o nome (histórico). Roda uma vez por sessão, só para admin.
+let _migRespFeita = false;
+async function migrarRespInativos() {
+  if(_migRespFeita) return;
+  if(!Array.isArray(DB) || !DB.length) return;
+  if(typeof isAdmin === 'function' && !isAdmin()) { _migRespFeita = true; return; }
+  _migRespFeita = true;
+
+  const alvo = DB.filter(os => RESP_INATIVOS.includes(os.responsavel) && isAberto(os));
+  if(!alvo.length) return;
+
+  console.log(`Liberando o responsável de ${alvo.length} OS em aberto (colaborador desligado)…`);
+  let ok = 0;
+  for(const os of alvo){
+    const anterior = os.responsavel;
+    os.responsavel = '';
+    try { await window._fbSave(os); ok++; }
+    catch(err){ os.responsavel = anterior; console.error('Falha ao liberar a OS', os.numeroOS, err); }
+  }
+  if(ok){
+    try { toast(`${ok} OS ficaram sem responsável para redistribuir`, 'ok'); } catch(e){}
+    try { refreshAllNow(); } catch(e){}
+  }
+}
 function escAttr(s){ return String(s==null?'':s).replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
 
 function analiseSelect(os) {
@@ -3059,8 +3088,14 @@ function analiseSelect(os) {
 
 function respSelect(os) {
   const val = os.responsavel || '';
+  const lista = RESPONSAVEIS.slice();
+  // Se a OS estiver marcada com alguém que saiu da equipe, mantém o nome visível
+  if(val && !lista.includes(val)) lista.push(val);
   const opts = ['<option value="">— definir —</option>'].concat(
-    RESPONSAVEIS.map(o => `<option value="${o}"${val===o?' selected':''}>${o}</option>`)
+    lista.map(o => {
+      const inativo = !RESPONSAVEIS.includes(o);
+      return `<option value="${o}"${val===o?' selected':''}${inativo?' disabled':''}>${o}${inativo?' (inativo)':''}</option>`;
+    })
   ).join('');
   const c = val ? respCor(val) : '';
   return `<select onclick="event.stopPropagation()" onchange="setResponsavel(event,'${os.id}',this.value)" style="
@@ -3568,6 +3603,7 @@ function refreshAll() {
 }
 function _refreshAll_impl() {
   updateBadges();
+  try { migrarRespInativos(); } catch(e){ console.error(e); }
   if(typeof atualizarWidgetComissao === 'function') atualizarWidgetComissao();
   const pid = document.querySelector('.page.active')?.id?.replace('page-','');
   if(!pid) return;
@@ -5173,7 +5209,18 @@ function abrirDetalhe(id) {
   document.getElementById('ed-final').value=os.finalizacao||'Laudo em Andamento';
   document.getElementById('ed-fichas').value=os.fichas||'Não iniciada';
   document.getElementById('ed-fech').value=os.dataFechamento||'';
-  const _r=document.getElementById('ed-resp'); if(_r) _r.value=os.responsavel||'';
+  const _r=document.getElementById('ed-resp');
+  if(_r){
+    // Remove marcação antiga de inativo e recria se esta OS estiver com alguém que saiu
+    _r.querySelectorAll('option[data-inativo]').forEach(o=>o.remove());
+    const rv = os.responsavel||'';
+    if(rv && !RESPONSAVEIS.includes(rv)){
+      const op=document.createElement('option');
+      op.value=rv; op.textContent=rv+' (inativo)'; op.setAttribute('data-inativo','1');
+      _r.appendChild(op);
+    }
+    _r.value = rv;
+  }
   const _a=document.getElementById('ed-analise'); if(_a) _a.value=os.analise||'';
   const _at=document.getElementById('ed-analise-txt'); if(_at) _at.value=os.analiseTexto||'';
   const _aw=document.getElementById('ed-analisada-wr'), _ac=document.getElementById('ed-analisada');
