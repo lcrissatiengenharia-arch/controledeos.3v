@@ -1461,7 +1461,7 @@ tr.row-vencido{animation:none!important;}
         <option value="__sem__">Sem responsável</option>
         <option value="Leonardo">Leonardo</option>
         <option value="Paulo">Paulo</option>
-        <option value="Otávio">Otávio</option>
+        <option value="Júlia">Júlia</option>
         <option value="João Paulo">João Paulo</option>
       </select>
       <select id="f-kb-dias" class="toolbar-select" onchange="renderKanban()">
@@ -1961,7 +1961,7 @@ tr.row-vencido{animation:none!important;}
         <div class="su-blk"><span class="su-lbl">Conferência</span><select id="ed-confer"><option>Aguardando</option><option>Conferido</option><option>Sem necessidade</option></select></div>
         <div class="su-blk"><span class="su-lbl">Finalização</span><select id="ed-final"><option>Laudo em Andamento</option><option>Laudo Finalizado</option></select></div>
         <div class="su-blk"><span class="su-lbl">Fichas de Pesquisa</span><select id="ed-fichas"><option>Não iniciada</option><option>Realizada</option><option>Sem necessidade</option></select></div>
-        <div class="su-blk"><span class="su-lbl">Responsável p/ preenchimento</span><select id="ed-resp"><option value="">— definir —</option><option>Leonardo</option><option>Paulo</option><option>Otávio</option><option>João Paulo</option></select></div>
+        <div class="su-blk"><span class="su-lbl">Responsável p/ preenchimento</span><select id="ed-resp"><option value="">— definir —</option><option>Leonardo</option><option>Paulo</option><option>Júlia</option><option>João Paulo</option></select></div>
       </div>
       <div class="su-blk" style="margin-bottom:12px;"><span class="su-lbl">Análise</span>
         <select id="ed-analise" style="margin-bottom:7px;" title="Motivo padronizado (opcional)"><option value="">— sem motivo padronizado —</option><option>Matrícula sem averbação</option><option>PCI Errada</option><option>ART Errada</option><option>ART inexistente</option><option>Sem Projeto</option></select>
@@ -3009,16 +3009,16 @@ function exigeAnalise(os) {
 }
 
 // Responsáveis pelo preenchimento
-const RESPONSAVEIS = ['Leonardo','Paulo','Otávio','João Paulo'];
+const RESPONSAVEIS = ['Leonardo','Paulo','Júlia','João Paulo'];
 const RESP_CORES = {
   'Leonardo':  '#2563eb',
   'Paulo':     '#16a34a',
-  'Otávio':    '#c026d3',
+  'Júlia':     '#c026d3',
   'João Paulo':'#ea580c'
 };
 // Colaboradores desligados: somem da lista de escolha, mas continuam legíveis
 // nas OS antigas (histórico de quem preencheu o quê).
-const RESP_INATIVOS = ['Aline'];
+const RESP_INATIVOS = ['Aline','Otávio'];
 function respCor(nome){ return RESP_CORES[nome] || 'var(--tx3)'; }
 
 // ── Saída de colaborador: libera as OS EM ABERTO que estavam com quem se desligou.
