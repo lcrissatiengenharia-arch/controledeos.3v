@@ -984,6 +984,64 @@ tr.row-vencido{animation:none!important;}
 .bg-tipo-b{background:rgba(217,119,6,.1);color:#b45309;border:1px solid rgba(217,119,6,.22);}
 .bg-tipo-g{background:rgba(124,58,237,.09);color:#6d28d9;border:1px solid rgba(124,58,237,.2);}
 .bg-tipo-ava{background:rgba(220,38,38,.09);color:#b91c1c;border:1px solid rgba(220,38,38,.18);}
+
+/* ═══════════════════════════════════════════════
+   ABA DOCUMENTAÇÃO (B-437 / B-438)
+   ═══════════════════════════════════════════════ */
+.doc-resumo{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;margin-bottom:16px;}
+.dr{display:flex;align-items:center;gap:12px;background:var(--bg2);border:1px solid var(--br);
+  border-left:4px solid var(--dc,var(--acc));border-radius:16px;padding:14px 16px;box-shadow:var(--shadow-soft);}
+.dr-v{font-size:26px;font-weight:800;letter-spacing:-1.2px;color:var(--dc,var(--tx));line-height:1;}
+.dr-l{font-size:10.5px;font-weight:600;text-transform:uppercase;letter-spacing:.6px;color:var(--tx3);margin-top:4px;}
+.dr-ic{font-size:22px;opacity:.85;}
+
+/* pastilhas de documento */
+.docs-set{display:flex;flex-wrap:wrap;gap:5px;align-items:center;}
+.doc-chip{display:inline-flex;align-items:center;gap:5px;padding:4px 9px;border-radius:999px;cursor:pointer;
+  font-size:10.5px;font-weight:700;white-space:nowrap;user-select:none;transition:all .15s;
+  background:var(--bg3);border:1px solid var(--br2);color:var(--tx3);}
+.doc-chip:hover{transform:translateY(-1px);border-color:var(--br3);}
+.doc-chip.ok{background:rgba(22,163,74,.12);border-color:rgba(22,163,74,.38);color:var(--grn);}
+.doc-chip .mk{width:13px;height:13px;border-radius:4px;border:1.5px solid currentColor;display:inline-flex;
+  align-items:center;justify-content:center;font-size:9px;line-height:1;flex:none;}
+.doc-chip.ok .mk{background:var(--grn);border-color:var(--grn);color:#fff;}
+.doc-prog{font-size:10.5px;font-weight:800;color:var(--tx3);white-space:nowrap;margin-left:2px;}
+.doc-prog.full{color:var(--grn);}
+
+/* faixa de espera */
+.esp{display:inline-flex;flex-direction:column;align-items:center;justify-content:center;
+  width:32px;height:32px;border-radius:10px;font-weight:800;line-height:1;}
+.esp .n{font-size:12px;}
+.esp .u{font-size:7.5px;letter-spacing:.4px;text-transform:uppercase;opacity:.8;margin-top:1px;}
+.esp-0{background:var(--bg4);color:var(--tx3);}
+.esp-1{background:rgba(183,121,31,.14);color:#a16207;}
+.esp-2{background:rgba(217,119,6,.16);color:#b45309;}
+.esp-3{background:rgba(224,90,109,.16);color:var(--red);}
+tr.doc-critico{background:rgba(224,90,109,.05);box-shadow:inset 3px 0 0 var(--red);}
+tr.doc-atencao{background:rgba(217,119,6,.045);box-shadow:inset 3px 0 0 rgba(217,119,6,.55);}
+tr.doc-ok{opacity:.72;}
+.doc-obs{width:100%;min-height:38px;max-width:210px;font-size:11.5px;padding:5px 7px;border-radius:7px;
+  resize:vertical;font-family:inherit;line-height:1.35;border:1px solid var(--br);background:var(--bg3);color:var(--tx1);}
+.doc-obs.tem{background:rgba(37,99,235,.07);border-color:rgba(37,99,235,.30);}
+
+/* bloco de alerta no dashboard */
+.doc-alerta{display:flex;align-items:center;gap:16px;padding:16px 20px;border-radius:20px;margin-bottom:16px;cursor:pointer;
+  background:linear-gradient(120deg,rgba(217,119,6,.10),rgba(224,90,109,.05) 60%,transparent);
+  border:1px solid rgba(217,119,6,.22);box-shadow:var(--shadow-soft);transition:transform .2s,box-shadow .2s;}
+.doc-alerta:hover{transform:translateY(-2px);box-shadow:0 16px 30px rgba(217,119,6,.14);}
+.doc-alerta.ok{background:linear-gradient(120deg,rgba(22,163,74,.10),transparent 60%);border-color:rgba(22,163,74,.20);}
+.da-ic{width:46px;height:46px;border-radius:15px;flex:none;display:flex;align-items:center;justify-content:center;
+  font-size:22px;background:rgba(217,119,6,.13);}
+.doc-alerta.ok .da-ic{background:rgba(22,163,74,.13);}
+.da-v{font-size:32px;font-weight:800;letter-spacing:-1.6px;line-height:1;color:#b45309;}
+.doc-alerta.ok .da-v{color:var(--grn);}
+.da-l{font-size:10.5px;font-weight:700;text-transform:uppercase;letter-spacing:.8px;color:var(--tx3);}
+.da-sub{font-size:11.5px;color:var(--tx2);margin-top:3px;}
+.da-lista{display:flex;gap:8px;flex-wrap:wrap;margin-left:auto;}
+.da-item{background:var(--bg2);border:1px solid var(--br);border-radius:12px;padding:7px 11px;font-size:11px;white-space:nowrap;}
+.da-item b{display:block;font-size:11.5px;color:var(--tx);}
+.da-item span{color:var(--tx3);font-size:10px;}
+@media(max-width:1180px){.doc-resumo{grid-template-columns:repeat(2,minmax(0,1fr));}.da-lista{display:none;}}
 </style>
 </head>
 <body>
@@ -1029,6 +1087,7 @@ tr.row-vencido{animation:none!important;}
     <div class="sb-sec">Por situação</div>
     <button class="ni" data-page="andamento" onclick="go('andamento')"><span class="ic">⏳</span><span class="lbl">Em Andamento</span><span class="cnt warn" id="nb-and">0</span></button>
     <button class="ni" data-page="kanban" onclick="go('kanban')"><span class="ic">🗂️</span><span class="lbl">Kanban</span><span class="cnt" id="nb-kb">0</span></button>
+    <button class="ni" data-page="documentacao" onclick="go('documentacao')"><span class="ic">📑</span><span class="lbl">Documentação</span><span class="cnt danger" id="nb-doc">0</span></button>
     <button class="ni" data-page="sem-ficha" onclick="go('sem-ficha')"><span class="ic">📝</span><span class="lbl">Fichas de Pesquisa</span><span class="cnt warn" id="nb-ficha">0</span></button>
     <button class="ni" data-page="vencendo" onclick="go('vencendo')"><span class="ic">🔴</span><span class="lbl">Próximo do vencimento</span><span class="cnt danger" id="nb-venc">0</span></button>
     <button class="ni" data-page="lixeira" onclick="go('lixeira')"><span class="ic">🗑️</span><span class="lbl">Lixeira</span><span class="cnt" id="nb-lix">0</span></button>
@@ -1136,6 +1195,9 @@ tr.row-vencido{animation:none!important;}
     </div>
     <div id="alert-panel-grid" class="alert-grid"></div>
   </div>
+
+  <!-- ALERTA DE DOCUMENTAÇÃO (B-437 / B-438) -->
+  <div class="doc-alerta" id="doc-alerta" onclick="go('documentacao')" title="Ir para a aba Documentação"></div>
 
   <!-- STATS ROW — respondem ao filtro de ano -->
   <div class="stats" style="grid-template-columns:repeat(5,1fr);">
@@ -1452,6 +1514,46 @@ tr.row-vencido{animation:none!important;}
 <div class="page" id="page-vistoriadas"><div class="tw"><table><thead><tr><th onclick="srtSub('vist','empresa')">Empresa</th><th onclick="srtSub('vist','tipoServico')">Tipo</th><th onclick="srtSub('vist','numeroOS')">Referência OS</th><th onclick="srtSub('vist','cliente')">Cliente</th><th onclick="srtSub('vist','cidade')">Cidade</th><th onclick="srtSub('vist','vistoria')">Vistoria</th><th onclick="srtSub('vist','dataAbertura')">Abertura</th><th onclick="srtSub('vist','prazoFatal')" class="sort-asc">Prazo Fatal ↕</th><th onclick="srtSub('vist','dias')">Dias</th><th>Próxima etapa</th><th></th></tr></thead><tbody id="tb-vistoriadas"></tbody></table></div></div>
 <div class="page" id="page-sem-ficha"><div class="tw"><table><thead><tr><th onclick="srtSub('ficha','empresa')">Empresa</th><th onclick="srtSub('ficha','tipoServico')">Tipo</th><th onclick="srtSub('ficha','numeroOS')">Referência OS</th><th onclick="srtSub('ficha','cliente')">Cliente</th><th onclick="srtSub('ficha','cidade')">Cidade</th><th onclick="srtSub('ficha','finalizacao')">Finalização</th><th onclick="srtSub('ficha','fichas')">Ficha Pesquisa</th><th onclick="srtSub('ficha','prazoFatal')" class="sort-asc">Prazo Fatal ↕</th><th onclick="srtSub('ficha','dias')">Dias</th><th></th></tr></thead><tbody id="tb-sem-ficha"></tbody></table></div></div>
 <div class="page" id="page-andamento"><div class="toolbar"><div class="srch"><span style="color:var(--tx3)">🔍</span><input type="text" id="s-and" placeholder="Buscar..." oninput="renderSimple('andamento')"></div><div class="chips" id="chips-and"><div class="chip on" onclick="setChipAnd('all',this)">Todas</div><div class="chip" onclick="setChipAnd('prioridade',this)" style="display:flex;align-items:center;gap:4px;">⭐ Prioritárias</div><div class="chip" onclick="setChipAnd('vistoria',this)">Ag. vistoria</div><div class="chip" onclick="setChipAnd('estagiario',this)">Com estagiário</div><div class="chip" onclick="setChipAnd('conferencia',this)">Ag. conferência</div></div><div class="toolbar-filters"><select id="f-and-dias" class="toolbar-select" onchange="setAndDias(this.value)"><option value="">Dias restantes</option><option value="critico">Até 1 dia</option><option value="3">Até 3 dias</option><option value="5">Até 5 dias</option><option value="7">Até 7 dias</option><option value="8+">Mais de 7 dias</option><option value="vencido">Vencidas</option></select><select id="f-and-acao" class="toolbar-select" onchange="setAndAcao(this.value)"><option value="">Próxima ação</option><option value="vistoria">Realizar vistoria</option><option value="preenchimento">A preencher</option><option value="avaliacao">Realizar avaliação</option><option value="conferencia">Sua conferência</option><option value="finalizacao">Emitir laudo</option></select></div></div><div class="tw"><table><thead><tr><th onclick="srtSub('and','prioridade')" style="width:42px;text-align:center;" title="Prioridade">⭐</th><th onclick="srtSub('and','empresa')">Empresa</th><th onclick="srtSub('and','tipoServico')">Tipo</th><th onclick="srtSub('and','numeroOS')">Referência OS</th><th onclick="srtSub('and','cliente')">Cliente</th><th onclick="srtSub('and','cidade')">Cidade</th><th onclick="srtSub('and','prazoFatal')" class="sort-asc">Prazo Fatal ↕</th><th onclick="srtSub('and','dias')">Dias Rest.</th><th onclick="srtSub('and','proximaAcao')">Próxima ação ↕</th><th onclick="srtSub('and','analiseTexto')" style="min-width:180px;">Análise</th><th onclick="srtSub('and','responsavel')" style="min-width:118px;">Responsável</th><th onclick="srtSub('and','valor')" class="admin-only valor-col">Valor</th><th></th></tr></thead><tbody id="tb-and"></tbody></table></div></div>
+<div class="page" id="page-documentacao">
+  <div class="doc-resumo" id="doc-resumo"></div>
+  <div class="toolbar">
+    <div class="srch"><span style="color:var(--tx3)">🔍</span><input type="text" id="s-doc" placeholder="Buscar OS, cliente, cidade..." oninput="renderDocumentacao()"></div>
+    <div class="chips" id="chips-doc">
+      <div class="chip on" onclick="setChipDoc('pendentes',this)">⚠ A analisar</div>
+      <div class="chip" onclick="setChipDoc('all',this)">Todas</div>
+      <div class="chip" onclick="setChipDoc('completas',this)">✓ Concluídas</div>
+    </div>
+    <div class="toolbar-filters">
+      <select id="f-doc-tipo" class="toolbar-select" onchange="renderDocumentacao()">
+        <option value="">B-437 e B-438</option>
+        <option value="B-438">Só B-438</option>
+        <option value="B-437">Só B-437</option>
+      </select>
+      <select id="f-doc-item" class="toolbar-select" onchange="renderDocumentacao()">
+        <option value="">Qualquer pendência</option>
+        <option value="matricula">Falta a Matrícula</option>
+        <option value="art">Falta a ART/RRT</option>
+        <option value="pci">Falta a PCI</option>
+        <option value="projeto">Falta o Projeto</option>
+        <option value="alvara">Falta o Alvará</option>
+      </select>
+      <select id="f-doc-ord" class="toolbar-select" onchange="renderDocumentacao()">
+        <option value="espera">Ordenar: mais tempo esperando</option>
+        <option value="prazo">Ordenar: prazo mais apertado</option>
+        <option value="falta">Ordenar: mais documentos faltando</option>
+      </select>
+    </div>
+  </div>
+  <div class="tw"><table><thead><tr>
+    <th style="width:40px;text-align:center;" title="Tempo esperando análise">⏱</th>
+    <th>Empresa</th><th>Tipo</th><th>Referência OS</th><th>Cliente</th>
+    <th>Prazo Fatal</th><th>Dias Rest.</th>
+    <th style="min-width:330px;">Documentos analisados</th>
+    <th style="min-width:190px;">Observações</th>
+    <th></th>
+  </tr></thead><tbody id="tb-doc"></tbody></table></div>
+</div>
+
 <div class="page" id="page-kanban">
   <div class="toolbar">
     <div class="srch"><span style="color:var(--tx3)">🔍</span><input type="text" id="s-kb" placeholder="Buscar OS, cliente, cidade..." oninput="renderKanban()"></div>
@@ -2858,7 +2960,7 @@ const EMPRESAS_LIST = ['L&L Engenharia','Caldeira Engenharia','ATX Avaliações'
 const PAGE_TITLES = {
   dashboard:'Dashboard','lista':'Todas as OS','preenchidas':'OS Preenchidas',
   'vistoriadas':'OS Vistoriadas','sem-ficha':'Fichas de Pesquisa',
-  andamento:'Em Andamento',kanban:'Kanban — OS em Andamento','vencendo':'Próximo do vencimento','finalizadas':'Finalizadas',
+  andamento:'Em Andamento',kanban:'Kanban — OS em Andamento',documentacao:'Documentação — B-437 e B-438','vencendo':'Próximo do vencimento','finalizadas':'Finalizadas',
   financeiro:'Dashboard Financeiro','faturas':'Gerar Fatura','exportar-art':'Exportar para ART','comissao-paulo':'Comissionamento — Paulo',
   roteiro:'Roteirização de Vistorias',
   lixeira:'Lixeira (recuperáveis por 30 dias)',
@@ -3004,6 +3106,219 @@ const ANALISE_OPCOES = ['Matrícula sem averbação','PCI Errada','ART Errada','
 
 // Tipos de OS que exigem conferência de análise (checkbox "analisada")
 const TIPOS_ANALISE_OBRIG = ['B-438','B-437'];
+
+// ══════════════════════════════════════
+// DOCUMENTAÇÃO — checklist das B-437 / B-438
+// ══════════════════════════════════════
+const DOC_ITENS = [
+  {id:'matricula', curto:'Matrícula', nome:'Matrícula do imóvel'},
+  {id:'art',       curto:'ART/RRT',   nome:'ART ou RRT do responsável técnico'},
+  {id:'pci',       curto:'PCI',       nome:'Planilha de Composição de Investimento'},
+  {id:'projeto',   curto:'Projeto',   nome:'Projeto arquitetônico'},
+  {id:'alvara',    curto:'Alvará',    nome:'Alvará de construção'}
+];
+
+// Lê o checklist da OS. Compatível com o que já existia: se a OS foi marcada
+// como "analisada" antes desta aba existir, considera tudo conferido.
+function getDocs(os) {
+  const d = os.docs && typeof os.docs === 'object' ? os.docs : null;
+  const todos = {};
+  DOC_ITENS.forEach(i => todos[i.id] = d ? !!d[i.id] : !!os.analisada);
+  return todos;
+}
+function docsFeitos(os){ const d=getDocs(os); return DOC_ITENS.filter(i=>d[i.id]).length; }
+function docsCompleto(os){ return docsFeitos(os) === DOC_ITENS.length; }
+
+// OS que entram nesta aba: B-437/B-438 ainda em aberto
+function ehDocOS(os){ return exigeAnalise(os) && isAberto(os); }
+function docsPendentes(){ return DB.filter(os => ehDocOS(os) && !docsCompleto(os)); }
+
+// Há quantos dias essa OS está esperando análise
+function diasEsperando(os) {
+  const base = os.dataAbertura || os.criadoEm;
+  if(!base) return 0;
+  const d = parseDt(base.includes('T') ? base.split('T')[0] : base);
+  if(!d) return 0;
+  const hoje = new Date(); hoje.setHours(12,0,0,0);
+  return Math.max(0, Math.round((hoje - d)/86400000));
+}
+function nivelEspera(dias){ return dias >= 10 ? 3 : dias >= 7 ? 2 : dias >= 3 ? 1 : 0; }
+
+// Marca/desmarca um documento
+async function toggleDoc(e, id, item) {
+  if(e) e.stopPropagation();
+  const os = DB.find(o=>o.id===id); if(!os) return;
+  const atual = getDocs(os);
+  const antes = os.docs ? {...os.docs} : undefined;
+  const antesAnalisada = os.analisada;
+
+  atual[item] = !atual[item];
+  os.docs = atual;
+  // Mantém a caixinha da aba Em Andamento em sintonia com o checklist
+  os.analisada = DOC_ITENS.every(i => atual[i.id]);
+  if(os.analisada && !os.analisadaEm) os.analisadaEm = new Date().toISOString();
+
+  renderDocumentacao();
+  try {
+    await fbSave(os);
+    updateBadges();
+  } catch(err) {
+    console.error('Erro ao salvar o checklist:', err);
+    os.docs = antes; os.analisada = antesAnalisada;
+    renderDocumentacao();
+  }
+}
+
+// Marca todos de uma vez
+async function marcarTodosDocs(e, id) {
+  if(e) e.stopPropagation();
+  const os = DB.find(o=>o.id===id); if(!os) return;
+  const completo = docsCompleto(os);
+  const antes = os.docs ? {...os.docs} : undefined;
+  const antesAnalisada = os.analisada;
+  const novo = {};
+  DOC_ITENS.forEach(i => novo[i.id] = !completo);
+  os.docs = novo;
+  os.analisada = !completo;
+  if(os.analisada && !os.analisadaEm) os.analisadaEm = new Date().toISOString();
+  renderDocumentacao();
+  try { await fbSave(os); updateBadges(); }
+  catch(err){ console.error(err); os.docs=antes; os.analisada=antesAnalisada; renderDocumentacao(); }
+}
+
+let filtroDoc = 'pendentes';
+function setChipDoc(v, el) {
+  filtroDoc = v;
+  document.querySelectorAll('#chips-doc .chip').forEach(c=>c.classList.remove('on'));
+  if(el) el.classList.add('on');
+  renderDocumentacao();
+}
+
+function docChips(os) {
+  const d = getDocs(os);
+  const feitos = DOC_ITENS.filter(i=>d[i.id]).length;
+  const chips = DOC_ITENS.map(i => `
+    <span class="doc-chip${d[i.id]?' ok':''}" title="${i.nome}"
+      onclick="toggleDoc(event,'${os.id}','${i.id}')">
+      <span class="mk">${d[i.id]?'✓':''}</span>${i.curto}
+    </span>`).join('');
+  const completo = feitos === DOC_ITENS.length;
+  return `<div class="docs-set" onclick="event.stopPropagation()">
+    ${chips}
+    <span class="doc-prog${completo?' full':''}" title="${completo?'Documentação conferida':'Ainda faltam documentos'}"
+      onclick="marcarTodosDocs(event,'${os.id}')" style="cursor:pointer;"
+      >${feitos}/${DOC_ITENS.length}</span>
+  </div>`;
+}
+
+// Bloco de alerta no Dashboard
+function renderAlertaDocumentacao() {
+  const el = document.getElementById('doc-alerta');
+  if(!el) return;
+  const pend = docsPendentes().sort((a,b)=>diasEsperando(b)-diasEsperando(a));
+  const criticas = pend.filter(o=>nivelEspera(diasEsperando(o))>=3).length;
+
+  if(!pend.length){
+    el.classList.add('ok');
+    el.innerHTML = `
+      <div class="da-ic">✅</div>
+      <div>
+        <div class="da-l">Documentação B-437 / B-438</div>
+        <div class="da-v">0</div>
+        <div class="da-sub">tudo analisado — nenhuma OS esperando conferência</div>
+      </div>`;
+    return;
+  }
+
+  el.classList.remove('ok');
+  const topo = pend.slice(0,3).map(os=>{
+    const esp = diasEsperando(os);
+    const falta = DOC_ITENS.length - docsFeitos(os);
+    return `<div class="da-item">
+      <b>${escAttr(os.empresa||'—')} · ${escAttr(os.tipoServico||'')}</b>
+      <span>${esp}d esperando · faltam ${falta} doc${falta>1?'s':''}</span>
+    </div>`;
+  }).join('');
+
+  el.innerHTML = `
+    <div class="da-ic">📑</div>
+    <div>
+      <div class="da-l">Documentação a analisar</div>
+      <div class="da-v">${pend.length}</div>
+      <div class="da-sub">${criticas ? `<b style="color:var(--red);">${criticas} parada(s) há 10 dias ou mais</b> · clique para abrir` : 'B-437 e B-438 aguardando conferência · clique para abrir'}</div>
+    </div>
+    <div class="da-lista">${topo}</div>`;
+}
+
+function renderDocumentacao() {
+  const tb = document.getElementById('tb-doc');
+  if(!tb) return;
+
+  let d = DB.filter(ehDocOS);
+  const q = (document.getElementById('s-doc')?.value||'').toLowerCase().trim();
+  const fTipo = document.getElementById('f-doc-tipo')?.value || '';
+  const fItem = document.getElementById('f-doc-item')?.value || '';
+  const fOrd  = document.getElementById('f-doc-ord')?.value || 'espera';
+
+  // Resumo do topo — sempre sobre o conjunto todo, antes dos filtros
+  const todas = DB.filter(ehDocOS);
+  const pend  = todas.filter(o=>!docsCompleto(o));
+  const criticas = pend.filter(o=>nivelEspera(diasEsperando(o))>=3).length;
+  const naoIniciadas = pend.filter(o=>docsFeitos(o)===0).length;
+  const resumo = document.getElementById('doc-resumo');
+  if(resumo) resumo.innerHTML = `
+    <div class="dr" style="--dc:var(--red)"><span class="dr-ic">⏳</span><div><div class="dr-v">${pend.length}</div><div class="dr-l">Esperando análise</div></div></div>
+    <div class="dr" style="--dc:#b45309"><span class="dr-ic">🚨</span><div><div class="dr-v">${criticas}</div><div class="dr-l">Paradas há 10 dias ou mais</div></div></div>
+    <div class="dr" style="--dc:var(--tx3)"><span class="dr-ic">📭</span><div><div class="dr-v">${naoIniciadas}</div><div class="dr-l">Nem começadas</div></div></div>
+    <div class="dr" style="--dc:var(--grn)"><span class="dr-ic">✅</span><div><div class="dr-v">${todas.length-pend.length}</div><div class="dr-l">Documentação conferida</div></div></div>`;
+
+  if(filtroDoc === 'pendentes') d = d.filter(o=>!docsCompleto(o));
+  else if(filtroDoc === 'completas') d = d.filter(docsCompleto);
+  if(fTipo) d = d.filter(o=>String(o.tipoServico||'').trim()===fTipo);
+  if(fItem) d = d.filter(o=>!getDocs(o)[fItem]);
+  if(q) d = d.filter(o=>[o.empresa,o.numeroOS,o.cliente,o.cidade,o.analiseTexto,o.responsavel]
+      .some(v=>(v||'').toLowerCase().includes(q)));
+
+  if(fOrd === 'prazo') d.sort((a,b)=>(diasAte(a.prazoFatal)??99999)-(diasAte(b.prazoFatal)??99999));
+  else if(fOrd === 'falta') d.sort((a,b)=>docsFeitos(a)-docsFeitos(b) || diasEsperando(b)-diasEsperando(a));
+  else d.sort((a,b)=>diasEsperando(b)-diasEsperando(a));
+
+  if(!d.length){
+    tb.innerHTML = emptyRow(10, true, '✅',
+      filtroDoc==='pendentes' ? 'Nenhuma documentação esperando análise' : 'Nenhuma OS com esse filtro');
+    return;
+  }
+
+  tb.innerHTML = d.map(os=>{
+    const dias = diasAte(os.prazoFatal);
+    const esp = diasEsperando(os);
+    const nv = nivelEspera(esp);
+    const completo = docsCompleto(os);
+    const cls = completo ? 'doc-ok' : (nv>=3 ? 'doc-critico' : nv>=2 ? 'doc-atencao' : '');
+    const obs = os.analiseTexto || '';
+    return `<tr class="${cls}">
+      <td style="text-align:center;">
+        <span class="esp esp-${completo?0:nv}" title="${esp} dia(s) desde a abertura da OS">
+          <span class="n">${esp}</span><span class="u">d</span>
+        </span>
+      </td>
+      <td style="font-weight:600;">${escAttr(os.empresa||'—')}</td>
+      <td>${tipoBadge(os.tipoServico)}</td>
+      <td><div class="mono el" title="${escAttr(os.numeroOS)}">${escAttr(os.numeroOS||'—')}</div></td>
+      <td>${escAttr(os.cliente||'—')}</td>
+      <td>${fmtDate(os.prazoFatal)}</td>
+      <td>${dias!==null?diasBadge(dias):'—'}</td>
+      <td>${docChips(os)}</td>
+      <td onclick="event.stopPropagation()">
+        <textarea class="doc-obs${obs?' tem':''}" rows="2" placeholder="Observações da análise…"
+          title="${escAttr(obs)}"
+          onchange="setAnaliseTexto(event,'${os.id}',this.value)"
+          onblur="setAnaliseTexto(event,'${os.id}',this.value)">${escAttr(obs)}</textarea>
+      </td>
+      <td><button class="btn btn-primary btn-xs" onclick="abrirDetalhe('${os.id}')">Abrir</button></td>
+    </tr>`;
+  }).join('');
+}
 function exigeAnalise(os) {
   return TIPOS_ANALISE_OBRIG.includes(String(os.tipoServico||'').trim());
 }
@@ -3149,7 +3464,12 @@ async function setAnalisada(e, id, marcado) {
   if(e) e.stopPropagation();
   const os = DB.find(o=>o.id===id); if(!os) return;
   const anterior = !!os.analisada;
+  const antesDocs = os.docs ? {...os.docs} : undefined;
   os.analisada = !!marcado;
+  // Espelha no checklist da aba Documentação
+  const novo = {};
+  DOC_ITENS.forEach(i => novo[i.id] = !!marcado);
+  os.docs = novo;
   if(os.analisada) os.analisadaEm = new Date().toISOString();
   try {
     await fbSave(os);
@@ -3158,6 +3478,7 @@ async function setAnalisada(e, id, marcado) {
   } catch(err) {
     console.error('Erro ao salvar checkbox de análise:', err);
     os.analisada = anterior;
+    os.docs = antesDocs;
     renderSimple('andamento');
   }
 }
@@ -3572,6 +3893,7 @@ function renderPage(id) {
   else if(id==='sem-ficha')   renderSemFicha();
   else if(id==='andamento') renderSimple('andamento');
   else if(id==='kanban') renderKanban();
+  else if(id==='documentacao') renderDocumentacao();
   else if(id==='vencendo') renderSimple('vencendo');
   else if(id==='finalizadas') renderSimple('finalizadas');
   else if(id==='financeiro') renderFinanceiro();
@@ -3701,9 +4023,10 @@ function updateBadges() {
 
   const vencidas = DB.filter(os=>isAberto(os)&&diasAte(os.prazoFatal)!==null&&diasAte(os.prazoFatal)<0).length;
   const lixCount = (window.LIX_DB||[]).length;
+  const docPend = docsPendentes();
 
   [['nb-total',total],['nb-preen',preen],['nb-vist',vist],['nb-ficha',semFicha],
-   ['nb-and',abertos.length],['nb-kb',abertos.length],['nb-venc',venc],['nb-fin',fin],['nb-lix',lixCount]].forEach(([id,v])=>{
+   ['nb-and',abertos.length],['nb-kb',abertos.length],['nb-doc',docPend.length],['nb-venc',venc],['nb-fin',fin],['nb-lix',lixCount]].forEach(([id,v])=>{
     const el=document.getElementById(id); if(el) el.textContent=v;
   });
 
@@ -3712,6 +4035,15 @@ function updateBadges() {
   if(elV){
     const critico = DB.filter(os=>isAberto(os)&&diasAte(os.prazoFatal)!==null&&diasAte(os.prazoFatal)<=1).length;
     elV.classList.toggle('blink-cnt', critico>0);
+  }
+
+  // Piscar o contador de Documentação quando houver OS parada há muito tempo
+  const elD = document.getElementById('nb-doc');
+  if(elD){
+    const paradas = docPend.filter(os=>nivelEspera(diasEsperando(os))>=2).length;
+    elD.classList.toggle('blink-cnt', paradas>0);
+    elD.style.display = docPend.length ? '' : 'none';
+    elD.title = paradas ? `${paradas} parada(s) há 7 dias ou mais` : '';
   }
 
   // Título da aba: alerta com contagem de vencidas + a vencer hoje
@@ -4251,6 +4583,7 @@ function _renderHeatTicker(pontos, totalOS) {
 }
 
 function renderDash() {
+  try { renderAlertaDocumentacao(); } catch(e){ console.error(e); }
   const dados = getDadosFiltrados();
   const periodoLabel = dashConsolidado ? 'Consolidado · todos os anos'
     : (dashAno && dashMes!==null) ? `${MESES_ABR[dashMes]}/${dashAno}`
@@ -4557,7 +4890,7 @@ function renderDash() {
 
     // mini barras (mantidas para compatibilidade)
     const valMes = Array(12).fill(0);
-    const anoAtual = _anoAtual;
+    const anoAtual = _now.getFullYear();
     const anoRefMini = dashAno ? parseInt(dashAno) : anoAtual;
     dados.forEach(os=>{
       const {mIdx, ano} = getMesRecebimento(os);
