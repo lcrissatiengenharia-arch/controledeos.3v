@@ -1104,6 +1104,7 @@ tr.doc-ok{opacity:.72;}
 
     <div class="sb-sec admin-only">Financeiro</div>
     <button class="ni" id="btn-comissao-paulo" data-page="comissao-paulo" onclick="go('comissao-paulo')" style="display:none;"><span class="ic">💵</span><span class="lbl" id="btn-comissao-lbl">Comissão — Paulo</span></button>
+    <button class="ni" id="btn-remuneracao-julia" data-page="remuneracao-julia" onclick="go('remuneracao-julia')" style="display:none;"><span class="ic">✍️</span><span class="lbl" id="btn-julia-lbl">Remuneração — Júlia</span></button>
     <button class="ni admin-only" data-page="financeiro" onclick="go('financeiro')"><span class="ic">💰</span><span class="lbl">Dashboard Financeiro</span></button>
     <button class="ni admin-only" data-page="faturas" onclick="go('faturas')"><span class="ic">🧾</span><span class="lbl">Gerar Fatura</span></button>
     <button class="ni admin-only" data-page="exportar-art" onclick="go('exportar-art')"><span class="ic">📋</span><span class="lbl">Exportar para ART</span></button>
@@ -1120,6 +1121,16 @@ tr.doc-ok{opacity:.72;}
       <div style="font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.8px;color:rgba(255,255,255,.6);margin-bottom:6px;" id="cw-label">💵 Comissão — Paulo</div>
       <div style="font-size:22px;font-weight:900;color:#4ade80;line-height:1;" id="cw-total">R$ 0,00</div>
       <div style="font-size:10px;color:rgba(255,255,255,.65);margin-top:4px;" id="cw-sub">0 OS · mês atual</div>
+    </div>
+    <!-- Widget remuneração Júlia — Júlia e admin -->
+    <div id="julia-widget" style="display:none;margin-bottom:12px;background:linear-gradient(135deg,#4a1d5c,#86198f);border-radius:10px;padding:12px 14px;cursor:pointer;" onclick="go('remuneracao-julia')" title="Ver detalhes">
+      <div style="font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.8px;color:rgba(255,255,255,.62);margin-bottom:6px;" id="jw-label">✍️ Remuneração — Júlia</div>
+      <div style="font-size:22px;font-weight:900;color:#f0abfc;line-height:1;" id="jw-total">R$ 0,00</div>
+      <div style="font-size:10px;color:rgba(255,255,255,.65);margin-top:4px;" id="jw-sub">0 preenchidas · mês atual</div>
+      <div style="height:5px;border-radius:999px;background:rgba(255,255,255,.16);overflow:hidden;margin-top:8px;">
+        <div id="jw-barra" style="height:100%;width:0%;background:#fbbf24;border-radius:999px;transition:width .8s cubic-bezier(.34,1.3,.64,1);"></div>
+      </div>
+      <div style="font-size:9.5px;color:rgba(255,255,255,.6);margin-top:5px;" id="jw-meta">faltam 20 para a meta</div>
     </div>
     <div id="user-badge-wrap" style="margin-bottom:10px;"></div>
     <div class="conn"><div class="conn-dot" id="cdot"></div><span class="conn-lbl" id="clbl">Conectando...</span></div>
@@ -1427,6 +1438,48 @@ tr.doc-ok{opacity:.72;}
     </div>
   </div>
 
+</div>
+
+<!-- ═══ REMUNERAÇÃO JÚLIA ═══ -->
+<div class="page" id="page-remuneracao-julia">
+  <div style="max-width:900px;margin:0 auto;">
+    <div style="display:flex;align-items:center;gap:12px;margin-bottom:20px;">
+      <div style="width:44px;height:44px;border-radius:50%;background:linear-gradient(135deg,#86198f,#c026d3);display:flex;align-items:center;justify-content:center;font-size:20px;">✍️</div>
+      <div style="flex:1;">
+        <div style="font-size:18px;font-weight:800;color:var(--tx);" id="rj-titulo">Remuneração</div>
+        <div style="font-size:12px;color:var(--tx3);" id="rj-subtitulo">OS preenchidas no período</div>
+      </div>
+      <select id="rj-mes-sel" onchange="renderRemuneracaoJulia()" style="padding:7px 12px;font-size:12px;background:var(--bg2);border:1px solid var(--br);border-radius:var(--rs);color:var(--tx);">
+        <option value="0">Mês atual</option>
+        <option value="1">Mês anterior</option>
+        <option value="2">2 meses atrás</option>
+        <option value="3">3 meses atrás</option>
+        <option value="all">Todos os períodos</option>
+      </select>
+    </div>
+
+    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-bottom:18px;" id="rj-kpis"></div>
+
+    <div class="card" style="margin-bottom:18px;">
+      <div class="card-hd"><h3>🎯 Progresso da meta</h3></div>
+      <div id="rj-progresso"></div>
+    </div>
+
+    <div class="card">
+      <div class="card-hd"><h3>✍️ OS preenchidas no período</h3></div>
+      <div class="tw"><table><thead><tr>
+        <th style="width:40px;">#</th><th>Empresa</th><th>Tipo</th><th>Referência OS</th>
+        <th>Cliente</th><th>Preenchida em</th><th style="text-align:right;">Comissão</th>
+      </tr></thead><tbody id="rj-tabela"></tbody></table></div>
+    </div>
+
+    <div style="font-size:11.5px;color:var(--tx3);margin-top:14px;line-height:1.6;padding:12px 14px;background:var(--bg3);border-radius:var(--rxs);border:1px solid var(--br);">
+      <b style="color:var(--tx2);">Como a conta funciona:</b> base fixa de R$ 500,00 por mês.
+      Ao atingir 20 OS preenchidas no mês, passa a valer R$ 5,00 por preenchimento sobre
+      <b>todas</b> as OS do mês — 19 OS pagam R$ 500,00; 20 OS pagam R$ 600,00; 50 OS pagam R$ 750,00.
+      Conta apenas OS com a Júlia como responsável e status “Preenchido”, em qualquer tipo de serviço.
+    </div>
+  </div>
 </div>
 
 <!-- ═══ COMISSIONAMENTO PAULO ═══ -->
@@ -2961,7 +3014,7 @@ const PAGE_TITLES = {
   dashboard:'Dashboard','lista':'Todas as OS','preenchidas':'OS Preenchidas',
   'vistoriadas':'OS Vistoriadas','sem-ficha':'Fichas de Pesquisa',
   andamento:'Em Andamento',kanban:'Kanban — OS em Andamento',documentacao:'Documentação — B-437 e B-438','vencendo':'Próximo do vencimento','finalizadas':'Finalizadas',
-  financeiro:'Dashboard Financeiro','faturas':'Gerar Fatura','exportar-art':'Exportar para ART','comissao-paulo':'Comissionamento — Paulo',
+  financeiro:'Dashboard Financeiro','faturas':'Gerar Fatura','exportar-art':'Exportar para ART','comissao-paulo':'Comissionamento — Paulo','remuneracao-julia':'Remuneração — Júlia',
   roteiro:'Roteirização de Vistorias',
   lixeira:'Lixeira (recuperáveis por 30 dias)',
   chat:'Chat da Equipe',
@@ -3525,6 +3578,7 @@ function aplicarEtapa(os, etapa) {
   } else if(naoPreenchido.includes(os.preenchimento) || !os.preenchimento) {
     os.preenchimento = 'Preenchido';
   }
+  carimbarPreenchimento(os);
 
   if(i <= 2) {
     if(['Avaliação Pronta','Sem necessidade'].includes(os.avaliacao)) os.avaliacao = 'Avaliação não iniciada';
@@ -3900,6 +3954,7 @@ function renderPage(id) {
   else if(id==='faturas') renderFaturas();
   else if(id==='exportar-art') renderExportarART();
   else if(id==='comissao-paulo') renderComissaoPaulo();
+  else if(id==='remuneracao-julia') renderRemuneracaoJulia();
   else if(id==='roteiro') renderRoteiro();
   else if(id==='lixeira') renderLixeira();
   else if(id==='dash-tendencia') renderDashTendencia();
@@ -3927,6 +3982,7 @@ function _refreshAll_impl() {
   updateBadges();
   try { migrarRespInativos(); } catch(e){ console.error(e); }
   if(typeof atualizarWidgetComissao === 'function') atualizarWidgetComissao();
+  if(typeof atualizarWidgetJulia === 'function') atualizarWidgetJulia();
   const pid = document.querySelector('.page.active')?.id?.replace('page-','');
   if(!pid) return;
   // Não re-renderiza enquanto o usuário está digitando dentro de uma linha da tabela
@@ -5604,6 +5660,7 @@ async function salvarStatus() {
   os.vistoria=document.getElementById('ed-vistoria').value;
   os.avaliacao=document.getElementById('ed-avaliacao').value;
   os.preenchimento=document.getElementById('ed-preenchi').value;
+  carimbarPreenchimento(os);
   os.conferencia=document.getElementById('ed-confer').value;
   os.finalizacao=document.getElementById('ed-final').value;
   os.fichas=document.getElementById('ed-fichas').value;
@@ -6846,6 +6903,18 @@ function isPauloUser() {
   if(!USUARIO_ATUAL) return false;
   return (USUARIO_ATUAL.email||'').toLowerCase().trim() === 'paauloccp@gmail.com';
 }
+
+// ── Júlia: base fixa + comissão por preenchimento ──
+// ⚠️ Coloque aqui o e-mail que a Júlia usa para entrar no sistema.
+//    Enquanto estiver vazio, o sistema a identifica pelo nome do perfil.
+const EMAIL_JULIA = '';
+function isJuliaUser() {
+  if(!USUARIO_ATUAL) return false;
+  const mail = (USUARIO_ATUAL.email||'').toLowerCase().trim();
+  if(EMAIL_JULIA) return mail === EMAIL_JULIA.toLowerCase().trim();
+  const nome = (USUARIO_ATUAL.nome||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().trim();
+  return nome.startsWith('julia');
+}
 function isAdminUser() {
   return (USUARIO_ATUAL?.email||'').toLowerCase().trim() === 'lcrissatiengenharia@gmail.com';
 }
@@ -6869,6 +6938,16 @@ function aplicarPerfil() {
     if(widget) widget.style.setProperty('display', show ? 'block' : 'none', 'important');
     if(btn)    btn.style.setProperty('display',    show ? 'flex'  : 'none', 'important');
     if(lbl)    lbl.textContent = isPauloUser() && !isAdmin() ? 'Meu Comissionamento' : 'Comissão — Paulo';
+
+    // Widget e botão da Júlia — Júlia e Admin
+    const jw   = document.getElementById('julia-widget');
+    const jbtn = document.getElementById('btn-remuneracao-julia');
+    const jlbl = document.getElementById('btn-julia-lbl');
+    const jshow = isJuliaUser() || isAdmin();
+    if(jw)   jw.style.setProperty('display',   jshow ? 'block' : 'none', 'important');
+    if(jbtn) jbtn.style.setProperty('display', jshow ? 'flex'  : 'none', 'important');
+    if(jlbl) jlbl.textContent = isJuliaUser() && !isAdmin() ? 'Minha Remuneração' : 'Remuneração — Júlia';
+    if(typeof atualizarWidgetJulia === 'function') atualizarWidgetJulia();
   }, 0);
 
   // Badge do usuário na sidebar
@@ -9620,6 +9699,147 @@ window.logout = async function() {
   _presencaUnsub = null;
   if(_origLogout) await _origLogout();
 };
+
+// ══════════════════════════════════════
+// REMUNERAÇÃO — JÚLIA
+// ══════════════════════════════════════
+// Base fixa mensal + comissão por preenchimento a partir da meta.
+// Ao atingir a meta, os R$ 5,00 valem para TODAS as OS do mês (degrau):
+//   19 OS → R$ 500,00   ·   20 OS → 500 + 20×5 = R$ 600,00   ·   50 OS → R$ 750,00
+const JULIA_NOME      = 'Júlia';
+const JULIA_BASE_FIXA = 500;
+const JULIA_META_OS   = 20;
+const JULIA_VALOR_OS  = 5;
+
+// Carimba quando o preenchimento é concluído (define o mês da comissão)
+function carimbarPreenchimento(os) {
+  if(!os) return;
+  if(os.preenchimento === 'Preenchido') {
+    if(!os.preenchidoEm) os.preenchidoEm = new Date().toISOString();
+  } else if(os.preenchidoEm) {
+    delete os.preenchidoEm;   // voltou atrás: deixa de contar
+  }
+}
+
+// Data que define em que mês a OS entra na conta.
+// Sem carimbo (OS preenchidas antes desta versão), usa a abertura.
+function dataPreenchimento(os) {
+  const iso = os.preenchidoEm || os.dataAbertura || os.criadoEm;
+  if(!iso) return null;
+  const d = new Date(iso.includes('T') ? iso : iso + 'T12:00:00');
+  return isNaN(d) ? null : d;
+}
+
+function osPreenchidasJulia(ano, mes) {
+  return DB.filter(os => {
+    if((os.responsavel||'') !== JULIA_NOME) return false;
+    if(os.preenchimento !== 'Preenchido') return false;
+    if(ano === null) return true;
+    const d = dataPreenchimento(os);
+    return d && d.getFullYear() === ano && d.getMonth() === mes;
+  });
+}
+
+function calcRemuneracaoJulia(ano, mes) {
+  const itens = osPreenchidasJulia(ano, mes);
+  const qtd = itens.length;
+  const atingiu = qtd >= JULIA_META_OS;
+  const variavel = atingiu ? qtd * JULIA_VALOR_OS : 0;
+  return { itens, qtd, atingiu, base: JULIA_BASE_FIXA, variavel,
+    total: JULIA_BASE_FIXA + variavel,
+    faltam: Math.max(0, JULIA_META_OS - qtd),
+    proximoPatamar: JULIA_BASE_FIXA + JULIA_META_OS * JULIA_VALOR_OS };
+}
+
+function atualizarWidgetJulia() {
+  const widget = document.getElementById('julia-widget');
+  if(!widget) return;
+  const show = isJuliaUser() || isAdmin();
+  if(!show) { widget.style.setProperty('display','none','important'); return; }
+  widget.style.setProperty('display','block','important');
+
+  const now = new Date();
+  const r = calcRemuneracaoJulia(now.getFullYear(), now.getMonth());
+  const el = id => document.getElementById(id);
+
+  if(el('jw-label')) el('jw-label').textContent =
+    (isAdmin() && !isJuliaUser()) ? '✍️ Remuneração — Júlia' : '✍️ Minha Remuneração';
+  if(el('jw-total')) el('jw-total').textContent = fmtVal(r.total);
+  if(el('jw-sub')) el('jw-sub').textContent =
+    r.qtd + ' preenchida' + (r.qtd===1?'':'s') + ' · ' + now.toLocaleDateString('pt-BR',{month:'short',year:'2-digit'});
+
+  const pct = Math.min(100, Math.round(r.qtd / JULIA_META_OS * 100));
+  const barra = el('jw-barra');
+  if(barra) { barra.style.width = pct + '%'; barra.style.background = r.atingiu ? '#4ade80' : '#fbbf24'; }
+  const meta = el('jw-meta');
+  if(meta) meta.textContent = r.atingiu
+    ? 'meta batida · +' + fmtVal(r.variavel)
+    : 'faltam ' + r.faltam + ' para a meta de ' + JULIA_META_OS;
+}
+
+function renderRemuneracaoJulia() {
+  const now = new Date();
+  const sel = document.getElementById('rj-mes-sel');
+  const offset = sel ? sel.value : '0';
+  let ano = null, mes = null, rotulo = 'Todos os períodos';
+  if(offset !== 'all') {
+    const alvo = new Date(now.getFullYear(), now.getMonth() - (parseInt(offset)||0), 1);
+    ano = alvo.getFullYear(); mes = alvo.getMonth();
+    rotulo = alvo.toLocaleDateString('pt-BR',{month:'long',year:'numeric'});
+  }
+  const r = calcRemuneracaoJulia(ano, mes);
+  const el = id => document.getElementById(id);
+
+  if(el('rj-titulo')) el('rj-titulo').textContent =
+    (isAdmin() && !isJuliaUser()) ? 'Remuneração — Júlia' : 'Minha Remuneração';
+  if(el('rj-subtitulo')) el('rj-subtitulo').textContent = rotulo;
+
+  const pct = Math.min(100, Math.round(r.qtd / JULIA_META_OS * 100));
+  if(el('rj-kpis')) el('rj-kpis').innerHTML =
+    '<div class="stat" style="--sc:var(--grn)"><div class="stat-ic">💰</div><div class="stat-lbl">Total do mês</div>' +
+      '<div class="stat-val" style="font-size:22px;">' + fmtVal(r.total) + '</div>' +
+      '<div class="stat-sub">' + fmtVal(r.base) + ' fixo' + (r.variavel ? ' + ' + fmtVal(r.variavel) + ' variável' : '') + '</div></div>' +
+    '<div class="stat" style="--sc:var(--acc)"><div class="stat-ic">✍️</div><div class="stat-lbl">OS preenchidas</div>' +
+      '<div class="stat-val">' + r.qtd + '</div><div class="stat-sub">meta: ' + JULIA_META_OS + ' OS</div></div>' +
+    '<div class="stat" style="--sc:' + (r.atingiu?'var(--grn)':'var(--org)') + '"><div class="stat-ic">' + (r.atingiu?'🎯':'⏳') + '</div>' +
+      '<div class="stat-lbl">' + (r.atingiu?'Comissão ativa':'Falta para a meta') + '</div>' +
+      '<div class="stat-val" style="font-size:' + (r.atingiu?'22px':'28px') + ';">' + (r.atingiu?fmtVal(r.variavel):r.faltam) + '</div>' +
+      '<div class="stat-sub">' + (r.atingiu ? fmtVal(JULIA_VALOR_OS) + ' × ' + r.qtd + ' OS'
+        : 'ao bater ' + JULIA_META_OS + ', o mês vai a ' + fmtVal(r.proximoPatamar)) + '</div></div>';
+
+  const prog = el('rj-progresso');
+  if(prog) prog.innerHTML =
+    '<div style="display:flex;justify-content:space-between;font-size:11.5px;color:var(--tx3);margin-bottom:8px;">' +
+      '<span>' + r.qtd + ' de ' + JULIA_META_OS + ' preenchimentos</span>' +
+      '<span style="font-weight:700;color:' + (r.atingiu?'var(--grn)':'var(--org)') + ';">' + (r.atingiu?'meta batida ✓':pct+'%') + '</span></div>' +
+    '<div style="height:12px;border-radius:999px;background:var(--bg4);overflow:hidden;">' +
+      '<div style="height:100%;width:' + pct + '%;border-radius:999px;transition:width .8s cubic-bezier(.34,1.3,.64,1);background:' +
+      (r.atingiu?'linear-gradient(90deg,#16a34a,#4ade80)':'linear-gradient(90deg,#d97706,#fbbf24)') + ';"></div></div>' +
+    '<div style="font-size:11.5px;color:var(--tx2);margin-top:10px;line-height:1.5;">' +
+      (r.atingiu
+        ? 'Meta atingida. Com a vigésima OS, <b>todas</b> as ' + r.qtd + ' do mês passam a pagar ' + fmtVal(JULIA_VALOR_OS) + ' cada — ' + fmtVal(r.base) + ' + ' + fmtVal(r.variavel) + ' = <b>' + fmtVal(r.total) + '</b>.'
+        : 'Faltam <b>' + r.faltam + '</b> preenchimento' + (r.faltam===1?'':'s') + ' para destravar a comissão. Ao bater ' + JULIA_META_OS + ', o mês salta de ' + fmtVal(r.base) + ' para ' + fmtVal(r.proximoPatamar) + '.') +
+    '</div>';
+
+  const tb = el('rj-tabela');
+  if(tb) {
+    const lista = [...r.itens].sort((a,b)=>{
+      const da = dataPreenchimento(a), dbb = dataPreenchimento(b);
+      return (dbb?dbb.getTime():0) - (da?da.getTime():0);
+    });
+    tb.innerHTML = lista.length ? lista.map((os,i)=>
+      '<tr><td style="color:var(--tx3);width:40px;">' + (lista.length-i) + '</td>' +
+      '<td style="font-weight:600;">' + escAttr(os.empresa||'—') + '</td>' +
+      '<td>' + tipoBadge(os.tipoServico) + '</td>' +
+      '<td><div class="mono el" title="' + escAttr(os.numeroOS) + '">' + escAttr(os.numeroOS||'—') + '</div></td>' +
+      '<td>' + escAttr(os.cliente||'—') + '</td>' +
+      '<td>' + (()=>{const d=dataPreenchimento(os);return d?d.toLocaleDateString('pt-BR'):'—';})() +
+        (os.preenchidoEm?'':' <span style="font-size:9px;color:var(--tx4);" title="Preenchida antes do registro de data — usando a abertura da OS">(abertura)</span>') + '</td>' +
+      '<td style="text-align:right;font-weight:700;color:' + (r.atingiu?'var(--grn)':'var(--tx4)') + ';">' + (r.atingiu?fmtVal(JULIA_VALOR_OS):'—') + '</td></tr>'
+    ).join('')
+    : '<tr><td colspan="7" style="text-align:center;padding:40px;color:var(--tx3);font-size:12.5px;">Nenhuma OS preenchida neste período</td></tr>';
+  }
+}
 
 // ══════════════════════════════════════
 // COMISSIONAMENTO PAULO
