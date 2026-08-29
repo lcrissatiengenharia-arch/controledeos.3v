@@ -6705,6 +6705,23 @@ window.criarUsuario           = criarUsuario;
 window.normalizeEmpresa = function normalizeEmpresa(nome) {
   if(!nome) return nome;
   const n = nome.trim();
+  // Compara sem acento e sem caixa, para pegar o nome como vem da CAIXA
+  const chave = n.normalize('NFD').replace(/[\u0300-\u036f]/g,'').toUpperCase();
+
+  // ── Razão social da CAIXA → nome usado na empresa ──
+  // JOP COMERCIO E SERVICOS LTDA → JOP
+  if(/\bJOP\b/.test(chave)) return 'JOP';
+  // ROMULO PEREIRA ALVARES FILHO → Álvares Filho
+  if(/ROMULO\s+PEREIRA\s+ALVARES/.test(chave) || /\bALVARES\s+FILHO\b/.test(chave)) return 'Álvares Filho';
+  // L & L ENGENHARIA LTDA → L&L Engenharia
+  if(/\bL\s*&\s*L\b|\bL\s+E\s+L\s+ENGENHARIA\b/.test(chave)) return 'L&L Engenharia';
+  // MAURO ELTON RIBEIRO JUNIOR → Ribeiro Albuquerque
+  if(/MAURO\s+ELTON\s+RIBEIRO/.test(chave) || /RIBEIRO\s+ALBUQUERQUE/.test(chave)) return 'Ribeiro Albuquerque';
+  // DEMETRYO (qualquer variante) → Demetryo Engenharia
+  if(/DEMETRYO|DEMETRIO/.test(chave)) return 'Demetryo Engenharia';
+  // ATX ENGENHARIA E EDIFICACOES LTDA → ATX Avaliações
+  if(/\bATX\b/.test(chave)) return 'ATX Avaliações';
+
   // Gusmão Filho (any variant)
   if(/gusmão?\s*filho/i.test(n)) return 'Gusmão Filho Engenharia';
   // LC Rissati (any variant)
@@ -6723,13 +6740,24 @@ const TABELA_VALORES = {
   'Prevcheck':                 {'A-413':'93,20', 'B-438':'182,80','B-437':'170,00','G-416':'0,00'},
   'LC Rissati Engenharia':     {'A-413':'466,00','E-401':'406,00','E-005':'506,00','B-438':'914,00','E-004':'764,00','B-437':'716,00','G-416':'0,00'},
   'JOP':                       {'A-413':'100,00','E-401':'80,00','E-005':'100,00','B-438':'200,00','E-004':'150,00','B-437':'200,00','G-416':'0,00'},
-  'Demetryo Engenharia':       {'A-413':'69,90', 'E-401':'80,00','E-005':'100,00','B-438':'137,10','E-004':'150,00','B-437':'137,10','G-416':'0,00'},
+  'Demetryo Engenharia':       {'A-413':'69,90', 'E-401':'69,90', 'E-005':'69,90', 'B-438':'69,90', 'E-004':'69,90', 'B-437':'69,90', 'G-416':'0,00'},
+  'Álvares Filho':             {'A-413':'115,00','E-401':'90,00', 'E-005':'100,00','B-437':'170,00','B-438':'200,00','G-416':'0,00'},
   'Caldeira Engenharia':       {'A-413':'100,00','E-401':'80,00','E-005':'100,00','B-438':'200,00','E-004':'150,00','B-437':'200,00','G-416':'0,00'},
   'ATX Avaliações':            {'A-413':'90,00', 'B-438':'165,00','B-437':'145,00','G-416':'0,00'},
 };
 
+// Empresas com valor único, independente do tipo de OS.
+// O G-416 fica de fora (não é cobrado em nenhuma empresa).
+const VALOR_UNICO_EMPRESA = {
+  'Demetryo Engenharia': '69,90'
+};
+const TIPOS_SEM_COBRANCA = ['G-416'];
+
 window.getValorPadrao = function getValorPadrao(empresa, tipo) {
   const norm = normalizeEmpresa(empresa);
+  if(TIPOS_SEM_COBRANCA.includes(tipo)) return '0,00';
+  // Valor único cobre inclusive tipos novos que ainda não estão na tabela
+  if(VALOR_UNICO_EMPRESA[norm]) return VALOR_UNICO_EMPRESA[norm];
   const tab = TABELA_VALORES[norm];
   return tab?.[tipo] || '';
 }
