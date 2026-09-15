@@ -1104,7 +1104,6 @@ tr.doc-ok{opacity:.72;}
 
     <div class="sb-sec admin-only">Financeiro</div>
     <button class="ni" id="btn-comissao-paulo" data-page="comissao-paulo" onclick="go('comissao-paulo')" style="display:none;"><span class="ic">💵</span><span class="lbl" id="btn-comissao-lbl">Comissão — Paulo</span></button>
-    <button class="ni" id="btn-remuneracao-julia" data-page="remuneracao-julia" onclick="go('remuneracao-julia')" style="display:none;"><span class="ic">✍️</span><span class="lbl" id="btn-julia-lbl">Remuneração — Júlia</span></button>
     <button class="ni admin-only" data-page="financeiro" onclick="go('financeiro')"><span class="ic">💰</span><span class="lbl">Dashboard Financeiro</span></button>
     <button class="ni admin-only" data-page="faturas" onclick="go('faturas')"><span class="ic">🧾</span><span class="lbl">Gerar Fatura</span></button>
     <button class="ni admin-only" data-page="exportar-art" onclick="go('exportar-art')"><span class="ic">📋</span><span class="lbl">Exportar para ART</span></button>
@@ -1121,16 +1120,6 @@ tr.doc-ok{opacity:.72;}
       <div style="font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.8px;color:rgba(255,255,255,.6);margin-bottom:6px;" id="cw-label">💵 Comissão — Paulo</div>
       <div style="font-size:22px;font-weight:900;color:#4ade80;line-height:1;" id="cw-total">R$ 0,00</div>
       <div style="font-size:10px;color:rgba(255,255,255,.65);margin-top:4px;" id="cw-sub">0 OS · mês atual</div>
-    </div>
-    <!-- Widget remuneração Júlia — Júlia e admin -->
-    <div id="julia-widget" style="display:none;margin-bottom:12px;background:linear-gradient(135deg,#4a1d5c,#86198f);border-radius:10px;padding:12px 14px;cursor:pointer;" onclick="go('remuneracao-julia')" title="Ver detalhes">
-      <div style="font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.8px;color:rgba(255,255,255,.62);margin-bottom:6px;" id="jw-label">✍️ Remuneração — Júlia</div>
-      <div style="font-size:22px;font-weight:900;color:#f0abfc;line-height:1;" id="jw-total">R$ 0,00</div>
-      <div style="font-size:10px;color:rgba(255,255,255,.65);margin-top:4px;" id="jw-sub">0 preenchidas · mês atual</div>
-      <div style="height:5px;border-radius:999px;background:rgba(255,255,255,.16);overflow:hidden;margin-top:8px;">
-        <div id="jw-barra" style="height:100%;width:0%;background:#fbbf24;border-radius:999px;transition:width .8s cubic-bezier(.34,1.3,.64,1);"></div>
-      </div>
-      <div style="font-size:9.5px;color:rgba(255,255,255,.6);margin-top:5px;" id="jw-meta">faltam 20 para a meta</div>
     </div>
     <div id="user-badge-wrap" style="margin-bottom:10px;"></div>
     <div class="conn"><div class="conn-dot" id="cdot"></div><span class="conn-lbl" id="clbl">Conectando...</span></div>
@@ -1440,48 +1429,6 @@ tr.doc-ok{opacity:.72;}
 
 </div>
 
-<!-- ═══ REMUNERAÇÃO JÚLIA ═══ -->
-<div class="page" id="page-remuneracao-julia">
-  <div style="max-width:900px;margin:0 auto;">
-    <div style="display:flex;align-items:center;gap:12px;margin-bottom:20px;">
-      <div style="width:44px;height:44px;border-radius:50%;background:linear-gradient(135deg,#86198f,#c026d3);display:flex;align-items:center;justify-content:center;font-size:20px;">✍️</div>
-      <div style="flex:1;">
-        <div style="font-size:18px;font-weight:800;color:var(--tx);" id="rj-titulo">Remuneração</div>
-        <div style="font-size:12px;color:var(--tx3);" id="rj-subtitulo">OS preenchidas no período</div>
-      </div>
-      <select id="rj-mes-sel" onchange="renderRemuneracaoJulia()" style="padding:7px 12px;font-size:12px;background:var(--bg2);border:1px solid var(--br);border-radius:var(--rs);color:var(--tx);">
-        <option value="0">Mês atual</option>
-        <option value="1">Mês anterior</option>
-        <option value="2">2 meses atrás</option>
-        <option value="3">3 meses atrás</option>
-        <option value="all">Todos os períodos</option>
-      </select>
-    </div>
-
-    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-bottom:18px;" id="rj-kpis"></div>
-
-    <div class="card" style="margin-bottom:18px;">
-      <div class="card-hd"><h3>🎯 Progresso da meta</h3></div>
-      <div id="rj-progresso"></div>
-    </div>
-
-    <div class="card">
-      <div class="card-hd"><h3>✍️ OS preenchidas no período</h3></div>
-      <div class="tw"><table><thead><tr>
-        <th style="width:40px;">#</th><th>Empresa</th><th>Tipo</th><th>Referência OS</th>
-        <th>Cliente</th><th>Preenchida em</th><th style="text-align:right;">Comissão</th>
-      </tr></thead><tbody id="rj-tabela"></tbody></table></div>
-    </div>
-
-    <div style="font-size:11.5px;color:var(--tx3);margin-top:14px;line-height:1.6;padding:12px 14px;background:var(--bg3);border-radius:var(--rxs);border:1px solid var(--br);">
-      <b style="color:var(--tx2);">Como a conta funciona:</b> base fixa de R$ 500,00 por mês.
-      Ao atingir 20 OS preenchidas no mês, passa a valer R$ 5,00 por preenchimento sobre
-      <b>todas</b> as OS do mês — 19 OS pagam R$ 500,00; 20 OS pagam R$ 600,00; 50 OS pagam R$ 750,00.
-      Conta apenas OS com a Júlia como responsável e status “Preenchido”, em qualquer tipo de serviço.
-    </div>
-  </div>
-</div>
-
 <!-- ═══ COMISSIONAMENTO PAULO ═══ -->
 <div class="page" id="page-comissao-paulo">
   <div style="max-width:820px;margin:0 auto;">
@@ -1566,7 +1513,7 @@ tr.doc-ok{opacity:.72;}
 <div class="page" id="page-preenchidas"><div class="tw"><table><thead><tr><th onclick="srtSub('preen','empresa')">Empresa</th><th onclick="srtSub('preen','tipoServico')">Tipo</th><th onclick="srtSub('preen','numeroOS')">Referência OS</th><th onclick="srtSub('preen','cliente')">Cliente</th><th onclick="srtSub('preen','cidade')">Cidade</th><th onclick="srtSub('preen','vistoria')">Vistoria</th><th onclick="srtSub('preen','preenchimento')">Preenchimento</th><th onclick="srtSub('preen','avaliacao')">Avaliação</th><th onclick="srtSub('preen','conferencia')">Conferência</th><th onclick="srtSub('preen','prazoFatal')" class="sort-asc">Prazo Fatal ↕</th><th onclick="srtSub('preen','dias')">Dias</th><th></th></tr></thead><tbody id="tb-preenchidas"></tbody></table></div></div>
 <div class="page" id="page-vistoriadas"><div class="tw"><table><thead><tr><th onclick="srtSub('vist','empresa')">Empresa</th><th onclick="srtSub('vist','tipoServico')">Tipo</th><th onclick="srtSub('vist','numeroOS')">Referência OS</th><th onclick="srtSub('vist','cliente')">Cliente</th><th onclick="srtSub('vist','cidade')">Cidade</th><th onclick="srtSub('vist','vistoria')">Vistoria</th><th onclick="srtSub('vist','dataAbertura')">Abertura</th><th onclick="srtSub('vist','prazoFatal')" class="sort-asc">Prazo Fatal ↕</th><th onclick="srtSub('vist','dias')">Dias</th><th>Próxima etapa</th><th></th></tr></thead><tbody id="tb-vistoriadas"></tbody></table></div></div>
 <div class="page" id="page-sem-ficha"><div class="tw"><table><thead><tr><th onclick="srtSub('ficha','empresa')">Empresa</th><th onclick="srtSub('ficha','tipoServico')">Tipo</th><th onclick="srtSub('ficha','numeroOS')">Referência OS</th><th onclick="srtSub('ficha','cliente')">Cliente</th><th onclick="srtSub('ficha','cidade')">Cidade</th><th onclick="srtSub('ficha','finalizacao')">Finalização</th><th onclick="srtSub('ficha','fichas')">Ficha Pesquisa</th><th onclick="srtSub('ficha','prazoFatal')" class="sort-asc">Prazo Fatal ↕</th><th onclick="srtSub('ficha','dias')">Dias</th><th></th></tr></thead><tbody id="tb-sem-ficha"></tbody></table></div></div>
-<div class="page" id="page-andamento"><div class="toolbar"><div class="srch"><span style="color:var(--tx3)">🔍</span><input type="text" id="s-and" placeholder="Buscar..." oninput="renderSimple('andamento')"></div><div class="chips" id="chips-and"><div class="chip on" onclick="setChipAnd('all',this)">Todas</div><div class="chip" onclick="setChipAnd('prioridade',this)" style="display:flex;align-items:center;gap:4px;">⭐ Prioritárias</div><div class="chip" onclick="setChipAnd('vistoria',this)">Ag. vistoria</div><div class="chip" onclick="setChipAnd('estagiario',this)">Com estagiário</div><div class="chip" onclick="setChipAnd('conferencia',this)">Ag. conferência</div></div><div class="toolbar-filters"><select id="f-and-dias" class="toolbar-select" onchange="setAndDias(this.value)"><option value="">Dias restantes</option><option value="critico">Até 1 dia</option><option value="3">Até 3 dias</option><option value="5">Até 5 dias</option><option value="7">Até 7 dias</option><option value="8+">Mais de 7 dias</option><option value="vencido">Vencidas</option></select><select id="f-and-acao" class="toolbar-select" onchange="setAndAcao(this.value)"><option value="">Próxima ação</option><option value="vistoria">Realizar vistoria</option><option value="preenchimento">A preencher</option><option value="avaliacao">Realizar avaliação</option><option value="conferencia">Sua conferência</option><option value="finalizacao">Emitir laudo</option></select></div></div><div class="tw"><table><thead><tr><th onclick="srtSub('and','prioridade')" style="width:42px;text-align:center;" title="Prioridade">⭐</th><th onclick="srtSub('and','empresa')">Empresa</th><th onclick="srtSub('and','tipoServico')">Tipo</th><th onclick="srtSub('and','numeroOS')">Referência OS</th><th onclick="srtSub('and','cliente')">Cliente</th><th onclick="srtSub('and','cidade')">Cidade</th><th onclick="srtSub('and','prazoFatal')" class="sort-asc">Prazo Fatal ↕</th><th onclick="srtSub('and','dias')">Dias Rest.</th><th onclick="srtSub('and','proximaAcao')">Próxima ação ↕</th><th onclick="srtSub('and','analiseTexto')" style="min-width:180px;">Análise</th><th onclick="srtSub('and','responsavel')" style="min-width:118px;">Responsável</th><th onclick="srtSub('and','valor')" class="admin-only valor-col">Valor</th><th></th></tr></thead><tbody id="tb-and"></tbody></table></div></div>
+<div class="page" id="page-andamento"><div class="toolbar"><div class="srch"><span style="color:var(--tx3)">🔍</span><input type="text" id="s-and" placeholder="Buscar..." oninput="renderSimple('andamento')"></div><div class="chips" id="chips-and"><div class="chip on" onclick="setChipAnd('all',this)">Todas</div><div class="chip" onclick="setChipAnd('prioridade',this)" style="display:flex;align-items:center;gap:4px;">⭐ Prioritárias</div><div class="chip" onclick="setChipAnd('vistoria',this)">Ag. vistoria</div><div class="chip" onclick="setChipAnd('estagiario',this)">Com estagiário</div><div class="chip" onclick="setChipAnd('conferencia',this)">Ag. conferência</div><div class="chip" onclick="setChipAnd('pept',this)" title="O.S. com o prazo suspenso por PEPT">⏸ Em PEPT</div></div><div class="toolbar-filters"><select id="f-and-dias" class="toolbar-select" onchange="setAndDias(this.value)"><option value="">Dias restantes</option><option value="critico">Até 1 dia</option><option value="3">Até 3 dias</option><option value="5">Até 5 dias</option><option value="7">Até 7 dias</option><option value="8+">Mais de 7 dias</option><option value="vencido">Vencidas</option></select><select id="f-and-acao" class="toolbar-select" onchange="setAndAcao(this.value)"><option value="">Próxima ação</option><option value="vistoria">Realizar vistoria</option><option value="preenchimento">A preencher</option><option value="avaliacao">Realizar avaliação</option><option value="conferencia">Sua conferência</option><option value="finalizacao">Emitir laudo</option></select></div></div><div class="tw"><table><thead><tr><th onclick="srtSub('and','prioridade')" style="width:42px;text-align:center;" title="Prioridade">⭐</th><th onclick="srtSub('and','empresa')">Empresa</th><th onclick="srtSub('and','tipoServico')">Tipo</th><th onclick="srtSub('and','numeroOS')">Referência OS</th><th onclick="srtSub('and','cliente')">Cliente</th><th onclick="srtSub('and','cidade')">Cidade</th><th onclick="srtSub('and','prazoFatal')" class="sort-asc">Prazo Fatal ↕</th><th onclick="srtSub('and','dias')">Dias Rest.</th><th onclick="srtSub('and','pept')" style="min-width:112px;" title="Pendência para Elaboração de Peça Técnica — suspende o prazo">PEPT</th><th onclick="srtSub('and','proximaAcao')">Próxima ação ↕</th><th onclick="srtSub('and','analiseTexto')" style="min-width:180px;">Análise</th><th onclick="srtSub('and','responsavel')" style="min-width:118px;">Responsável</th><th onclick="srtSub('and','valor')" class="admin-only valor-col">Valor</th><th></th></tr></thead><tbody id="tb-and"></tbody></table></div></div>
 <div class="page" id="page-documentacao">
   <div class="doc-resumo" id="doc-resumo"></div>
   <div class="toolbar">
@@ -1616,7 +1563,6 @@ tr.doc-ok{opacity:.72;}
         <option value="__sem__">Sem responsável</option>
         <option value="Leonardo">Leonardo</option>
         <option value="Paulo">Paulo</option>
-        <option value="Júlia">Júlia</option>
         <option value="João Paulo">João Paulo</option>
       </select>
       <select id="f-kb-dias" class="toolbar-select" onchange="renderKanban()">
@@ -2116,7 +2062,7 @@ tr.doc-ok{opacity:.72;}
         <div class="su-blk"><span class="su-lbl">Conferência</span><select id="ed-confer"><option>Aguardando</option><option>Conferido</option><option>Sem necessidade</option></select></div>
         <div class="su-blk"><span class="su-lbl">Finalização</span><select id="ed-final"><option>Laudo em Andamento</option><option>Laudo Finalizado</option></select></div>
         <div class="su-blk"><span class="su-lbl">Fichas de Pesquisa</span><select id="ed-fichas"><option>Não iniciada</option><option>Realizada</option><option>Sem necessidade</option></select></div>
-        <div class="su-blk"><span class="su-lbl">Responsável p/ preenchimento</span><select id="ed-resp"><option value="">— definir —</option><option>Leonardo</option><option>Paulo</option><option>Júlia</option><option>João Paulo</option></select></div>
+        <div class="su-blk"><span class="su-lbl">Responsável p/ preenchimento</span><select id="ed-resp"><option value="">— definir —</option><option>Leonardo</option><option>Paulo</option><option>João Paulo</option></select></div>
       </div>
       <div class="su-blk" style="margin-bottom:12px;"><span class="su-lbl">Análise</span>
         <select id="ed-analise" style="margin-bottom:7px;" title="Motivo padronizado (opcional)"><option value="">— sem motivo padronizado —</option><option>Matrícula sem averbação</option><option>PCI Errada</option><option>ART Errada</option><option>ART inexistente</option><option>Sem Projeto</option></select>
@@ -3014,7 +2960,7 @@ const PAGE_TITLES = {
   dashboard:'Dashboard','lista':'Todas as OS','preenchidas':'OS Preenchidas',
   'vistoriadas':'OS Vistoriadas','sem-ficha':'Fichas de Pesquisa',
   andamento:'Em Andamento',kanban:'Kanban — OS em Andamento',documentacao:'Documentação — B-437 e B-438','vencendo':'Próximo do vencimento','finalizadas':'Finalizadas',
-  financeiro:'Dashboard Financeiro','faturas':'Gerar Fatura','exportar-art':'Exportar para ART','comissao-paulo':'Comissionamento — Paulo','remuneracao-julia':'Remuneração — Júlia',
+  financeiro:'Dashboard Financeiro','faturas':'Gerar Fatura','exportar-art':'Exportar para ART','comissao-paulo':'Comissionamento — Paulo',
   roteiro:'Roteirização de Vistorias',
   lixeira:'Lixeira (recuperáveis por 30 dias)',
   chat:'Chat da Equipe',
@@ -3089,8 +3035,8 @@ function sortData(arr, key, asc) {
       return asc?da-db:db-da;
     }
     if(key==='dias'){
-      const da=diasAte(a.prazoFatal)??(asc?Infinity:-Infinity);
-      const db=diasAte(b.prazoFatal)??(asc?Infinity:-Infinity);
+      const da=diasRest(a)??(asc?Infinity:-Infinity);
+      const db=diasRest(b)??(asc?Infinity:-Infinity);
       return asc?da-db:db-da;
     }
     if(key==='proximaAcao'){
@@ -3117,11 +3063,18 @@ function sortData(arr, key, asc) {
       }
       if(cmp !== 0) return asc ? cmp : -cmp;
 
-      const da = diasAte(a.prazoFatal);
-      const db = diasAte(b.prazoFatal);
+      const da = diasRest(a);
+      const db = diasRest(b);
       const nda = Number.isFinite(da) ? da : 999999;
       const ndb = Number.isFinite(db) ? db : 999999;
       return asc ? nda - ndb : ndb - nda;
+    }
+    if(key==='pept'){
+      // Aberta primeiro, depois encerrada, depois sem PEPT
+      const peso = os => peptAberta(os) ? 0 : (peptEncerrada(os) ? 1 : 2);
+      const pa = peso(a), pb = peso(b);
+      if(pa !== pb) return asc ? pa - pb : pb - pa;
+      return (peptDiasEmAberto(b) - peptDiasEmAberto(a));
     }
     if(key==='prioridade') return asc?(!!a.prioridade?-1:1):(!!b.prioridade?-1:1);
   if(key==='valor') return asc?parsVal(a.valor)-parsVal(b.valor):parsVal(b.valor)-parsVal(a.valor);
@@ -3332,7 +3285,7 @@ function renderDocumentacao() {
   if(q) d = d.filter(o=>[o.empresa,o.numeroOS,o.cliente,o.cidade,o.analiseTexto,o.responsavel]
       .some(v=>(v||'').toLowerCase().includes(q)));
 
-  if(fOrd === 'prazo') d.sort((a,b)=>(diasAte(a.prazoFatal)??99999)-(diasAte(b.prazoFatal)??99999));
+  if(fOrd === 'prazo') d.sort((a,b)=>(diasRest(a)??99999)-(diasRest(b)??99999));
   else if(fOrd === 'falta') d.sort((a,b)=>docsFeitos(a)-docsFeitos(b) || diasEsperando(b)-diasEsperando(a));
   else d.sort((a,b)=>diasEsperando(b)-diasEsperando(a));
 
@@ -3343,7 +3296,7 @@ function renderDocumentacao() {
   }
 
   tb.innerHTML = d.map(os=>{
-    const dias = diasAte(os.prazoFatal);
+    const dias = diasRest(os);
     const esp = diasEsperando(os);
     const nv = nivelEspera(esp);
     const completo = docsCompleto(os);
@@ -3359,8 +3312,8 @@ function renderDocumentacao() {
       <td>${tipoBadge(os.tipoServico)}</td>
       <td><div class="mono el" title="${escAttr(os.numeroOS)}">${escAttr(os.numeroOS||'—')}</div></td>
       <td>${escAttr(os.cliente||'—')}</td>
-      <td>${fmtDate(os.prazoFatal)}</td>
-      <td>${dias!==null?diasBadge(dias):'—'}</td>
+      <td>${fmtPrazo(os)}</td>
+      <td>${badgeDias(os)}</td>
       <td>${docChips(os)}</td>
       <td onclick="event.stopPropagation()">
         <textarea class="doc-obs${obs?' tem':''}" rows="2" placeholder="Observações da análise…"
@@ -3377,16 +3330,15 @@ function exigeAnalise(os) {
 }
 
 // Responsáveis pelo preenchimento
-const RESPONSAVEIS = ['Leonardo','Paulo','Júlia','João Paulo'];
+const RESPONSAVEIS = ['Leonardo','Paulo','João Paulo'];
 const RESP_CORES = {
   'Leonardo':  '#2563eb',
   'Paulo':     '#16a34a',
-  'Júlia':     '#c026d3',
   'João Paulo':'#ea580c'
 };
 // Colaboradores desligados: somem da lista de escolha, mas continuam legíveis
 // nas OS antigas (histórico de quem preencheu o quê).
-const RESP_INATIVOS = ['Aline','Otávio'];
+const RESP_INATIVOS = ['Aline','Otávio','Júlia'];
 function respCor(nome){ return RESP_CORES[nome] || 'var(--tx3)'; }
 
 // ── Saída de colaborador: libera as OS EM ABERTO que estavam com quem se desligou.
@@ -3628,7 +3580,7 @@ function kbFiltrar() {
   else if(fResp) d = d.filter(o => o.responsavel === fResp);
 
   if(fDias) d = d.filter(o => {
-    const dias = diasAte(o.prazoFatal);
+    const dias = diasRest(o);
     if(dias===null) return false;
     if(fDias==='vencido') return dias < 0;
     if(fDias==='critico') return dias <= 1;
@@ -3642,7 +3594,7 @@ function kbFiltrar() {
 }
 
 function kbCard(os) {
-  const dias = diasAte(os.prazoFatal);
+  const dias = diasRest(os);
   const prio = !!os.prioridade;
   const resp = os.responsavel || '';
   const c = resp ? respCor(resp) : '';
@@ -3658,7 +3610,7 @@ function kbCard(os) {
     <div class="kb-c-ref">${escAttr(os.numeroOS||'—')}</div>
     <div class="kb-c-cli">👤 ${escAttr(os.cliente||'—')}${os.cidade?' · '+escAttr(os.cidade):''}</div>
     <div class="kb-c-ft">
-      ${dias!==null?diasBadge(dias):''}
+      ${badgeDias(os)}
       ${resp?`<span class="kb-resp" style="background:color-mix(in srgb, ${c} 13%, transparent);color:${c};border:1px solid color-mix(in srgb, ${c} 32%, transparent);">${escAttr(resp)}</span>`
             :`<span class="kb-resp" style="background:var(--bg3);color:var(--tx3);border:1px dashed var(--br2);">sem responsável</span>`}
       ${falta?'<span class="badge bg-orange" title="Ainda não conferida">⚠ Analisar</span>':''}
@@ -3682,7 +3634,7 @@ function renderKanban() {
   KB_ORDEM.forEach(k => grupos[k].sort((a,b) => {
     const p = (b.prioridade?1:0) - (a.prioridade?1:0);
     if(p) return p;
-    const da = diasAte(a.prazoFatal), db = diasAte(b.prazoFatal);
+    const da = diasRest(a), db = diasRest(b);
     return (da===null?99999:da) - (db===null?99999:db);
   }));
 
@@ -3908,6 +3860,142 @@ function diasBadge(dias) {
   if(dias<=5) return `<span class="badge bg-orange">${dias}d</span>`;
   return `<span class="badge bg-gray">${dias}d</span>`;
 }
+// ══════════════════════════════════════
+// PEPT — Pendência para Elaboração de Peça Técnica
+// ══════════════════════════════════════
+// COT AvaliaBens, item 3.3.2.5.3: "A PEPT suspende o prazo da O.S. para entrega
+// do Laudo de Avaliação a partir da data de seu registro, retomando-se a contagem
+// após o atendimento da pendência pelo Cliente, considerando-se os dias já
+// transcorridos antes da suspensão."
+// Na prática: o prazo fatal desloca para frente exatamente os dias em que a PEPT
+// ficou aberta. Enquanto ela estiver aberta, o relógio fica parado.
+// Item 3.3.2.5.3.1: não se deve concluir nem cancelar a O.S. com PEPT em aberto.
+
+function peptAberta(os) {
+  return !!(os && os.pept && os.peptInicio && !os.peptFim);
+}
+function peptEncerrada(os) {
+  return !!(os && os.pept && os.peptInicio && os.peptFim);
+}
+// Dias que a PEPT já consumiu do calendário (só conta período encerrado)
+function peptDiasSuspensos(os) {
+  if(!peptEncerrada(os)) return 0;
+  const i = parseDt(os.peptInicio), f = parseDt(os.peptFim);
+  if(!i || !f) return 0;
+  return Math.max(0, Math.round((f - i)/86400000));
+}
+// Prazo fatal já deslocado pela suspensão
+function prazoEfetivo(os) {
+  if(!os || !os.prazoFatal) return '';
+  const d = peptDiasSuspensos(os);
+  return d > 0 ? addDias(os.prazoFatal, d) : os.prazoFatal;
+}
+// Dias restantes considerando a PEPT.
+// Com PEPT aberta devolve null — o relógio está parado, então a O.S. sai
+// naturalmente de todos os filtros e alertas de vencimento.
+function diasRest(os) {
+  if(!os || !os.prazoFatal) return null;
+  if(peptAberta(os)) return null;
+  return diasAte(prazoEfetivo(os));
+}
+// Quantos dias restavam no momento em que a PEPT foi aberta (valor congelado)
+function diasCongelados(os) {
+  if(!peptAberta(os)) return null;
+  const p = parseDt(prazoEfetivo(os)), i = parseDt(os.peptInicio);
+  if(!p || !i) return null;
+  return Math.round((p - i)/86400000);
+}
+// Há quantos dias a PEPT está aberta
+function peptDiasEmAberto(os) {
+  if(!peptAberta(os)) return 0;
+  const i = parseDt(os.peptInicio);
+  if(!i) return 0;
+  const hoje = new Date(); hoje.setHours(12,0,0,0);
+  return Math.max(0, Math.round((hoje - i)/86400000));
+}
+
+// Selo de dias restantes ciente da PEPT
+function badgeDias(os) {
+  if(peptAberta(os)) {
+    const c = diasCongelados(os);
+    return `<span class="badge bg-sky" title="Prazo suspenso desde ${fmtDate(os.peptInicio)} — PEPT aberta há ${peptDiasEmAberto(os)} dia(s)${c!==null?`. Restavam ${c} dia(s).`:''}">⏸ PEPT${c!==null?` · ${c}d`:''}</span>`;
+  }
+  return diasBadge(diasRest(os));
+}
+// Prazo fatal exibido: já deslocado, com marca quando houve suspensão
+function fmtPrazo(os) {
+  if(!os || !os.prazoFatal) return '—';
+  const d = peptDiasSuspensos(os);
+  if(d > 0) {
+    return `${fmtDate(prazoEfetivo(os))} <span style="font-size:9.5px;color:var(--sky);font-weight:700;" title="Prazo original ${fmtDate(os.prazoFatal)}, deslocado ${d} dia(s) pela PEPT">+${d}d</span>`;
+  }
+  return fmtDate(os.prazoFatal);
+}
+
+// Célula editável da coluna PEPT
+function peptCell(os) {
+  const sim = !!os.pept;
+  const aberta = peptAberta(os);
+  const cor = aberta ? 'var(--sky)' : (sim ? 'var(--grn)' : 'var(--tx3)');
+  const sel = `<select onclick="event.stopPropagation()" onchange="setPept(event,'${os.id}',this.value)" style="
+      font-size:11px;padding:3px 6px;border-radius:7px;font-weight:700;width:58px;
+      background:${sim?'color-mix(in srgb, '+cor+' 12%, transparent)':'var(--bg3)'};
+      border:1px solid ${sim?'color-mix(in srgb, '+cor+' 40%, transparent)':'var(--br)'};
+      color:${cor};cursor:pointer;">
+      <option value="nao"${!sim?' selected':''}>Não</option>
+      <option value="sim"${sim?' selected':''}>Sim</option>
+    </select>`;
+  if(!sim) return `<div onclick="event.stopPropagation()">${sel}</div>`;
+
+  const dt = (campo, val, titulo) => `<input type="date" value="${val||''}" title="${titulo}"
+      onclick="event.stopPropagation()" onchange="setPeptData(event,'${os.id}','${campo}',this.value)"
+      style="font-size:10px;padding:2px 3px;border-radius:6px;width:106px;
+        border:1px solid ${val?'color-mix(in srgb, '+cor+' 35%, transparent)':'var(--br)'};
+        background:${val?'color-mix(in srgb, '+cor+' 8%, transparent)':'var(--bg3)'};color:var(--tx1);">`;
+
+  return `<div onclick="event.stopPropagation()" style="display:flex;flex-direction:column;gap:3px;min-width:108px;">
+    ${sel}
+    ${dt('peptInicio', os.peptInicio, 'Data em que a PEPT foi registrada')}
+    ${dt('peptFim', os.peptFim, 'Data em que a pendência foi solucionada')}
+    ${aberta
+      ? `<span style="font-size:9.5px;color:var(--sky);font-weight:700;">aberta há ${peptDiasEmAberto(os)}d</span>`
+      : `<span style="font-size:9.5px;color:var(--grn);font-weight:700;">+${peptDiasSuspensos(os)}d no prazo</span>`}
+  </div>`;
+}
+
+async function setPept(e, id, valor) {
+  if(e) e.stopPropagation();
+  const os = DB.find(o=>o.id===id); if(!os) return;
+  const antes = {pept:os.pept, peptInicio:os.peptInicio, peptFim:os.peptFim};
+  if(valor === 'sim') {
+    os.pept = true;
+    if(!os.peptInicio) os.peptInicio = new Date().toISOString().split('T')[0];
+  } else {
+    os.pept = false;
+    delete os.peptInicio; delete os.peptFim;
+  }
+  renderSimple('andamento');
+  try { await fbSave(os); updateBadges(); }
+  catch(err){ console.error(err); Object.assign(os, antes); renderSimple('andamento'); }
+}
+
+async function setPeptData(e, id, campo, valor) {
+  if(e) e.stopPropagation();
+  const os = DB.find(o=>o.id===id); if(!os) return;
+  const anterior = os[campo];
+  if(valor) os[campo] = valor; else delete os[campo];
+  // Fim não pode ser anterior ao início
+  if(campo === 'peptFim' && valor && os.peptInicio && valor < os.peptInicio) {
+    os[campo] = anterior;
+    toast('A data de solução não pode ser anterior à de abertura da PEPT','err');
+    renderSimple('andamento');
+    return;
+  }
+  renderSimple('andamento');
+  try { await fbSave(os); updateBadges(); }
+  catch(err){ console.error(err); os[campo]=anterior; renderSimple('andamento'); }
+}
+
 function etapasMini(os) {
   // Ordem correta do fluxo: Vistoria → Preenchimento → Avaliação → Conferência → Finalização → Fichas
   const steps=[
@@ -3954,7 +4042,6 @@ function renderPage(id) {
   else if(id==='faturas') renderFaturas();
   else if(id==='exportar-art') renderExportarART();
   else if(id==='comissao-paulo') renderComissaoPaulo();
-  else if(id==='remuneracao-julia') renderRemuneracaoJulia();
   else if(id==='roteiro') renderRoteiro();
   else if(id==='lixeira') renderLixeira();
   else if(id==='dash-tendencia') renderDashTendencia();
@@ -3982,7 +4069,6 @@ function _refreshAll_impl() {
   updateBadges();
   try { migrarRespInativos(); } catch(e){ console.error(e); }
   if(typeof atualizarWidgetComissao === 'function') atualizarWidgetComissao();
-  if(typeof atualizarWidgetJulia === 'function') atualizarWidgetJulia();
   const pid = document.querySelector('.page.active')?.id?.replace('page-','');
   if(!pid) return;
   // Não re-renderiza enquanto o usuário está digitando dentro de uma linha da tabela
@@ -4072,12 +4158,12 @@ function updateBadges() {
   const total = DB.length;
   const abertos = DB.filter(isAberto);
   const fin = total - abertos.length;
-  const venc = DB.filter(os=>isAberto(os)&&diasAte(os.prazoFatal)!==null&&diasAte(os.prazoFatal)<=3).length;
+  const venc = DB.filter(os=>isAberto(os)&&diasRest(os)!==null&&diasRest(os)<=3).length;
   const preen = DB.filter(os=>isAberto(os)&&os.preenchimento==='Preenchido').length;
   const vist = DB.filter(os=>os.vistoria==='Imóvel vistoriado').length;
   const semFicha = DB.filter(os=>!isAberto(os)&&!['Realizada','Sem necessidade'].includes(os.fichas)).length;
 
-  const vencidas = DB.filter(os=>isAberto(os)&&diasAte(os.prazoFatal)!==null&&diasAte(os.prazoFatal)<0).length;
+  const vencidas = DB.filter(os=>isAberto(os)&&diasRest(os)!==null&&diasRest(os)<0).length;
   const lixCount = (window.LIX_DB||[]).length;
   const docPend = docsPendentes();
 
@@ -4089,7 +4175,7 @@ function updateBadges() {
   // Piscar badge do menu se houver vencendo (≤1d ou já vencidas)
   const elV = document.getElementById('nb-venc');
   if(elV){
-    const critico = DB.filter(os=>isAberto(os)&&diasAte(os.prazoFatal)!==null&&diasAte(os.prazoFatal)<=1).length;
+    const critico = DB.filter(os=>isAberto(os)&&diasRest(os)!==null&&diasRest(os)<=1).length;
     elV.classList.toggle('blink-cnt', critico>0);
   }
 
@@ -4104,7 +4190,7 @@ function updateBadges() {
 
   // Título da aba: alerta com contagem de vencidas + a vencer hoje
   try{
-    const hoje = DB.filter(os=>isAberto(os)&&diasAte(os.prazoFatal)===0).length;
+    const hoje = DB.filter(os=>isAberto(os)&&diasRest(os)===0).length;
     const alerta = vencidas + hoje;
     document.title = alerta>0 ? `(${alerta}) ⚠ Controle OS` : 'Controle OS — Caixa (v3.2)';
   }catch(e){}
@@ -4113,12 +4199,12 @@ function updateBadges() {
   const dados = getDadosFiltrados();
   const dAbertos = dados.filter(isAberto);
   const dFin = dados.length - dAbertos.length;
-  const dVenc = dados.filter(os=>isAberto(os)&&diasAte(os.prazoFatal)!==null&&diasAte(os.prazoFatal)<=3).length;
-  const dHoje = dados.filter(os=>isAberto(os)&&diasAte(os.prazoFatal)===0).length;
-  const dAmanha = dados.filter(os=>isAberto(os)&&diasAte(os.prazoFatal)===1).length;
-  const d3dias = dados.filter(os=>isAberto(os)&&diasAte(os.prazoFatal)!==null&&diasAte(os.prazoFatal)>=0&&diasAte(os.prazoFatal)<=3).length;
-  const dVencidas = dados.filter(os=>isAberto(os)&&diasAte(os.prazoFatal)!==null&&diasAte(os.prazoFatal)<0).length;
-  const d7dias = dados.filter(os=>isAberto(os)&&diasAte(os.prazoFatal)!==null&&diasAte(os.prazoFatal)>=0&&diasAte(os.prazoFatal)<=7).length;
+  const dVenc = dados.filter(os=>isAberto(os)&&diasRest(os)!==null&&diasRest(os)<=3).length;
+  const dHoje = dados.filter(os=>isAberto(os)&&diasRest(os)===0).length;
+  const dAmanha = dados.filter(os=>isAberto(os)&&diasRest(os)===1).length;
+  const d3dias = dados.filter(os=>isAberto(os)&&diasRest(os)!==null&&diasRest(os)>=0&&diasRest(os)<=3).length;
+  const dVencidas = dados.filter(os=>isAberto(os)&&diasRest(os)!==null&&diasRest(os)<0).length;
+  const d7dias = dados.filter(os=>isAberto(os)&&diasRest(os)!==null&&diasRest(os)>=0&&diasRest(os)<=7).length;
   const dValor = dados.reduce((a,os)=>a+parsVal(os.valor),0);
 
   const sv=(id,v)=>{ const el=document.getElementById(id); if(el) el.textContent=v; };
@@ -4154,7 +4240,7 @@ function updateBadges() {
   // ── PAINEL DE ALERTAS CRÍTICOS (≤3 dias ou vencidas) ──
   try{
     const criticos = dAbertos
-      .map(os=>({...os, _dias: diasAte(os.prazoFatal)}))
+      .map(os=>({...os, _dias: diasRest(os)}))
       .filter(os=>os._dias!==null && os._dias<=3)
       .sort((a,b)=>a._dias-b._dias);
     const panel = document.getElementById('alert-panel-critico');
@@ -4185,7 +4271,7 @@ function updateBadges() {
           else if(d===0){ cls='d-hoje'; label='hoje'; n='0'; }
           else if(d===1){ cls='d-amanha'; label='amanhã'; n='1'; }
           const tit = (os.empresa||'—');
-          const sub = `${os.tipoServico||''}${os.cliente?' · '+String(os.cliente).split(' ')[0]:''} · ${fmtDate(os.prazoFatal)}`;
+          const sub = `${os.tipoServico||''}${os.cliente?' · '+String(os.cliente).split(' ')[0]:''} · ${fmtDate(prazoEfetivo(os))}`;
           return `<div class="alert-item" onclick="abrirDetalhe('${os.id}')">
             <div class="alert-item-d ${cls}"><span class="n">${n}</span><span class="l">${label}</span></div>
             <div class="alert-item-info"><div class="t">${tit}</div><div class="s">${sub}</div></div>
@@ -4729,7 +4815,7 @@ function renderDash() {
 
   // ── PRAZOS PRÓXIMOS ──
   const prox = DB.filter(os=>isAberto(os)&&os.prazoFatal)
-    .map(os=>({...os,dias:diasAte(os.prazoFatal)}))
+    .map(os=>({...os,dias:diasRest(os)}))
     .filter(os=>os.dias!==null&&os.dias<=7)
     .sort((a,b)=>a.dias-b.dias).slice(0,7);
   document.getElementById('dl-list').innerHTML = prox.length ? prox.map(os=>{
@@ -4744,7 +4830,7 @@ function renderDash() {
       </div>
       <div style="flex:1;min-width:0;">
         <div style="font-size:12px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${os.empresa}</div>
-        <div style="font-size:10.5px;color:var(--tx3);">${os.tipoServico}${os.cliente?' · '+os.cliente.split(' ')[0]:''} · ${fmtDate(os.prazoFatal)}</div>
+        <div style="font-size:10.5px;color:var(--tx3);">${os.tipoServico}${os.cliente?' · '+os.cliente.split(' ')[0]:''} · ${fmtDate(prazoEfetivo(os))}</div>
       </div>
       ${tipoBadge(os.tipoServico)}
     </div>`;
@@ -5044,11 +5130,11 @@ function renderLista() {
   if(!d.length) { tb.innerHTML=emptyRow(13); }
   else tb.innerHTML=d.map(os=>{
     const [bc,bl]=statusBadge(os);
-    const dias=diasAte(os.prazoFatal);
+    const dias=diasRest(os);
     const finalizado = !isAberto(os);
-    const vb = !finalizado && dias!==null && dias<=5 ? diasBadge(dias) : '';
+    const vb = !finalizado && dias!==null && dias<=5 ? badgeDias(os) : (!finalizado && peptAberta(os) ? badgeDias(os) : '');
     // Se finalizado, não mostra badge de vencimento na coluna Dias
-    const diasCell = finalizado ? '' : diasBadge(dias);
+    const diasCell = finalizado ? '' : badgeDias(os);
     const selRow = listaSelIds.has(os.id);
     return `<tr class="${selRow?'sel-row':''}">
       <td class="admin-only" style="width:36px;text-align:center;">
@@ -5061,7 +5147,7 @@ function renderLista() {
       <td style="max-width:130px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="${os.cliente||''}">${os.cliente||'—'}</td>
       <td>${os.cidade||'—'}</td>
       <td>${fmtDate(os.dataAbertura)}</td>
-      <td>${fmtDate(os.prazoFatal)} ${vb}</td>
+      <td>${fmtPrazo(os)} ${vb}</td>
       <td>${diasCell}</td>
       <td class="admin-only valor-col" style="color:var(--grn);font-weight:600;">${os.valor?'R$ '+os.valor:'—'}</td>
       <td>${etapasMini(os)}</td>
@@ -5079,7 +5165,7 @@ function renderLista() {
 function renderPreenchidas() {
   const d=sortData(DB.filter(os=>['Preenchido','Sem necessidade','Copiar'].includes(os.preenchimento)&&isAberto(os)), subSort.preen?.key||'prazoFatal', subSort.preen?.asc!==false);
   document.getElementById('tb-preenchidas').innerHTML = d.length ? d.map(os=>{
-    const dias=diasAte(os.prazoFatal);
+    const dias=diasRest(os);
     const vB=os.vistoria==='Imóvel vistoriado'?'<span class="badge bg-green">✓ Sim</span>':'<span class="badge bg-gray">Não</span>';
     const pB=os.preenchimento==='Preenchido'?'<span class="badge bg-green">✓ Preenchido</span>':os.preenchimento==='Copiar'?'<span class="badge bg-sky">Copiar</span>':'<span class="badge bg-gray">'+os.preenchimento+'</span>';
     const aB=['Avaliação Pronta','Sem necessidade'].includes(os.avaliacao)?'<span class="badge bg-green">✓ OK</span>':'<span class="badge bg-yellow">Pendente</span>';
@@ -5090,8 +5176,8 @@ function renderPreenchidas() {
       <td><div class="mono el" title="${os.numeroOS}">${os.numeroOS}</div></td>
       <td>${os.cliente||'—'}</td><td>${os.cidade||'—'}</td>
       <td>${vB}</td><td>${pB}</td><td>${aB}</td><td>${cB}</td>
-      <td>${fmtDate(os.prazoFatal)}</td>
-      <td>${diasBadge(dias)}</td>
+      <td>${fmtPrazo(os)}</td>
+      <td>${badgeDias(os)}</td>
       <td><button class="btn btn-primary btn-xs" onclick="abrirDetalhe('${os.id}')">Atualizar</button></td>
     </tr>`;}).join('') : emptyRow(12, false, '✍️', 'Nenhuma OS preenchida em andamento');
 }
@@ -5100,7 +5186,7 @@ function renderVistoriadas() {
   // Shows ALL aberto OS, with vistoria status highlighted
   const d=sortData(DB.filter(isAberto), subSort.vist?.key||'prazoFatal', subSort.vist?.asc!==false);
   document.getElementById('tb-vistoriadas').innerHTML = d.length ? d.map(os=>{
-    const dias=diasAte(os.prazoFatal);
+    const dias=diasRest(os);
     const vistBadge = os.vistoria==='Imóvel vistoriado'
       ? '<span class="badge bg-green">✓ Vistoriado</span>'
       : '<span class="badge bg-gray">🕐 Aguardando</span>';
@@ -5111,8 +5197,8 @@ function renderVistoriadas() {
       <td>${os.cliente||'—'}</td><td>${os.cidade||'—'}</td>
       <td>${vistBadge}</td>
       <td>${fmtDate(os.dataAbertura)}</td>
-      <td>${fmtDate(os.prazoFatal)}</td>
-      <td>${diasBadge(dias)}</td>
+      <td>${fmtPrazo(os)}</td>
+      <td>${badgeDias(os)}</td>
       <td style="font-size:12px;color:var(--tx2);">${proxAcao(os)}</td>
       <td><button class="btn btn-primary btn-xs" onclick="abrirDetalhe('${os.id}')">Atualizar</button></td>
     </tr>`;
@@ -5122,7 +5208,7 @@ function renderVistoriadas() {
 function renderSemFicha() {
   const d=sortData(DB.filter(os=>!isAberto(os)&&!['Realizada','Sem necessidade'].includes(os.fichas)), subSort.ficha?.key||'prazoFatal', subSort.ficha?.asc!==false);
   document.getElementById('tb-sem-ficha').innerHTML = d.length ? d.map(os=>{
-    const dias=diasAte(os.prazoFatal);
+    const dias=diasRest(os);
     return `<tr>
       <td style="font-weight:600;">${os.empresa}</td>
       <td>${tipoBadge(os.tipoServico)}</td>
@@ -5130,8 +5216,8 @@ function renderSemFicha() {
       <td>${os.cliente||'—'}</td><td>${os.cidade||'—'}</td>
       <td><span class="badge bg-green">${os.finalizacao}</span></td>
       <td><span class="badge bg-orange">${os.fichas||'Não iniciada'}</span></td>
-      <td>${fmtDate(os.prazoFatal)}</td>
-      <td>${diasBadge(dias)}</td>
+      <td>${fmtPrazo(os)}</td>
+      <td>${badgeDias(os)}</td>
       <td><button class="btn btn-primary btn-xs" onclick="abrirDetalhe('${os.id}')">Atualizar</button></td>
     </tr>`;}).join('') : emptyRow(10,true,'✅','Nenhuma OS pendente de ficha de pesquisa');
 }
@@ -5146,10 +5232,11 @@ function renderSimple(mode) {
     else if(filtroAnd==='vistoria') d=d.filter(o=>o.vistoria==='Aguardando vistoria');
     else if(filtroAnd==='estagiario') d=d.filter(o=>statusOS(o)==='estagiario');
     else if(filtroAnd==='conferencia') d=d.filter(o=>statusOS(o)==='conferencia');
+    else if(filtroAnd==='pept') d=d.filter(o=>peptAberta(o));
 
     if(filtroAndDias){
       d=d.filter(o=>{
-        const dias = diasAte(o.prazoFatal);
+        const dias = diasRest(o);
         if(dias===null) return false;
         if(filtroAndDias==='vencido') return dias < 0;
         if(filtroAndDias==='critico') return dias <= 1;
@@ -5169,7 +5256,7 @@ function renderSimple(mode) {
     }
   }
   if(mode==='vencendo') {
-    d=d.filter(os=>isAberto(os)&&diasAte(os.prazoFatal)!==null&&diasAte(os.prazoFatal)<=5);
+    d=d.filter(os=>isAberto(os)&&diasRest(os)!==null&&diasRest(os)<=5);
     d=sortData(d, subSort.venc.key, subSort.venc.asc);
   }
   if(mode==='finalizadas') {
@@ -5240,12 +5327,12 @@ function renderSimple(mode) {
   const tb=document.getElementById(tbId);
   if(!tb) return;
 
-  if(!d.length) { tb.innerHTML=emptyRow(mode==='andamento'?13:10); return; }
+  if(!d.length) { tb.innerHTML=emptyRow(mode==='andamento'?14:10); return; }
 
   if(mode==='andamento') {
     const isAdm = (typeof PERFIL_ATUAL !== 'undefined' && PERFIL_ATUAL === 'admin');
     tb.innerHTML=d.map(os=>{
-      const dias=diasAte(os.prazoFatal);
+      const dias=diasRest(os);
       const isPrio = !!os.prioridade;
       const prioCell = isAdm
         ? `<td style="text-align:center;width:42px;">
@@ -5264,8 +5351,9 @@ function renderSimple(mode) {
         <td>${tipoBadge(os.tipoServico)}</td>
         <td><div class="mono el" title="${os.numeroOS}">${os.numeroOS}</div></td>
         <td>${os.cliente||'—'}</td><td>${os.cidade||'—'}</td>
-        <td>${fmtDate(os.prazoFatal)}</td>
-        <td>${diasBadge(dias)}</td>
+        <td>${fmtPrazo(os)}</td>
+        <td>${badgeDias(os)}</td>
+        <td style="vertical-align:top;">${peptCell(os)}</td>
         <td style="font-size:12px;color:var(--tx2);">${proxAcao(os)}</td>
         <td style="vertical-align:top;">${analiseSelect(os)}</td>
         <td style="vertical-align:top;">${respSelect(os)}</td>
@@ -5281,8 +5369,8 @@ function renderSimple(mode) {
         <td>${tipoBadge(os.tipoServico)}</td>
         <td><div class="mono el" title="${os.numeroOS}">${os.numeroOS}</div></td>
         <td>${os.cliente||'—'}</td><td>${os.cidade||'—'}</td>
-        <td>${fmtDate(os.prazoFatal)}</td>
-        <td>${diasBadge(diasAte(os.prazoFatal))}</td>
+        <td>${fmtPrazo(os)}</td>
+        <td>${badgeDias(os)}</td>
         <td><span class="badge ${bc}">${bl}</span></td>
         <td><button class="btn btn-primary btn-xs" onclick="abrirDetalhe('${os.id}')">Atualizar</button></td>
       </tr>`;
@@ -5544,7 +5632,7 @@ async function salvar() {
 function abrirDetalhe(id) {
   currentId=id;
   const os=DB.find(o=>o.id===id); if(!os) return;
-  const dias=diasAte(os.prazoFatal);
+  const dias=diasRest(os);
 
   document.getElementById('det-empresa').textContent=os.empresa;
   document.getElementById('det-ref').textContent=os.numeroOS;
@@ -5563,7 +5651,7 @@ function abrirDetalhe(id) {
   document.getElementById('dv-ref').textContent=vl(os.numeroOS);
   document.getElementById('dv-edital').textContent=vl(os.edital);
   document.getElementById('dv-abertura').textContent=os.dataAbertura?fmtDT(os.dataAbertura):'—';
-  document.getElementById('dv-prazo').textContent=fmtDate(os.prazoFatal);
+  document.getElementById('dv-prazo').innerHTML=fmtPrazo(os);
   document.getElementById('dv-dias').innerHTML=diasStr;
   document.getElementById('dv-exec').textContent=os.prazoExecucao?os.prazoExecucao+' dias':'—';
   document.getElementById('dv-valor').textContent=isAdmin()?(os.valor?'R$ '+os.valor:'—'):'••••';
@@ -5657,6 +5745,19 @@ function editarAtual() {
 
 async function salvarStatus() {
   const os=DB.find(o=>o.id===currentId); if(!os) return;
+
+  // COT AvaliaBens 3.3.2.5.3.1 — não se conclui nem cancela O.S. com PEPT em aberto
+  const _final = document.getElementById('ed-final')?.value;
+  if(_final === 'Laudo Finalizado' && peptAberta(os)) {
+    const d = peptDiasEmAberto(os);
+    const segue = confirm(
+      'Esta O.S. está com PEPT aberta desde ' + fmtDate(os.peptInicio) + ' (há ' + d + ' dia' + (d===1?'':'s') + ').\n\n' +
+      'O COT AvaliaBens, item 3.3.2.5.3.1, determina que a O.S. não deve ser concluída nem cancelada enquanto a PEPT não for solucionada.\n\n' +
+      'Finalizar mesmo assim?'
+    );
+    if(!segue) return;
+  }
+
   os.vistoria=document.getElementById('ed-vistoria').value;
   os.avaliacao=document.getElementById('ed-avaliacao').value;
   os.preenchimento=document.getElementById('ed-preenchi').value;
@@ -6186,7 +6287,7 @@ function executarBuscaGlobal() {
   res.innerHTML = matches.slice(0,50).map(os => {
     const st = statusOS(os);
     const stCor = st==='finalizado'?'var(--grn)':st==='vistoriada'?'var(--blu)':st==='preenchida'?'var(--yel)':'var(--tx3)';
-    const dias = os.prazoFatal ? diasAte(os.prazoFatal) : null;
+    const dias = os.prazoFatal ? diasRest(os) : null;
     const diasTxt = dias!==null ? (dias<0?`<span style="color:var(--red);font-weight:600;">${Math.abs(dias)}d vencida</span>`:`<span style="color:${dias<=3?'var(--red)':dias<=7?'var(--yel)':'var(--tx3)'};">${dias}d restantes</span>`) : '';
     return `<div onclick="closeOv('ov-busca');abrirDetalhe('${os.id}')" style="padding:10px 12px;border:1px solid var(--br);border-radius:var(--rs);margin-bottom:6px;cursor:pointer;background:var(--bg2);transition:background .15s;" onmouseover="this.style.background='var(--bg3)'" onmouseout="this.style.background='var(--bg2)'">
       <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;">
@@ -6904,17 +7005,7 @@ function isPauloUser() {
   return (USUARIO_ATUAL.email||'').toLowerCase().trim() === 'paauloccp@gmail.com';
 }
 
-// ── Júlia: base fixa + comissão por preenchimento ──
-// ⚠️ Coloque aqui o e-mail que a Júlia usa para entrar no sistema.
-//    Enquanto estiver vazio, o sistema a identifica pelo nome do perfil.
-const EMAIL_JULIA = 'jmottarezende@gmail.com';
-function isJuliaUser() {
-  if(!USUARIO_ATUAL) return false;
-  const mail = (USUARIO_ATUAL.email||'').toLowerCase().trim();
-  if(EMAIL_JULIA) return mail === EMAIL_JULIA.toLowerCase().trim();
-  const nome = (USUARIO_ATUAL.nome||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().trim();
-  return nome.startsWith('julia');
-}
+
 function isAdminUser() {
   return (USUARIO_ATUAL?.email||'').toLowerCase().trim() === 'lcrissatiengenharia@gmail.com';
 }
@@ -6938,16 +7029,6 @@ function aplicarPerfil() {
     if(widget) widget.style.setProperty('display', show ? 'block' : 'none', 'important');
     if(btn)    btn.style.setProperty('display',    show ? 'flex'  : 'none', 'important');
     if(lbl)    lbl.textContent = isPauloUser() && !isAdmin() ? 'Meu Comissionamento' : 'Comissão — Paulo';
-
-    // Widget e botão da Júlia — Júlia e Admin
-    const jw   = document.getElementById('julia-widget');
-    const jbtn = document.getElementById('btn-remuneracao-julia');
-    const jlbl = document.getElementById('btn-julia-lbl');
-    const jshow = isJuliaUser() || isAdmin();
-    if(jw)   jw.style.setProperty('display',   jshow ? 'block' : 'none', 'important');
-    if(jbtn) jbtn.style.setProperty('display', jshow ? 'flex'  : 'none', 'important');
-    if(jlbl) jlbl.textContent = isJuliaUser() && !isAdmin() ? 'Minha Remuneração' : 'Remuneração — Júlia';
-    if(typeof atualizarWidgetJulia === 'function') atualizarWidgetJulia();
   }, 0);
 
   // Badge do usuário na sidebar
@@ -8558,7 +8639,7 @@ function renderDashSaude() {
   const abertos = DB.filter(isAberto);
   const hojeMs  = new Date(); hojeMs.setHours(0,0,0,0);
   const criticas = abertos.filter(os => {
-    const d = diasAte(os.prazoFatal);
+    const d = diasRest(os);
     return d !== null && d <= 0;
   });
   const idades = abertos.map(os => {
@@ -8746,7 +8827,7 @@ function calDiaClick(k,n){
 // ══════════════════════════════════════════════════════════════
 function renderDashTimeline() {
   const filtroEmp=document.getElementById('tl-filtro-emp')?.value||'';
-  const abertos=DB.filter(isAberto).map(os=>({...os,_dias:diasAte(os.prazoFatal)}));
+  const abertos=DB.filter(isAberto).map(os=>({...os,_dias:diasRest(os)}));
 
   // Popular select de empresas
   const sel=document.getElementById('tl-filtro-emp');
@@ -9314,7 +9395,7 @@ function renderDashCidades() {
   const filtro = document.getElementById('cid-filtro-status')?.value || 'all';
   const base = filtro==='abertas' ? DB.filter(isAberto)
     : filtro==='finalizadas' ? DB.filter(os=>!isAberto(os))
-    : filtro==='vencidas' ? DB.filter(os=>isAberto(os)&&diasAte(os.prazoFatal)!==null&&diasAte(os.prazoFatal)<0)
+    : filtro==='vencidas' ? DB.filter(os=>isAberto(os)&&diasRest(os)!==null&&diasRest(os)<0)
     : DB;
 
   // Normalizar cidade
@@ -9327,7 +9408,7 @@ function renderDashCidades() {
     if (!isAberto(os)) cidMap[c].finalizadas++;
     else {
       cidMap[c].abertas++;
-      if (diasAte(os.prazoFatal)!==null && diasAte(os.prazoFatal)<0) cidMap[c].vencidas++;
+      if (diasRest(os)!==null && diasRest(os)<0) cidMap[c].vencidas++;
     }
   });
   const baseMap = {};
@@ -9403,14 +9484,14 @@ function renderDashCidades() {
 function mostrarDetalheCidade(cidade) {
   const normCid = s => s ? s.split('/')[0].replace(/\s+/g,' ').trim() : '?';
   const osCity = DB.filter(os => normCid(os.cidade)===cidade).sort((a,b)=>{
-    const da=diasAte(a.prazoFatal)??(isAberto(a)?Infinity:9999);
-    const db=diasAte(b.prazoFatal)??(isAberto(b)?Infinity:9999);
+    const da=diasRest(a)??(isAberto(a)?Infinity:9999);
+    const db=diasRest(b)??(isAberto(b)?Infinity:9999);
     return da-db;
   });
   document.getElementById('cid-detail').innerHTML = `
     <div style="font-size:12.5px;font-weight:700;margin-bottom:10px;padding-bottom:8px;border-bottom:1px solid var(--br);">📍 ${cidade} — ${osCity.length} OS</div>
     ${osCity.slice(0,10).map(os => {
-      const dias = diasAte(os.prazoFatal);
+      const dias = diasRest(os);
       const [bc,bl] = statusBadge(os);
       return `<div class="dli" onclick="abrirDetalhe('${os.id}')" style="padding:6px 4px;">
         <div style="flex:1;min-width:0;">
@@ -9419,7 +9500,7 @@ function mostrarDetalheCidade(cidade) {
         </div>
         <div style="display:flex;flex-direction:column;align-items:flex-end;gap:3px;flex-shrink:0;">
           <span class="badge ${bc}" style="font-size:10px;">${bl}</span>
-          ${dias!==null?diasBadge(dias):''}
+          ${badgeDias(os)}
         </div>
       </div>`;
     }).join('')}
@@ -9701,143 +9782,15 @@ window.logout = async function() {
 };
 
 // ══════════════════════════════════════
-// REMUNERAÇÃO — JÚLIA
+// PREENCHIMENTO
 // ══════════════════════════════════════
-// Base fixa mensal + comissão por preenchimento a partir da meta.
-// Ao atingir a meta, os R$ 5,00 valem para TODAS as OS do mês (degrau):
-//   19 OS → R$ 500,00   ·   20 OS → 500 + 20×5 = R$ 600,00   ·   50 OS → R$ 750,00
-const JULIA_NOME      = 'Júlia';
-const JULIA_BASE_FIXA = 500;
-const JULIA_META_OS   = 20;
-const JULIA_VALOR_OS  = 5;
-
-// Carimba quando o preenchimento é concluído (define o mês da comissão)
+// Carimba quando o preenchimento é concluído 
 function carimbarPreenchimento(os) {
   if(!os) return;
   if(os.preenchimento === 'Preenchido') {
     if(!os.preenchidoEm) os.preenchidoEm = new Date().toISOString();
   } else if(os.preenchidoEm) {
     delete os.preenchidoEm;   // voltou atrás: deixa de contar
-  }
-}
-
-// Data que define em que mês a OS entra na conta.
-// Sem carimbo (OS preenchidas antes desta versão), usa a abertura.
-function dataPreenchimento(os) {
-  const iso = os.preenchidoEm || os.dataAbertura || os.criadoEm;
-  if(!iso) return null;
-  const d = new Date(iso.includes('T') ? iso : iso + 'T12:00:00');
-  return isNaN(d) ? null : d;
-}
-
-function osPreenchidasJulia(ano, mes) {
-  return DB.filter(os => {
-    if((os.responsavel||'') !== JULIA_NOME) return false;
-    if(os.preenchimento !== 'Preenchido') return false;
-    if(ano === null) return true;
-    const d = dataPreenchimento(os);
-    return d && d.getFullYear() === ano && d.getMonth() === mes;
-  });
-}
-
-function calcRemuneracaoJulia(ano, mes) {
-  const itens = osPreenchidasJulia(ano, mes);
-  const qtd = itens.length;
-  const atingiu = qtd >= JULIA_META_OS;
-  const variavel = atingiu ? qtd * JULIA_VALOR_OS : 0;
-  return { itens, qtd, atingiu, base: JULIA_BASE_FIXA, variavel,
-    total: JULIA_BASE_FIXA + variavel,
-    faltam: Math.max(0, JULIA_META_OS - qtd),
-    proximoPatamar: JULIA_BASE_FIXA + JULIA_META_OS * JULIA_VALOR_OS };
-}
-
-function atualizarWidgetJulia() {
-  const widget = document.getElementById('julia-widget');
-  if(!widget) return;
-  const show = isJuliaUser() || isAdmin();
-  if(!show) { widget.style.setProperty('display','none','important'); return; }
-  widget.style.setProperty('display','block','important');
-
-  const now = new Date();
-  const r = calcRemuneracaoJulia(now.getFullYear(), now.getMonth());
-  const el = id => document.getElementById(id);
-
-  if(el('jw-label')) el('jw-label').textContent =
-    (isAdmin() && !isJuliaUser()) ? '✍️ Remuneração — Júlia' : '✍️ Minha Remuneração';
-  if(el('jw-total')) el('jw-total').textContent = fmtVal(r.total);
-  if(el('jw-sub')) el('jw-sub').textContent =
-    r.qtd + ' preenchida' + (r.qtd===1?'':'s') + ' · ' + now.toLocaleDateString('pt-BR',{month:'short',year:'2-digit'});
-
-  const pct = Math.min(100, Math.round(r.qtd / JULIA_META_OS * 100));
-  const barra = el('jw-barra');
-  if(barra) { barra.style.width = pct + '%'; barra.style.background = r.atingiu ? '#4ade80' : '#fbbf24'; }
-  const meta = el('jw-meta');
-  if(meta) meta.textContent = r.atingiu
-    ? 'meta batida · +' + fmtVal(r.variavel)
-    : 'faltam ' + r.faltam + ' para a meta de ' + JULIA_META_OS;
-}
-
-function renderRemuneracaoJulia() {
-  const now = new Date();
-  const sel = document.getElementById('rj-mes-sel');
-  const offset = sel ? sel.value : '0';
-  let ano = null, mes = null, rotulo = 'Todos os períodos';
-  if(offset !== 'all') {
-    const alvo = new Date(now.getFullYear(), now.getMonth() - (parseInt(offset)||0), 1);
-    ano = alvo.getFullYear(); mes = alvo.getMonth();
-    rotulo = alvo.toLocaleDateString('pt-BR',{month:'long',year:'numeric'});
-  }
-  const r = calcRemuneracaoJulia(ano, mes);
-  const el = id => document.getElementById(id);
-
-  if(el('rj-titulo')) el('rj-titulo').textContent =
-    (isAdmin() && !isJuliaUser()) ? 'Remuneração — Júlia' : 'Minha Remuneração';
-  if(el('rj-subtitulo')) el('rj-subtitulo').textContent = rotulo;
-
-  const pct = Math.min(100, Math.round(r.qtd / JULIA_META_OS * 100));
-  if(el('rj-kpis')) el('rj-kpis').innerHTML =
-    '<div class="stat" style="--sc:var(--grn)"><div class="stat-ic">💰</div><div class="stat-lbl">Total do mês</div>' +
-      '<div class="stat-val" style="font-size:22px;">' + fmtVal(r.total) + '</div>' +
-      '<div class="stat-sub">' + fmtVal(r.base) + ' fixo' + (r.variavel ? ' + ' + fmtVal(r.variavel) + ' variável' : '') + '</div></div>' +
-    '<div class="stat" style="--sc:var(--acc)"><div class="stat-ic">✍️</div><div class="stat-lbl">OS preenchidas</div>' +
-      '<div class="stat-val">' + r.qtd + '</div><div class="stat-sub">meta: ' + JULIA_META_OS + ' OS</div></div>' +
-    '<div class="stat" style="--sc:' + (r.atingiu?'var(--grn)':'var(--org)') + '"><div class="stat-ic">' + (r.atingiu?'🎯':'⏳') + '</div>' +
-      '<div class="stat-lbl">' + (r.atingiu?'Comissão ativa':'Falta para a meta') + '</div>' +
-      '<div class="stat-val" style="font-size:' + (r.atingiu?'22px':'28px') + ';">' + (r.atingiu?fmtVal(r.variavel):r.faltam) + '</div>' +
-      '<div class="stat-sub">' + (r.atingiu ? fmtVal(JULIA_VALOR_OS) + ' × ' + r.qtd + ' OS'
-        : 'ao bater ' + JULIA_META_OS + ', o mês vai a ' + fmtVal(r.proximoPatamar)) + '</div></div>';
-
-  const prog = el('rj-progresso');
-  if(prog) prog.innerHTML =
-    '<div style="display:flex;justify-content:space-between;font-size:11.5px;color:var(--tx3);margin-bottom:8px;">' +
-      '<span>' + r.qtd + ' de ' + JULIA_META_OS + ' preenchimentos</span>' +
-      '<span style="font-weight:700;color:' + (r.atingiu?'var(--grn)':'var(--org)') + ';">' + (r.atingiu?'meta batida ✓':pct+'%') + '</span></div>' +
-    '<div style="height:12px;border-radius:999px;background:var(--bg4);overflow:hidden;">' +
-      '<div style="height:100%;width:' + pct + '%;border-radius:999px;transition:width .8s cubic-bezier(.34,1.3,.64,1);background:' +
-      (r.atingiu?'linear-gradient(90deg,#16a34a,#4ade80)':'linear-gradient(90deg,#d97706,#fbbf24)') + ';"></div></div>' +
-    '<div style="font-size:11.5px;color:var(--tx2);margin-top:10px;line-height:1.5;">' +
-      (r.atingiu
-        ? 'Meta atingida. Com a vigésima OS, <b>todas</b> as ' + r.qtd + ' do mês passam a pagar ' + fmtVal(JULIA_VALOR_OS) + ' cada — ' + fmtVal(r.base) + ' + ' + fmtVal(r.variavel) + ' = <b>' + fmtVal(r.total) + '</b>.'
-        : 'Faltam <b>' + r.faltam + '</b> preenchimento' + (r.faltam===1?'':'s') + ' para destravar a comissão. Ao bater ' + JULIA_META_OS + ', o mês salta de ' + fmtVal(r.base) + ' para ' + fmtVal(r.proximoPatamar) + '.') +
-    '</div>';
-
-  const tb = el('rj-tabela');
-  if(tb) {
-    const lista = [...r.itens].sort((a,b)=>{
-      const da = dataPreenchimento(a), dbb = dataPreenchimento(b);
-      return (dbb?dbb.getTime():0) - (da?da.getTime():0);
-    });
-    tb.innerHTML = lista.length ? lista.map((os,i)=>
-      '<tr><td style="color:var(--tx3);width:40px;">' + (lista.length-i) + '</td>' +
-      '<td style="font-weight:600;">' + escAttr(os.empresa||'—') + '</td>' +
-      '<td>' + tipoBadge(os.tipoServico) + '</td>' +
-      '<td><div class="mono el" title="' + escAttr(os.numeroOS) + '">' + escAttr(os.numeroOS||'—') + '</div></td>' +
-      '<td>' + escAttr(os.cliente||'—') + '</td>' +
-      '<td>' + (()=>{const d=dataPreenchimento(os);return d?d.toLocaleDateString('pt-BR'):'—';})() +
-        (os.preenchidoEm?'':' <span style="font-size:9px;color:var(--tx4);" title="Preenchida antes do registro de data — usando a abertura da OS">(abertura)</span>') + '</td>' +
-      '<td style="text-align:right;font-weight:700;color:' + (r.atingiu?'var(--grn)':'var(--tx4)') + ';">' + (r.atingiu?fmtVal(JULIA_VALOR_OS):'—') + '</td></tr>'
-    ).join('')
-    : '<tr><td colspan="7" style="text-align:center;padding:40px;color:var(--tx3);font-size:12.5px;">Nenhuma OS preenchida neste período</td></tr>';
   }
 }
 
