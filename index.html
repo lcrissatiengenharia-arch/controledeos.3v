@@ -889,6 +889,13 @@ tr.row-vencido{background:rgba(232,77,110,.05);}
 .user-badge .av{width:28px;height:28px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;flex-shrink:0;}
 .user-badge .av.admin{background:rgba(78,123,255,.2);color:var(--acc);}
 .user-badge .av.estagiario{background:rgba(24,212,160,.15);color:var(--grn);}
+.user-badge .av-wrap{position:relative;flex-shrink:0;line-height:0;}
+.user-badge .av-foto{width:28px;height:28px;border-radius:50%;object-fit:cover;cursor:pointer;display:block;border:1.5px solid var(--br2);transition:transform .15s,border-color .15s;}
+.user-badge .av-foto:hover{transform:scale(1.08);border-color:var(--acc);}
+.user-badge .av-wrap .av-x{position:absolute;top:-5px;right:-5px;width:15px;height:15px;border-radius:50%;border:none;
+  background:var(--red);color:#fff;font-size:11px;line-height:1;cursor:pointer;display:none;align-items:center;justify-content:center;padding:0;}
+.user-badge .av-wrap:hover .av-x{display:flex;}
+.user-badge{margin-top:8px;}
 .user-badge .name{font-size:12px;font-weight:600;flex:1;}
 .user-badge .role{font-size:10px;color:var(--tx3);}
 .logout-btn{font-size:11px;color:var(--tx3);cursor:pointer;border:none;background:none;font-family:'Inter',sans-serif;padding:4px 8px;border-radius:5px;transition:all .15s;}
@@ -6969,6 +6976,7 @@ async function esqueciSenha() {
 async function _carregarPerfil(user) {
   // 1) Tenta claims (recomendado — definido por Cloud Function)
   let perfil = null, nome = null, cargo = null;
+  let foto = null;
   try {
     const claims = await window._fbAuth.getClaims(true);
     if(claims?.perfil) {
@@ -6978,6 +6986,12 @@ async function _carregarPerfil(user) {
     }
   } catch(e) { /* ignora — segue p/ fallback */ }
 
+  // A foto fica sempre no doc /usuarios/{uid}, mesmo quando o perfil veio de claims
+  if(!foto) {
+    try { const pf = await window._fbAuth.getProfile(user.uid); if(pf && pf.foto) foto = pf.foto; }
+    catch(e) { /* silencioso */ }
+  }
+
   // 2) Fallback: doc /usuarios/{uid}
   if(!perfil) {
     try {
@@ -6986,6 +7000,7 @@ async function _carregarPerfil(user) {
         perfil = prof.perfil || 'estagiario';
         nome   = prof.nome   || user.displayName || user.email;
         cargo  = prof.cargo  || (perfil==='admin' ? 'Administrador' : 'Colaborador');
+        foto   = prof.foto   || null;
       }
     } catch(e) { console.warn('Falha ao ler /usuarios/{uid}:', e); }
   }
@@ -6997,7 +7012,7 @@ async function _carregarPerfil(user) {
     cargo  = 'Colaborador';
   }
 
-  return { uid: user.uid, email: user.email, nome, perfil, cargo, user: user.email };
+  return { uid: user.uid, email: user.email, nome, perfil, cargo, foto, user: user.email };
 }
 
 function isPauloUser() {
@@ -7008,6 +7023,117 @@ function isPauloUser() {
 
 function isAdminUser() {
   return (USUARIO_ATUAL?.email||'').toLowerCase().trim() === 'lcrissatiengenharia@gmail.com';
+}
+
+// ══════════════════════════════════════
+// FOTO DE PERFIL
+// ══════════════════════════════════════
+// A foto fica no próprio documento do usuário em /usuarios/{uid}, como imagem
+// embutida (data URL). Antes de gravar, ela é recortada em quadrado e reduzida
+// para 128×128 — o resultado fica na casa dos 10 KB, bem abaixo do limite de
+// 1 MB por documento do Firestore. Não precisa do Firebase Storage.
+const FOTO_LADO = 128;      // pixels do lado do quadrado gravado
+const FOTO_QUALIDADE = 0.82;
+const FOTO_LIMITE_KB = 200; // trava de segurança
+
+function abrirSeletorFoto() {
+  if(!USUARIO_ATUAL) return;
+  const inp = document.createElement('input');
+  inp.type = 'file';
+  inp.accept = 'image/*';
+  inp.onchange = () => { if(inp.files && inp.files[0]) processarFoto(inp.files[0]); };
+  inp.click();
+}
+
+function processarFoto(file) {
+  if(!file.type.startsWith('image/')) { toast('Escolha um arquivo de imagem','err'); return; }
+  const reader = new FileReader();
+  reader.onerror = () => toast('Não consegui ler o arquivo','err');
+  reader.onload = () => {
+    const img = new Image();
+    img.onerror = () => toast('Arquivo de imagem inválido','err');
+    img.onload = () => {
+      try {
+        // Recorte quadrado central, depois redução
+        const lado = Math.min(img.width, img.height);
+        const sx = (img.width  - lado) / 2;
+        const sy = (img.height - lado) / 2;
+        const cv = document.createElement('canvas');
+        cv.width = cv.height = FOTO_LADO;
+        const ctx = cv.getContext('2d');
+        ctx.imageSmoothingQuality = 'high';
+        ctx.drawImage(img, sx, sy, lado, lado, 0, 0, FOTO_LADO, FOTO_LADO);
+        const dataUrl = cv.toDataURL('image/jpeg', FOTO_QUALIDADE);
+        const kb = Math.round(dataUrl.length * 0.75 / 1024);
+        if(kb > FOTO_LIMITE_KB) { toast('Imagem grande demais mesmo depois de reduzida','err'); return; }
+        salvarFoto(dataUrl, kb);
+      } catch(e) { console.error(e); toast('Falha ao processar a imagem','err'); }
+    };
+    img.src = reader.result;
+  };
+  reader.readAsDataURL(file);
+}
+
+async function salvarFoto(dataUrl, kb) {
+  if(!USUARIO_ATUAL || !window._fbAuth?.setProfile) { toast('Perfil indisponível','err'); return; }
+  const anterior = USUARIO_ATUAL.foto;
+  USUARIO_ATUAL.foto = dataUrl;
+  renderUserBadge();
+  try {
+    await window._fbAuth.setProfile(USUARIO_ATUAL.uid, { foto: dataUrl || null });
+    toast(dataUrl ? `Foto atualizada (${kb} KB)` : 'Foto removida','ok');
+  } catch(err) {
+    console.error('Erro ao salvar a foto:', err);
+    USUARIO_ATUAL.foto = anterior;
+    renderUserBadge();
+    toast('Não consegui salvar a foto. Verifique as regras do Firestore.','err');
+  }
+}
+
+async function removerFoto(e) {
+  if(e) e.stopPropagation();
+  if(!USUARIO_ATUAL?.foto) return;
+  if(!confirm('Remover sua foto de perfil?')) return;
+  const anterior = USUARIO_ATUAL.foto;
+  delete USUARIO_ATUAL.foto;
+  renderUserBadge();
+  try {
+    await window._fbAuth.setProfile(USUARIO_ATUAL.uid, { foto: null });
+    toast('Foto removida','ok');
+  } catch(err) {
+    console.error(err); USUARIO_ATUAL.foto = anterior; renderUserBadge();
+    toast('Não consegui remover a foto','err');
+  }
+}
+
+// Avatar do usuário logado: foto quando existir, emoji do perfil quando não
+function avatarUsuario() {
+  const f = USUARIO_ATUAL?.foto;
+  if(f) {
+    return `<img src="${f}" class="av av-foto" alt="Foto de perfil"
+      title="Clique para trocar a foto" onclick="abrirSeletorFoto()">`;
+  }
+  return `<div class="av ${PERFIL_ATUAL}" title="Clique para escolher uma foto"
+    style="cursor:pointer;" onclick="abrirSeletorFoto()">${PERFIL_ATUAL==='admin'?'👑':'📝'}</div>`;
+}
+
+function renderUserBadge() {
+  const wrap = document.getElementById('user-badge-wrap');
+  if(!wrap || !USUARIO_ATUAL) return;
+  const podeGerenciar = isAdmin();
+  wrap.innerHTML = `
+    <div class="user-badge">
+      <div class="av-wrap">
+        ${avatarUsuario()}
+        ${USUARIO_ATUAL?.foto ? `<button class="av-x" onclick="removerFoto(event)" title="Remover foto">×</button>` : ''}
+      </div>
+      <div style="flex:1;min-width:0;">
+        <div class="name">${escAttr(USUARIO_ATUAL?.nome || 'Usuário')}</div>
+        <div class="role">${escAttr(USUARIO_ATUAL?.cargo||'Colaborador')}</div>
+      </div>
+      ${podeGerenciar ? '<button class="logout-btn" onclick="abrirGerenciarUsuarios()" title="Gerenciar usuários" style="margin-right:4px;">👥</button>' : ''}
+      <button class="logout-btn" onclick="logout()" title="Sair">↩</button>
+    </div>`;
 }
 
 function aplicarPerfil() {
@@ -7032,20 +7158,7 @@ function aplicarPerfil() {
   }, 0);
 
   // Badge do usuário na sidebar
-  const wrap = document.getElementById('user-badge-wrap');
-  if(wrap) {
-    const podeGerenciar = isAdmin();
-    wrap.innerHTML = `
-      <div class="user-badge">
-        <div class="av ${PERFIL_ATUAL}">${PERFIL_ATUAL==='admin'?'👑':'📝'}</div>
-        <div style="flex:1;min-width:0;">
-          <div class="name">${USUARIO_ATUAL?.nome || 'Usuário'}</div>
-          <div class="role">${USUARIO_ATUAL?.cargo||'Colaborador'}</div>
-        </div>
-        ${podeGerenciar ? '<button class="logout-btn" onclick="abrirGerenciarUsuarios()" title="Gerenciar usuários" style="margin-right:4px;">👥</button>' : ''}
-        <button class="logout-btn" onclick="logout()" title="Sair">↩</button>
-      </div>`;
-  }
+  renderUserBadge();
 
   try {
     // Inicia Firebase listener se ainda não iniciou
