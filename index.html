@@ -1462,6 +1462,17 @@ tr.doc-ok{opacity:.72;}
       <div class="card-hd"><h3>📋 OS com Comissão</h3><div id="cp-total-tag" style="font-size:11px;color:var(--tx3);"></div></div>
       <div id="cp-tabela" style="overflow-x:auto;margin-top:8px;"></div>
     </div>
+    <!-- Comissão especial por período — SOMENTE ADMIN -->
+    <div class="card" id="ce-card" style="margin-top:16px;display:none;border:1px solid #f59e0b55;">
+      <div class="card-hd"><h3>⭐ Comissão especial por período — Paulo e João Paulo <span style="font-size:10px;font-weight:600;color:var(--tx3);">(só o administrador vê)</span></h3><div id="ce-total-tag" style="font-size:11px;color:var(--tx3);"></div></div>
+      <div style="font-size:11.5px;color:var(--tx3);margin:4px 0 10px;">Combinado de % sobre o valor da OS. Paulo: substitui a comissão fixa (R$ 18 / 32 / 30). João Paulo: valor extra, além do salário. Escolha a pessoa em cada período.</div>
+      <div id="ce-periodos"></div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;margin:8px 0 14px;">
+        <button class="btn btn-ghost btn-sm" onclick="ceAddPeriodo()">➕ Novo período</button>
+        <button class="btn btn-primary btn-sm" onclick="ceSalvar()">💾 Salvar regras</button>
+      </div>
+      <div id="ce-resultado" style="overflow-x:auto;"></div>
+    </div>
   </div>
 </div>
 
@@ -10057,6 +10068,169 @@ function renderComissaoPaulo() {
       </table>`;
     }
   }
+  renderComissaoEspecial();
+}
+
+// ══════════════════════════════════════
+// COMISSÃO ESPECIAL POR PERÍODO (somente admin)
+// Ex.: viagem de 21 a 31/10 — % sobre o valor da OS no lugar do valor fixo.
+// Regras ficam no perfil do admin (/usuarios/{uid}.comissaoEspecial) e no navegador.
+// ══════════════════════════════════════
+const CE_KEY = 'ce_regras_v1';
+let CE_REGRAS = null;
+let _ceCarregadoNuvem = false;
+
+function _ceEsc(s){ return String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+function _ceNovo(pessoa){ return {id:Date.now().toString(36)+Math.random().toString(36).slice(2,6), pessoa:pessoa||'Paulo', desc:'Viagem', ini:'2026-10-21', fim:'2026-10-31', pct:'', base:'fech', soPaulo:true, soTipos:true}; }
+function _cePessoa(r){ return r.pessoa==='João Paulo' ? 'João Paulo' : 'Paulo'; }
+// Comissão normal por OS: Paulo tem valor fixo por tipo; João Paulo é assalariado (sem comissão por OS)
+function _ceNormal(os, r){ return _cePessoa(r)==='Paulo' ? calcComissaoPaulo(os) : 0; }
+
+function _ceCarregar(){
+  if(CE_REGRAS) return;
+  try { const s=localStorage.getItem(CE_KEY); if(s) CE_REGRAS=JSON.parse(s); } catch(e){}
+  if(!Array.isArray(CE_REGRAS) || !CE_REGRAS.length) CE_REGRAS=[_ceNovo('Paulo'), _ceNovo('João Paulo')];
+  if(!_ceCarregadoNuvem && USUARIO_ATUAL?.uid && window._fbAuth?.getProfile){
+    _ceCarregadoNuvem = true;
+    window._fbAuth.getProfile(USUARIO_ATUAL.uid).then(p=>{
+      if(p && Array.isArray(p.comissaoEspecial) && p.comissaoEspecial.length){
+        CE_REGRAS = p.comissaoEspecial;
+        try { localStorage.setItem(CE_KEY, JSON.stringify(CE_REGRAS)); } catch(e){}
+        renderComissaoEspecial();
+      }
+    }).catch(e=>console.warn('comissaoEspecial:', e));
+  }
+}
+
+function ceAddPeriodo(){ _ceCarregar(); const n=_ceNovo(); n.ini=''; n.fim=''; n.desc=''; CE_REGRAS.push(n); renderComissaoEspecial(); }
+function ceRemover(id){ if(!confirm('Remover este período?')) return; CE_REGRAS=CE_REGRAS.filter(r=>r.id!==id); if(!CE_REGRAS.length) CE_REGRAS=[_ceNovo('Paulo')]; renderComissaoEspecial(); }
+function ceSet(id, campo, el){
+  const r=CE_REGRAS.find(x=>x.id===id); if(!r) return;
+  r[campo] = el.type==='checkbox' ? el.checked : el.value;
+  try { localStorage.setItem(CE_KEY, JSON.stringify(CE_REGRAS)); } catch(e){}
+  renderComissaoEspecial();
+}
+async function ceSalvar(){
+  if(!isAdmin()) return;
+  try { localStorage.setItem(CE_KEY, JSON.stringify(CE_REGRAS)); } catch(e){}
+  try {
+    await window._fbAuth.setProfile(USUARIO_ATUAL.uid, {comissaoEspecial: CE_REGRAS});
+    toast('Regras de comissão especial salvas');
+  } catch(e){
+    console.warn(e);
+    toast('Salvo só neste navegador (não foi possível gravar na nuvem)','warn');
+  }
+}
+
+// Data (AAAA-MM-DD, fuso local) que define se a OS cai no período
+function _ceDataOS(os, base){
+  const v = base==='preench' ? os.preenchidoEm : base==='abert' ? os.dataAbertura : os.dataFechamento;
+  if(!v) return '';
+  if(!String(v).includes('T')) return String(v).slice(0,10);
+  const d=new Date(v); if(isNaN(d)) return '';
+  return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
+}
+
+function _ceCalcular(r){
+  const pct = parseFloat(String(r.pct||'').replace(',','.'))||0;
+  let semResp = 0;
+  const itens = DB.filter(os=>{
+    if(r.base==='fech' && isAberto(os)) return false;
+    const d=_ceDataOS(os, r.base);
+    if(!d || !r.ini || !r.fim || d<r.ini || d>r.fim) return false;
+    if(r.soTipos && !calcComissaoPaulo(os)) return false;
+    if(r.soPaulo){
+      const resp=(os.responsavel||'').trim();
+      if(!resp){ semResp++; return false; }
+      if(resp!==_cePessoa(r)) return false;
+    }
+    return true;
+  }).map(os=>{
+    const valor = parsVal(os.valor);
+    const normal = _ceNormal(os, r);
+    const especial = Math.round(valor*pct)/100;
+    return {...os, _valor:valor, _normal:normal, _especial:especial, _dif:especial-normal, _data:_ceDataOS(os,r.base)};
+  }).sort((a,b)=>a._data.localeCompare(b._data));
+  const soma = k => itens.reduce((s,o)=>s+o[k],0);
+  return {pct, itens, semResp, valor:soma('_valor'), normal:soma('_normal'), especial:soma('_especial'), dif:soma('_dif')};
+}
+
+function renderComissaoEspecial(){
+  const card=document.getElementById('ce-card');
+  if(!card) return;
+  if(!isAdmin()){ card.style.display='none'; return; }
+  card.style.display='';
+  _ceCarregar();
+  const inp='padding:5px 8px;font-size:12px;background:var(--bg2);border:1px solid var(--br);border-radius:var(--rs);color:var(--tx);';
+  const lbl='font-size:9.5px;font-weight:700;color:var(--tx3);text-transform:uppercase;letter-spacing:.5px;display:block;margin-bottom:3px;';
+
+  document.getElementById('ce-periodos').innerHTML = CE_REGRAS.map(r=>`
+    <div style="display:flex;flex-wrap:wrap;gap:10px;align-items:flex-end;padding:10px 12px;background:var(--bg3);border-radius:var(--rs);margin-bottom:8px;">
+      <div><span style="${lbl}">Pessoa</span><select style="${inp}" onchange="ceSet('${r.id}','pessoa',this)">
+        <option value="Paulo" ${_cePessoa(r)==='Paulo'?'selected':''}>Paulo</option>
+        <option value="João Paulo" ${_cePessoa(r)==='João Paulo'?'selected':''}>João Paulo</option>
+      </select></div>
+      <div><span style="${lbl}">Descrição</span><input style="${inp}width:130px;" value="${_ceEsc(r.desc)}" placeholder="Ex.: Viagem" onchange="ceSet('${r.id}','desc',this)"></div>
+      <div><span style="${lbl}">De</span><input type="date" style="${inp}" value="${_ceEsc(r.ini)}" onchange="ceSet('${r.id}','ini',this)"></div>
+      <div><span style="${lbl}">Até</span><input type="date" style="${inp}" value="${_ceEsc(r.fim)}" onchange="ceSet('${r.id}','fim',this)"></div>
+      <div><span style="${lbl}">% sobre o valor</span><input type="number" min="0" max="100" step="0.5" style="${inp}width:80px;" value="${_ceEsc(r.pct)}" placeholder="ex.: 30" onchange="ceSet('${r.id}','pct',this)"></div>
+      <div><span style="${lbl}">Data considerada</span><select style="${inp}" onchange="ceSet('${r.id}','base',this)">
+        <option value="fech" ${r.base==='fech'?'selected':''}>Fechamento</option>
+        <option value="preench" ${r.base==='preench'?'selected':''}>Preenchimento concluído</option>
+        <option value="abert" ${r.base==='abert'?'selected':''}>Abertura</option>
+      </select></div>
+      <label style="font-size:11.5px;display:inline-flex;gap:5px;align-items:center;cursor:pointer;white-space:nowrap;padding-bottom:6px;"><input type="checkbox" style="width:auto;margin:0;" ${r.soPaulo?'checked':''} onchange="ceSet('${r.id}','soPaulo',this)"> Só OS com responsável = ${_cePessoa(r)}</label>
+      <label style="font-size:11.5px;display:inline-flex;gap:5px;align-items:center;cursor:pointer;white-space:nowrap;padding-bottom:6px;"><input type="checkbox" style="width:auto;margin:0;" ${r.soTipos?'checked':''} onchange="ceSet('${r.id}','soTipos',this)"> Só A-413/B-437/B-438 das empresas comissionadas</label>
+      <button class="btn btn-danger btn-xs" onclick="ceRemover('${r.id}')" title="Remover período" style="padding:4px 9px;font-size:12px;margin-left:auto;">🗑️</button>
+    </div>`).join('');
+
+  const totP={};
+  const blocos = CE_REGRAS.map(r=>{
+    const c=_ceCalcular(r);
+    const titulo=`<span style="color:${_cePessoa(r)==='Paulo'?'#16a34a':'#ea580c'}">${_cePessoa(r)}</span> · ${_ceEsc(r.desc||'Período')} ·${r.ini?fmtDate(r.ini):'?'} a ${r.fim?fmtDate(r.fim):'?'}`;
+    if(!r.ini || !r.fim) return `<div style="font-size:12px;color:var(--tx3);padding:8px 0;">${titulo}: informe as datas.</div>`;
+    if(!c.pct) return `<div style="font-size:12px;color:#f59e0b;padding:8px 0;">${titulo}: informe a porcentagem combinada.</div>`;
+    { const k=_cePessoa(r); totP[k]=(totP[k]||0)+c.dif; }
+    const aviso = c.semResp ? `<div style="margin:6px 0;padding:7px 10px;background:#f59e0b22;border-radius:var(--rs);font-size:11px;color:#f59e0b;">⚠️ ${c.semResp} OS no período estão sem «Responsável p/ preenchimento» e ficaram de fora. Defina o responsável nelas ou desmarque «Só OS com responsável = ${_cePessoa(r)}».</div>` : '';
+    const th='padding:7px 9px;font-weight:700;color:var(--tx2);';
+    const linhas = c.itens.map((os,i)=>`<tr style="border-bottom:1px solid var(--br);background:${i%2?'var(--bg2)':'transparent'};">
+        <td style="padding:6px 9px;" class="mono">${_ceEsc(os.numeroOS||'—')}</td>
+        <td style="padding:6px 9px;">${_ceEsc(os.empresa||'—')}</td>
+        <td style="padding:6px 9px;">${_ceEsc(os.tipoServico||'—')}</td>
+        <td style="padding:6px 9px;">${_ceEsc(os.responsavel||'—')}</td>
+        <td style="padding:6px 9px;text-align:right;">${fmtDate(os._data)}</td>
+        <td style="padding:6px 9px;text-align:right;">${fmtVal(os._valor)}</td>
+        <td style="padding:6px 9px;text-align:right;color:var(--tx3);">${fmtVal(os._normal)}</td>
+        <td style="padding:6px 9px;text-align:right;font-weight:800;color:var(--grn);">${fmtVal(os._especial)}</td>
+        <td style="padding:6px 9px;text-align:right;font-weight:700;color:${os._dif>=0?'#f59e0b':'#ef4444'};">${os._dif>=0?'+':''}${fmtVal(os._dif)}</td>
+      </tr>`).join('');
+    return `<div style="margin-bottom:16px;">
+      <div style="font-weight:800;font-size:13px;margin-bottom:6px;">${titulo} · ${c.pct.toLocaleString('pt-BR')}%</div>
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;margin-bottom:8px;">
+        <div class="stat" style="--sc:var(--sky)"><div class="stat-lbl">OS no período</div><div class="stat-val">${c.itens.length}</div><div class="stat-sub">${fmtVal(c.valor)} em OS</div></div>
+        <div class="stat" style="--sc:var(--tx3)"><div class="stat-lbl">Pela regra normal</div><div class="stat-val" style="font-size:18px;">${fmtVal(c.normal)}</div><div class="stat-sub">${_cePessoa(r)==='Paulo'?'R$ 18 / 32 / 30 por OS':'assalariado — sem comissão por OS'}</div></div>
+        <div class="stat" style="--sc:var(--grn)"><div class="stat-lbl">Pela regra especial</div><div class="stat-val" style="font-size:18px;">${fmtVal(c.especial)}</div><div class="stat-sub">${c.pct.toLocaleString('pt-BR')}% do valor</div></div>
+        <div class="stat" style="--sc:#f59e0b"><div class="stat-lbl">A mais para ${_cePessoa(r)}</div><div class="stat-val" style="font-size:18px;">${fmtVal(c.dif)}</div><div class="stat-sub">especial − normal</div></div>
+      </div>${aviso}
+      ${c.itens.length ? `<table style="width:100%;border-collapse:collapse;font-size:12px;">
+        <thead><tr style="background:var(--bg3);">
+          <th style="${th}text-align:left;">OS</th><th style="${th}text-align:left;">Empresa</th><th style="${th}text-align:left;">Tipo</th><th style="${th}text-align:left;">Responsável</th>
+          <th style="${th}text-align:right;">Data</th><th style="${th}text-align:right;">Valor OS</th><th style="${th}text-align:right;">Normal</th>
+          <th style="${th}text-align:right;color:var(--grn);">Especial</th><th style="${th}text-align:right;color:#f59e0b;">A mais</th>
+        </tr></thead><tbody>${linhas}
+          <tr style="background:var(--bg3);font-weight:800;border-top:2px solid var(--br);">
+            <td colspan="5" style="padding:8px 9px;">TOTAL</td>
+            <td style="padding:8px 9px;text-align:right;">${fmtVal(c.valor)}</td>
+            <td style="padding:8px 9px;text-align:right;">${fmtVal(c.normal)}</td>
+            <td style="padding:8px 9px;text-align:right;color:var(--grn);">${fmtVal(c.especial)}</td>
+            <td style="padding:8px 9px;text-align:right;color:#f59e0b;">${c.dif>=0?'+':''}${fmtVal(c.dif)}</td>
+          </tr></tbody></table>`
+        : '<div style="color:var(--tx3);font-size:12px;text-align:center;padding:14px 0;">Nenhuma OS encontrada nesse período com esses filtros.</div>'}
+    </div>`;
+  }).join('');
+  document.getElementById('ce-resultado').innerHTML = blocos;
+  const tag=document.getElementById('ce-total-tag');
+  if(tag) tag.textContent = Object.entries(totP).map(([k,v])=>`${k}: +${fmtVal(v)}`).join('  ·  ');
 }
 // ══════════════════════════════════════
 // EXPORTAR PARA ART
