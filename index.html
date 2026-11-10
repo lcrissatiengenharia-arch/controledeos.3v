@@ -1360,6 +1360,15 @@ input[readonly]{background:var(--bg3);}
 @media(max-width:1100px){.prancha{grid-template-columns:1fr;}.prancha-desenho{border-left:0;border-top:1px solid var(--br);}.prancha-desenho .cena-wrap{max-width:420px;}}
 @media(max-width:768px){.sb{border-radius:0;}.topbar{margin:0;border-radius:0;height:auto;}.login-screen:not(.hidden){grid-template-columns:1fr;}.login-foto{display:none;}.content{padding:14px 12px 20px;}.fin-row{grid-template-columns:1fr;}}
 @media (prefers-reduced-motion: reduce){.tra [pathLength]{stroke-dashoffset:0;animation:none;}.tra text{opacity:1;animation:none;}}
+/* coluna "Próxima ação": pílula com ícone e cor por etapa (rampa azul = ordem do fluxo; amarelo = a sua vez; verde = concluído) */
+.acao{display:inline-flex;align-items:center;gap:6px;padding:3px 10px 3px 7px;border-radius:999px;font-size:.8rem;font-weight:600;border:1px solid transparent;white-space:nowrap;line-height:1.5;}
+.acao svg{width:14px;height:14px;flex:none;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;}
+.acao.ac-vist{background:#eaf2fc;color:#1d4f8f;border-color:#cfe0f6;}
+.acao.ac-pree{background:#e1edfb;color:#1b5e9e;border-color:#bfd7f3;}
+.acao.ac-aval{background:#d6e6f9;color:#174f8c;border-color:#a9c8ee;}
+.acao.ac-conf{background:var(--sinal-10);color:var(--sinal-ink);border-color:#f3e2b3;}
+.acao.ac-fin{background:#dbe4f3;color:#102f5c;border-color:#b5c6e3;}
+.acao.ac-ok{background:#e7f6e7;color:#0a4f0a;border-color:#cfe9cf;}
 /* caixa "PEPT resolvida" */
 .pept-chk{display:inline-flex;align-items:center;gap:6px;font-size:.8rem;font-weight:600;color:var(--tx2);cursor:pointer;padding:3px 8px;border-radius:6px;border:1px solid var(--br);background:var(--bg1);width:fit-content;transition:background .15s,border-color .15s;}
 .pept-chk:hover{border-color:var(--acc);}
@@ -4889,6 +4898,19 @@ function statusBadge(os) {
   if(s==='vistoria')      return ['bg-gray','🕐 Ag. Vistoria'];
   return ['bg-purple','📄 Finalização'];
 }
+// v4: cada etapa tem texto, cor e ícone (SVG) — a coluna "Próxima ação" usa proxAcaoHTML; a ordenação continua pelo texto
+const ACAO_VISUAL = {
+  vistoria:      { txt:'Realizar vistoria',  cls:'ac-vist', ic:'<path d="M12 21s-6-5.4-6-10a6 6 0 0 1 12 0c0 4.6-6 10-6 10z"/><circle cx="12" cy="11" r="2.2"/>' },
+  preenchimento: { txt:'A preencher',        cls:'ac-pree', ic:'<path d="M4 20l4-1L18 9l-3-3L5 16z"/><path d="M13 7l3 3"/>' },
+  avaliacao:     { txt:'Realizar avaliação', cls:'ac-aval', ic:'<path d="M4 19V5M4 19h16"/><path d="M8 15v-4M12 15V8M16 15v-6"/>' },
+  conferencia:   { txt:'Sua conferência',    cls:'ac-conf', ic:'<circle cx="11" cy="11" r="6"/><path d="M20 20l-4-4M8.5 11l2 2 3-3.5"/>' },
+  finalizacao:   { txt:'Emitir laudo',       cls:'ac-fin',  ic:'<path d="M6 3h9l4 4v14H6z"/><path d="M15 3v4h4M9 13h6M9 17h4"/>' },
+  finalizado:    { txt:'Concluído',          cls:'ac-ok',   ic:'<path d="M5 12l4 4L19 6"/>' }
+};
+function proxAcaoHTML(os) {
+  const v = ACAO_VISUAL[statusOS(os)] || ACAO_VISUAL.finalizado;
+  return `<span class="acao ${v.cls}" title="${v.txt}"><svg viewBox="0 0 24 24" aria-hidden="true">${v.ic}</svg>${v.txt}</span>`;
+}
 function proxAcao(os) {
   const s=statusOS(os);
   if(s==='vistoria')      return 'Realizar vistoria';
@@ -5987,7 +6009,7 @@ function renderVistoriadas() {
       <td>${fmtDate(os.dataAbertura)}</td>
       <td>${fmtPrazo(os)}</td>
       <td>${badgeDias(os)}</td>
-      <td style="font-size:12px;color:var(--tx2);">${proxAcao(os)}</td>
+      <td style="font-size:12px;color:var(--tx2);">${proxAcaoHTML(os)}</td>
       <td><button class="btn btn-primary btn-xs" onclick="abrirDetalhe('${idq(os.id)}')">Atualizar</button></td>
     </tr>`;
   }).join('') : emptyRow(11, false, '🔍', 'Nenhuma OS em andamento');
@@ -6142,7 +6164,7 @@ function renderSimple(mode) {
         <td>${fmtPrazo(os)}</td>
         <td>${badgeDias(os)}</td>
         <td style="vertical-align:top;">${peptCell(os)}</td>
-        <td style="font-size:12px;color:var(--tx2);">${proxAcao(os)}</td>
+        <td style="font-size:12px;color:var(--tx2);">${proxAcaoHTML(os)}</td>
         <td style="vertical-align:top;">${analiseSelect(os)}</td>
         <td style="vertical-align:top;">${respSelect(os)}</td>
         <td class="admin-only valor-col" style="color:var(--grn);font-weight:600;">${os.valor?'R$ '+esc(os.valor):'—'}</td>
