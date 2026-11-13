@@ -1035,18 +1035,14 @@ tr.row-vencido{animation:none!important;}
 .dr-l{font-size:10.5px;font-weight:600;text-transform:uppercase;letter-spacing:.6px;color:var(--tx3);margin-top:4px;}
 .dr-ic{font-size:22px;opacity:.85;}
 
-/* pastilhas de documento */
-.docs-set{display:flex;flex-wrap:wrap;gap:5px;align-items:center;}
-.doc-chip{display:inline-flex;align-items:center;gap:5px;padding:4px 9px;border-radius:999px;cursor:pointer;
-  font-size:10.5px;font-weight:700;white-space:nowrap;user-select:none;transition:all .15s;
-  background:var(--bg3);border:1px solid var(--br2);color:var(--tx3);}
-.doc-chip:hover{transform:translateY(-1px);border-color:var(--br3);}
-.doc-chip.ok{background:rgba(22,163,74,.12);border-color:rgba(22,163,74,.38);color:var(--grn);}
-.doc-chip .mk{width:13px;height:13px;border-radius:4px;border:1.5px solid currentColor;display:inline-flex;
-  align-items:center;justify-content:center;font-size:9px;line-height:1;flex:none;}
-.doc-chip.ok .mk{background:var(--grn);border-color:var(--grn);color:#fff;}
-.doc-prog{font-size:10.5px;font-weight:800;color:var(--tx3);white-space:nowrap;margin-left:2px;}
-.doc-prog.full{color:var(--grn);}
+/* caixinha única «Analisada?» */
+.doc-chk{display:inline-flex;align-items:center;gap:7px;padding:5px 10px;border-radius:999px;cursor:pointer;
+  font-size:11px;font-weight:700;white-space:nowrap;user-select:none;transition:all .15s;
+  background:rgba(217,119,6,.10);border:1px solid rgba(217,119,6,.28);color:#b45309;}
+.doc-chk:hover{transform:translateY(-1px);}
+.doc-chk input{width:15px;height:15px;margin:0;cursor:pointer;accent-color:var(--grn);}
+.doc-chk.ok{background:rgba(22,163,74,.12);border-color:rgba(22,163,74,.38);color:var(--grn);}
+.doc-chk-data{display:block;font-size:10px;font-weight:500;color:var(--tx3);margin-top:3px;}
 
 /* faixa de espera */
 .esp{display:inline-flex;flex-direction:column;align-items:center;justify-content:center;
@@ -1060,7 +1056,7 @@ tr.row-vencido{animation:none!important;}
 tr.doc-critico{background:rgba(224,90,109,.05);box-shadow:inset 3px 0 0 var(--red);}
 tr.doc-atencao{background:rgba(217,119,6,.045);box-shadow:inset 3px 0 0 rgba(217,119,6,.55);}
 tr.doc-ok{opacity:.72;}
-.doc-obs{width:100%;min-height:38px;max-width:210px;font-size:11.5px;padding:5px 7px;border-radius:7px;
+.doc-obs{width:100%;min-height:44px;max-width:420px;font-size:11.5px;padding:5px 7px;border-radius:7px;
   resize:vertical;font-family:inherit;line-height:1.35;border:1px solid var(--br);background:var(--bg3);color:var(--tx1);}
 .doc-obs.tem{background:rgba(37,99,235,.07);border-color:rgba(37,99,235,.30);}
 
@@ -1152,7 +1148,7 @@ th{padding:9px 10px;}
 .stat-val{font-family:var(--font-display);font-variation-settings:"opsz" 72;font-size:2rem;font-weight:600;letter-spacing:-.02em;color:var(--tx);background:none;-webkit-text-fill-color:var(--tx);}
 .stat-sub{font-size:.8rem;color:var(--tx3);}
 .stat-ic{display:none;}
-.mini-stats{gap:12px;}
+.mini-stats{gap:12px;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));} /* 7 cartões cabem numa linha a partir de ~1100px */
 .mini-stat{background:var(--bg1);border:1px solid var(--br);border-left:3px solid var(--sc,var(--acc));border-radius:10px;padding:12px 14px;box-shadow:none;}
 .mini-stat .ic{display:none;}
 .mini-stat .v{font-family:var(--font-display);font-variation-settings:"opsz" 48;font-size:1.4rem;font-weight:600;letter-spacing:-.01em;}
@@ -1378,6 +1374,24 @@ input[readonly]{background:var(--bg3);}
 .pg-hd{margin:2px 0 18px;max-width:780px;}
 .pg-hd h1{font-family:var(--font-display);font-variation-settings:"opsz" 72;font-size:1.9rem;font-weight:600;letter-spacing:-.02em;line-height:1.1;}
 .pg-hd p{color:var(--tx2);font-size:1rem;line-height:1.5;margin-top:6px;}
+/* v4.1 — contador de OS da página (segue chips, filtros e busca) */
+.pg-cnt{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-top:12px;}
+.pg-cnt .n{font-family:var(--font-display);font-variation-settings:"opsz" 48;font-size:1.7rem;font-weight:600;letter-spacing:-.02em;line-height:1;color:var(--acc);}
+.pg-cnt .u{font-size:.9rem;font-weight:600;color:var(--tx);margin-left:-4px;}
+.pg-cnt .f{display:inline-flex;align-items:center;gap:5px;background:var(--bg3);border:1px solid var(--br);border-radius:999px;padding:3px 10px;font-size:.78rem;font-weight:600;color:var(--tx);}
+.pg-cnt .f::before{content:'';width:6px;height:6px;border-radius:50%;background:var(--acc);}
+.pg-cnt .t{font-size:.8rem;color:var(--tx3);}
+.pg-cnt.zero .n{color:var(--tx3);}
+/* v4.1 — «Fechadas hoje» com meta pessoal do dia (Em andamento / Kanban) */
+.fh{display:inline-flex;align-items:center;gap:8px;margin-left:auto;padding:5px 12px 5px 10px;border-radius:999px;cursor:pointer;user-select:none;
+  background:rgba(12,163,12,.09);border:1px solid rgba(12,163,12,.32);color:#0a6f0a;font-size:.8rem;font-weight:600;transition:transform .15s;}
+.fh:hover{transform:translateY(-1px);}
+.fh b{font-family:var(--font-display);font-variation-settings:"opsz" 48;font-size:1.25rem;font-weight:600;line-height:1;color:#0a6f0a;}
+.fh .meta{color:var(--tx3);font-weight:500;}
+.fh .bar{width:64px;height:6px;border-radius:3px;background:rgba(0,0,0,.09);overflow:hidden;}
+.fh .bar i{display:block;height:100%;background:#0ca30c;border-radius:3px;transition:width .4s;}
+.fh.ok{background:rgba(12,163,12,.16);border-color:#0ca30c;}
+.fh .sem{font-size:.72rem;color:var(--tx3);font-weight:500;}
 .rank .n small{color:var(--tx4);font-weight:400;margin-left:6px;font-size:.8rem;}
 .rank.wide{grid-template-columns:minmax(140px,240px) 1fr 120px;}
 .legenda{display:flex;gap:16px;flex-wrap:wrap;font-size:.82rem;color:var(--tx2);margin-top:8px;}
@@ -1594,6 +1608,7 @@ input[readonly]{background:var(--bg3);}
     <div class="mini-stat" style="--sc:#6250d6"><div class="ic">✍️</div><div class="info"><div class="v" id="kpi-laudo-pend">0</div><div class="l">Laudos a emitir</div></div></div>
     <div class="mini-stat admin-only" style="--sc:var(--yel)"><div class="ic">💵</div><div class="info"><div class="v" id="kpi-ticket">R$ 0</div><div class="l">Ticket médio</div></div></div>
     <div class="mini-stat" style="--sc:#2a78d6"><div class="ic">📅</div><div class="info"><div class="v" id="kpi-7dias">0</div><div class="l">Vencendo em 7 dias</div></div></div>
+    <div class="mini-stat" style="--sc:var(--grn);cursor:pointer;" onclick="go('finalizadas')" title="OS com laudo finalizado hoje — clique para ver as finalizadas"><div class="ic">🏁</div><div class="info"><div class="v" id="kpi-fechadas-hoje">0</div><div class="l">Fechadas hoje</div><div class="l" id="kpi-fechadas-hoje-sub" style="margin-top:2px;opacity:.75;"></div></div></div>
   </div>
 
   <!-- ROW 1: Mensal + Donut status -->
@@ -1894,18 +1909,14 @@ input[readonly]{background:var(--bg3);}
         <option value="B-438">Só B-438</option>
         <option value="B-437">Só B-437</option>
       </select>
-      <select id="f-doc-item" class="toolbar-select" onchange="renderDocumentacao()">
-        <option value="">Qualquer pendência</option>
-        <option value="matricula">Falta a Matrícula</option>
-        <option value="art">Falta a ART/RRT</option>
-        <option value="pci">Falta a PCI</option>
-        <option value="projeto">Falta o Projeto</option>
-        <option value="alvara">Falta o Alvará</option>
+      <select id="f-doc-obs" class="toolbar-select" onchange="renderDocumentacao()">
+        <option value="">Com e sem observações</option>
+        <option value="com">Só com observações</option>
+        <option value="sem">Só sem observações</option>
       </select>
       <select id="f-doc-ord" class="toolbar-select" onchange="renderDocumentacao()">
         <option value="espera">Ordenar: mais tempo esperando</option>
         <option value="prazo">Ordenar: prazo mais apertado</option>
-        <option value="falta">Ordenar: mais documentos faltando</option>
       </select>
     </div>
   </div>
@@ -1913,8 +1924,8 @@ input[readonly]{background:var(--bg3);}
     <th style="width:40px;text-align:center;" title="Tempo esperando análise">⏱</th>
     <th>Empresa</th><th>Tipo</th><th>Referência OS</th><th>Cliente</th>
     <th>Prazo Fatal</th><th>Dias Rest.</th>
-    <th style="min-width:330px;">Documentos analisados</th>
-    <th style="min-width:190px;">Observações</th>
+    <th style="min-width:140px;">Analisada?</th>
+    <th style="min-width:300px;">Observações <span style="font-weight:400;text-transform:none;letter-spacing:0;opacity:.7;">(mesmo texto da coluna Análise)</span></th>
     <th></th>
   </tr></thead><tbody id="tb-doc"></tbody></table></div>
 </div>
@@ -3335,7 +3346,69 @@ function _cabecalhoPagina(id){
   const pg=document.getElementById('page-'+id); if(!pg) return;
   let hd=pg.querySelector(':scope > .pg-hd');
   if(!hd){ hd=document.createElement('div'); hd.className='pg-hd'; pg.prepend(hd); }
-  hd.innerHTML=`<h1>${esc(PAGE_TITLES[id]||id)}</h1>${PAGE_LEADS[id]?`<p>${esc(PAGE_LEADS[id])}</p>`:''}`;
+  hd.innerHTML=`<h1>${esc(PAGE_TITLES[id]||id)}</h1>${PAGE_LEADS[id]?`<p>${esc(PAGE_LEADS[id])}</p>`:''}<div class="pg-cnt" id="pg-cnt-${esc(id)}">${_pgCntHTML[id]||''}</div>`;
+}
+// v4.1 — contador no topo da página: «12 OS · A preencher · Até 3 dias · de 40 em andamento».
+// Cada render chama contagemPagina(id, n, {filtros:[...], total, unidade}); o número segue
+// chips, selects e busca da aba. Também vai para a barra do topo (tb-sub) se a aba estiver ativa.
+const _pgCntHTML = {};
+function contagemPagina(id, n, opts){
+  opts = opts || {};
+  const filtros = (opts.filtros||[]).filter(Boolean);
+  const unidade = opts.unidade || 'OS';
+  const total = typeof opts.total === 'number' ? opts.total : null;
+  const comFiltro = filtros.length > 0;
+  let html = `<span class="n">${n}</span><span class="u">${esc(unidade)}</span>`;
+  if(comFiltro) html += filtros.map(f=>`<span class="f">${esc(f)}</span>`).join('');
+  const desc = opts.descTotal || 'no total';
+  if(total!==null && (comFiltro || total!==n)) html += `<span class="t">de ${total} ${esc(desc)}</span>`;   // «2 OS · A preencher · de 7 em andamento»
+  else if(opts.descTotal) html += `<span class="t">${esc(opts.descTotal)}</span>`;                         // «7 OS em andamento»
+  if(opts.extra) html += opts.extra;                                                                         // ex.: pílula «Fechadas hoje»
+  _pgCntHTML[id] = html;
+  const el = document.getElementById('pg-cnt-'+id);
+  if(el){ el.innerHTML = html; el.classList.toggle('zero', n===0); }
+  try {
+    if(document.getElementById('page-'+id)?.classList.contains('active')){
+      const sub = document.getElementById('tb-sub');
+      if(sub) sub.textContent = `${n} ${unidade}${comFiltro ? ' · ' + filtros.join(' · ') : ''}${total!==null && comFiltro ? ' · de ' + total : ''}`;
+    }
+  } catch(_){}
+}
+// v4.1 — pílula «Fechadas hoje» com meta pessoal do dia (guardada neste navegador, por usuário).
+// Mostra quantas OS já foram fechadas hoje; clique para definir/alterar a meta.
+function _chaveMetaDia(){ const u = (typeof USUARIO_ATUAL!=='undefined' && USUARIO_ATUAL && (USUARIO_ATUAL.email||USUARIO_ATUAL.nome)) || 'anon'; return 'metaFechadasDia:'+u; }
+function metaFechadasDia(){ const v = parseInt(localStorage.getItem(_chaveMetaDia())||'0',10); return isNaN(v)||v<0 ? 0 : v; }
+function fechadasHojeHTML(){
+  const n = fechadasNoDia().length, sem = fechadasNaSemana().length, meta = metaFechadasDia();
+  const pct = meta ? Math.min(100, Math.round(n/meta*100)) : 0;
+  const bateu = meta && n >= meta;
+  const tip = meta ? `Fechadas hoje: ${n} de ${meta} (meta do dia)${bateu?' — meta batida!':''} · ${sem} nesta semana · clique para alterar a meta`
+                   : `Fechadas hoje: ${n} · ${sem} nesta semana · clique para definir uma meta do dia`;
+  return `<span class="fh${bateu?' ok':''}" onclick="definirMetaDia()" title="${esc(tip)}">🏁 Fechadas hoje <b>${n}</b>`
+    + (meta ? `<span class="meta">/ ${meta}</span><span class="bar"><i style="width:${pct}%"></i></span>${bateu?'✓':''}` : '')
+    + `<span class="sem">· ${sem} na semana</span></span>`;
+}
+function definirMetaDia(){
+  const atual = metaFechadasDia();
+  const r = prompt('Meta pessoal de OS fechadas por dia (0 para remover):', atual || '');
+  if(r===null) return;
+  const v = parseInt(String(r).replace(/\D/g,''),10);
+  if(isNaN(v) || v<=0) localStorage.removeItem(_chaveMetaDia());
+  else localStorage.setItem(_chaveMetaDia(), String(v));
+  try { renderSimple('andamento'); } catch(_){}
+  try { if(document.getElementById('page-kanban')?.classList.contains('active')) renderKanban(); } catch(_){}
+  try { toast(v>0 ? `Meta do dia: ${v} OS` : 'Meta do dia removida', 'ok'); } catch(_){}
+}
+// Texto da opção escolhida num <select> (vazio quando é a opção «todos»)
+function _optTexto(selId){
+  const s = document.getElementById(selId);
+  if(!s || !s.value) return '';
+  return (s.options[s.selectedIndex]?.textContent || '').replace(/^[^\p{L}\d]+/u,'').trim();
+}
+function _chipTexto(wrapId, ignorar){
+  const c = document.querySelector('#'+wrapId+' .chip.on');
+  const t = c ? c.textContent.trim() : '';
+  return (ignorar||['Todas','Todos','all']).includes(t) ? '' : t;
 }
 
 // ── v4: cena de vistoria (herói do Painel e tela de entrada) ──
@@ -3912,6 +3985,7 @@ function atualizarPrancha(k){
   el('pr-data').textContent = _cap(d.toLocaleDateString('pt-BR',{weekday:'long',day:'numeric',month:'long'}));
   const partes = [];
   partes.push(`${k.abertos} em andamento e ${k.fin} finalizadas no período selecionado.`);
+  if(typeof k.fechHoje === 'number') partes.push(k.fechHoje===0 ? 'Nenhuma fechada hoje.' : k.fechHoje===1 ? 'Uma fechada hoje.' : `${k.fechHoje} fechadas hoje.`);
   if(k.amanha>0) partes.push(k.amanha===1 ? 'Uma vence amanhã.' : `${k.amanha} vencem amanhã.`);
   el('pr-lead').textContent = partes.join(' ');
 }
@@ -4140,26 +4214,18 @@ const ANALISE_OPCOES = ['Matrícula sem averbação','PCI Errada','ART Errada','
 const TIPOS_ANALISE_OBRIG = ['B-438','B-437'];
 
 // ══════════════════════════════════════
-// DOCUMENTAÇÃO — checklist das B-437 / B-438
+// DOCUMENTAÇÃO — análise das B-437 / B-438
+// v4.1: uma única marcação «Analisada?» (os.analisada) + Observações (os.analiseTexto,
+// o MESMO texto da coluna Análise em Em andamento / Kanban / detalhe da OS).
+// O checklist de 5 documentos (os.docs) foi aposentado; o campo antigo fica
+// ignorado no Firestore.
 // ══════════════════════════════════════
-const DOC_ITENS = [
-  {id:'matricula', curto:'Matrícula', nome:'Matrícula do imóvel'},
-  {id:'art',       curto:'ART/RRT',   nome:'ART ou RRT do responsável técnico'},
-  {id:'pci',       curto:'PCI',       nome:'Planilha de Composição de Investimento'},
-  {id:'projeto',   curto:'Projeto',   nome:'Projeto arquitetônico'},
-  {id:'alvara',    curto:'Alvará',    nome:'Alvará de construção'}
-];
-
-// Lê o checklist da OS. Compatível com o que já existia: se a OS foi marcada
-// como "analisada" antes desta aba existir, considera tudo conferido.
-function getDocs(os) {
-  const d = os.docs && typeof os.docs === 'object' ? os.docs : null;
-  const todos = {};
-  DOC_ITENS.forEach(i => todos[i.id] = d ? !!d[i.id] : !!os.analisada);
-  return todos;
+function docsCompleto(os){ return !!os.analisada; }
+function docAnalisadaEm(os){
+  if(!os.analisadaEm) return '';
+  const d = new Date(os.analisadaEm);
+  return isNaN(d) ? '' : d.toLocaleDateString('pt-BR');
 }
-function docsFeitos(os){ const d=getDocs(os); return DOC_ITENS.filter(i=>d[i.id]).length; }
-function docsCompleto(os){ return docsFeitos(os) === DOC_ITENS.length; }
 
 // OS que entram nesta aba: B-437/B-438 ainda em aberto
 function ehDocOS(os){ return exigeAnalise(os) && isAberto(os); }
@@ -4176,46 +4242,13 @@ function diasEsperando(os) {
 }
 function nivelEspera(dias){ return dias >= 10 ? 3 : dias >= 7 ? 2 : dias >= 3 ? 1 : 0; }
 
-// Marca/desmarca um documento
-async function toggleDoc(e, id, item) {
-  if(e) e.stopPropagation();
-  const os = DB.find(o=>o.id===id); if(!os) return;
-  const atual = getDocs(os);
-  const antes = os.docs ? {...os.docs} : undefined;
-  const antesAnalisada = os.analisada;
-
-  atual[item] = !atual[item];
-  os.docs = atual;
-  // Mantém a caixinha da aba Em Andamento em sintonia com o checklist
-  os.analisada = DOC_ITENS.every(i => atual[i.id]);
-  if(os.analisada && !os.analisadaEm) os.analisadaEm = new Date().toISOString();
-
-  renderDocumentacao();
-  try {
-    await fbSave(os);
-    updateBadges();
-  } catch(err) {
-    console.error('Erro ao salvar o checklist:', err);
-    os.docs = antes; os.analisada = antesAnalisada;
-    renderDocumentacao();
-  }
-}
-
-// Marca todos de uma vez
-async function marcarTodosDocs(e, id) {
-  if(e) e.stopPropagation();
-  const os = DB.find(o=>o.id===id); if(!os) return;
-  const completo = docsCompleto(os);
-  const antes = os.docs ? {...os.docs} : undefined;
-  const antesAnalisada = os.analisada;
-  const novo = {};
-  DOC_ITENS.forEach(i => novo[i.id] = !completo);
-  os.docs = novo;
-  os.analisada = !completo;
-  if(os.analisada && !os.analisadaEm) os.analisadaEm = new Date().toISOString();
-  renderDocumentacao();
-  try { await fbSave(os); updateBadges(); }
-  catch(err){ console.error(err); os.docs=antes; os.analisada=antesAnalisada; renderDocumentacao(); }
+// Re-renderiza tudo que mostra a análise (coluna Análise, aba Documentação, Kanban, painel)
+function _refreshAnalise(){
+  try { renderSimple('andamento'); } catch(_){}
+  try { renderDocumentacao(); } catch(_){}
+  try { renderAlertaDocumentacao(); } catch(_){}
+  try { if(document.getElementById('page-kanban')?.classList.contains('active')) renderKanban(); } catch(_){}
+  try { updateBadges(); } catch(_){}
 }
 
 let filtroDoc = 'pendentes';
@@ -4226,20 +4259,17 @@ function setChipDoc(v, el) {
   renderDocumentacao();
 }
 
-function docChips(os) {
-  const d = getDocs(os);
-  const feitos = DOC_ITENS.filter(i=>d[i.id]).length;
-  const chips = DOC_ITENS.map(i => `
-    <span class="doc-chip${d[i.id]?' ok':''}" title="${i.nome}"
-      onclick="toggleDoc(event,'${idq(os.id)}','${idq(i.id)}')">
-      <span class="mk">${d[i.id]?'✓':''}</span>${i.curto}
-    </span>`).join('');
-  const completo = feitos === DOC_ITENS.length;
-  return `<div class="docs-set" onclick="event.stopPropagation()">
-    ${chips}
-    <span class="doc-prog${completo?' full':''}" title="${completo?'Documentação conferida':'Ainda faltam documentos'}"
-      onclick="marcarTodosDocs(event,'${idq(os.id)}')" style="cursor:pointer;"
-      >${feitos}/${DOC_ITENS.length}</span>
+// Caixinha única «Analisada?» — é a mesma marcação da coluna Análise em Em andamento
+function docCheck(os) {
+  const ok = docsCompleto(os);
+  const quando = ok ? docAnalisadaEm(os) : '';
+  return `<div onclick="event.stopPropagation()">
+    <label class="doc-chk${ok?' ok':''}" title="${ok?'Documentação analisada — desmarque para voltar à fila':'Marcar a documentação como analisada'}">
+      <input type="checkbox" ${ok?'checked':''} onclick="event.stopPropagation()"
+        onchange="setAnalisada(event,'${idq(os.id)}',this.checked)">
+      ${ok?'Analisada':'Analisar'}
+    </label>
+    ${quando ? `<span class="doc-chk-data">em ${quando}</span>` : ''}
   </div>`;
 }
 
@@ -4265,10 +4295,11 @@ function renderAlertaDocumentacao() {
   el.classList.remove('ok');
   const topo = pend.slice(0,3).map(os=>{
     const esp = diasEsperando(os);
-    const falta = DOC_ITENS.length - docsFeitos(os);
+    const obs = (os.analiseTexto||'').trim();
+    const resumoObs = obs ? ' · ' + escAttr(obs.length > 48 ? obs.slice(0,46) + '…' : obs) : ' · sem observações';
     return `<div class="da-item">
       <b>${escAttr(os.empresa||'—')} · ${escAttr(os.tipoServico||'')}</b>
-      <span>${esp}d esperando · faltam ${falta} doc${falta>1?'s':''}</span>
+      <span>${esp}d esperando${resumoObs}</span>
     </div>`;
   }).join('');
 
@@ -4289,34 +4320,37 @@ function renderDocumentacao() {
   let d = DB.filter(ehDocOS);
   const q = (document.getElementById('s-doc')?.value||'').toLowerCase().trim();
   const fTipo = document.getElementById('f-doc-tipo')?.value || '';
-  const fItem = document.getElementById('f-doc-item')?.value || '';
+  const fObs  = document.getElementById('f-doc-obs')?.value || '';
   const fOrd  = document.getElementById('f-doc-ord')?.value || 'espera';
+  const temObs = o => !!(o.analiseTexto||'').trim();
 
   // Resumo do topo — sempre sobre o conjunto todo, antes dos filtros
   const todas = DB.filter(ehDocOS);
   const pend  = todas.filter(o=>!docsCompleto(o));
   const criticas = pend.filter(o=>nivelEspera(diasEsperando(o))>=3).length;
-  const naoIniciadas = pend.filter(o=>docsFeitos(o)===0).length;
+  const comObs = pend.filter(temObs).length;
   const resumo = document.getElementById('doc-resumo');
   if(resumo) resumo.innerHTML = `
     <div class="dr" style="--dc:var(--red)"><span class="dr-ic">⏳</span><div><div class="dr-v">${pend.length}</div><div class="dr-l">Esperando análise</div></div></div>
     <div class="dr" style="--dc:#b45309"><span class="dr-ic">🚨</span><div><div class="dr-v">${criticas}</div><div class="dr-l">Paradas há 10 dias ou mais</div></div></div>
-    <div class="dr" style="--dc:var(--tx3)"><span class="dr-ic">📭</span><div><div class="dr-v">${naoIniciadas}</div><div class="dr-l">Nem começadas</div></div></div>
-    <div class="dr" style="--dc:var(--grn)"><span class="dr-ic">✅</span><div><div class="dr-v">${todas.length-pend.length}</div><div class="dr-l">Documentação conferida</div></div></div>`;
+    <div class="dr" style="--dc:var(--acc)"><span class="dr-ic">📝</span><div><div class="dr-v">${comObs}</div><div class="dr-l">Pendentes com observações</div></div></div>
+    <div class="dr" style="--dc:var(--grn)"><span class="dr-ic">✅</span><div><div class="dr-v">${todas.length-pend.length}</div><div class="dr-l">Analisadas</div></div></div>`;
 
   if(filtroDoc === 'pendentes') d = d.filter(o=>!docsCompleto(o));
   else if(filtroDoc === 'completas') d = d.filter(docsCompleto);
   if(fTipo) d = d.filter(o=>String(o.tipoServico||'').trim()===fTipo);
-  if(fItem) d = d.filter(o=>!getDocs(o)[fItem]);
+  if(fObs === 'com') d = d.filter(temObs);
+  else if(fObs === 'sem') d = d.filter(o=>!temObs(o));
   if(q) d = d.filter(o=>[o.empresa,o.numeroOS,o.cliente,o.cidade,o.analiseTexto,o.responsavel]
       .some(v=>(v||'').toLowerCase().includes(q)));
 
   if(fOrd === 'prazo') d.sort((a,b)=>(diasRest(a)??99999)-(diasRest(b)??99999));
-  else if(fOrd === 'falta') d.sort((a,b)=>docsFeitos(a)-docsFeitos(b) || diasEsperando(b)-diasEsperando(a));
   else d.sort((a,b)=>diasEsperando(b)-diasEsperando(a));
 
+  try { contagemPagina('documentacao', d.length, { filtros:[_chipTexto('chips-doc'), _optTexto('f-doc-tipo'), _optTexto('f-doc-obs'), q ? `busca: “${q}”` : ''], total: todas.length, descTotal:'B-437/B-438 em aberto' }); } catch(e){ console.error(e); }
+
   if(!d.length){
-    tb.innerHTML = emptyRow(10, true, '✅',
+    tb.innerHTML = emptyRow(9, true, '✅',
       filtroDoc==='pendentes' ? 'Nenhuma documentação esperando análise' : 'Nenhuma OS com esse filtro');
     return;
   }
@@ -4340,10 +4374,11 @@ function renderDocumentacao() {
       <td>${escAttr(os.cliente||'—')}</td>
       <td>${fmtPrazo(os)}</td>
       <td>${badgeDias(os)}</td>
-      <td>${docChips(os)}</td>
+      <td>${docCheck(os)}</td>
       <td onclick="event.stopPropagation()">
-        <textarea class="doc-obs${obs?' tem':''}" rows="2" placeholder="Observações da análise…"
+        <textarea class="doc-obs${obs?' tem':''}" rows="2" placeholder="Observações da análise… (aparecem na coluna Análise das outras abas)"
           title="${escAttr(obs)}"
+          oninput="this.style.height='auto';this.style.height=Math.min(this.scrollHeight,120)+'px';"
           onchange="setAnaliseTexto(event,'${idq(os.id)}',this.value)"
           onblur="setAnaliseTexto(event,'${idq(os.id)}',this.value)">${escAttr(obs)}</textarea>
       </td>
@@ -4486,12 +4521,21 @@ async function setAnaliseTexto(e, id, valor) {
       el.style.background = novo ? 'rgba(37,99,235,.07)' : 'var(--bg3)';
       el.style.borderColor = novo ? 'rgba(37,99,235,.30)' : 'var(--br)';
       el.title = novo;
+      el.classList.toggle('tem', !!novo);
     }
+    // O mesmo texto vale para Em andamento, Documentação, Kanban e detalhe da OS:
+    // atualiza as OUTRAS telas sem mexer na que está com o foco.
+    const pagAtiva = document.querySelector('.page.active')?.id || '';
+    if(pagAtiva !== 'page-andamento') { try { renderSimple('andamento'); } catch(_){} }
+    if(pagAtiva !== 'page-documentacao') { try { renderDocumentacao(); } catch(_){} }
+    try { renderAlertaDocumentacao(); } catch(_){}
+    if(pagAtiva === 'page-kanban') { try { renderKanban(); } catch(_){} }
     updateBadges();
   } catch(err) {
     console.error('Erro ao salvar texto da análise:', err);
     os.analiseTexto = anterior;
     renderSimple('andamento');
+    renderDocumentacao();
   }
 }
 
@@ -4499,22 +4543,18 @@ async function setAnalisada(e, id, marcado) {
   if(e) e.stopPropagation();
   const os = DB.find(o=>o.id===id); if(!os) return;
   const anterior = !!os.analisada;
-  const antesDocs = os.docs ? {...os.docs} : undefined;
+  const anteriorEm = os.analisadaEm;
   os.analisada = !!marcado;
-  // Espelha no checklist da aba Documentação
-  const novo = {};
-  DOC_ITENS.forEach(i => novo[i.id] = !!marcado);
-  os.docs = novo;
   if(os.analisada) os.analisadaEm = new Date().toISOString();
+  // Uma única marcação vale para a coluna Análise (Em andamento) e para a aba Documentação
+  _refreshAnalise();
   try {
     await fbSave(os);
-    renderSimple('andamento');
-    updateBadges();
   } catch(err) {
     console.error('Erro ao salvar checkbox de análise:', err);
     os.analisada = anterior;
-    os.docs = antesDocs;
-    renderSimple('andamento');
+    os.analisadaEm = anteriorEm;
+    _refreshAnalise();
   }
 }
 
@@ -4693,6 +4733,10 @@ function renderKanban() {
 
   const el = document.getElementById('nb-kb');
   if(el) el.textContent = dados.filter(isAberto).length;
+  try {
+    const qk = (document.getElementById('s-kb')?.value||'').trim();
+    contagemPagina('kanban', dados.length, { filtros:[_optTexto('f-kb-resp'), _optTexto('f-kb-dias'), qk ? `busca: “${qk}”` : ''], total: DB.filter(isAberto).length, descTotal:'em andamento', extra: fechadasHojeHTML() });
+  } catch(e){ console.error(e); }
 }
 
 // ─── Drag & drop (mouse + toque) ───
@@ -4889,6 +4933,15 @@ function statusOS(os) {
   return 'finalizacao';                                                   // 5. Emitir laudo
 }
 function isAberto(os) { return statusOS(os)!=='finalizado'; }
+// v4.1 — fechadas no dia / na semana (segunda a hoje), pela data de fechamento
+function _diaFechamento(os){ return String(os.dataFechamento||'').slice(0,10); }
+function fechadasNoDia(iso){ const dia = iso || hojeISO(); return DB.filter(os=>!isAberto(os) && _diaFechamento(os)===dia); }
+function fechadasNaSemana(){
+  const h = new Date(); h.setHours(12,0,0,0);
+  const seg = new Date(h); seg.setDate(h.getDate() - ((h.getDay()+6)%7));
+  const ini = isoLocal(seg), fim = isoLocal(h);
+  return DB.filter(os=>{ if(isAberto(os)) return false; const d=_diaFechamento(os); return d && d>=ini && d<=fim; });
+}
 function statusBadge(os) {
   const s=statusOS(os);
   if(s==='finalizado')    return ['bg-green','✓ Finalizado'];
@@ -5331,7 +5384,7 @@ function updateBadges() {
   sv('sv-amanha', dAmanha);
   sv('sv-3dias', d3dias);
   sv('sv-vencidas', dVencidas);
-  try { atualizarPrancha({hoje:dHoje, abertos:dAbertos.length, venc:dVenc, vencidas:dVencidas, fin:dFin, amanha:dAmanha, total:dados.length}); } catch(e){ console.error(e); }
+  try { atualizarPrancha({hoje:dHoje, abertos:dAbertos.length, venc:dVenc, vencidas:dVencidas, fin:dFin, amanha:dAmanha, total:dados.length, fechHoje:fechadasNoDia().length}); } catch(e){ console.error(e); }
 
   // ── Mini KPIs ──
   const dSemPrazo = dAbertos.filter(os=>!os.prazoFatal).length;
@@ -5350,6 +5403,20 @@ function updateBadges() {
   sv('kpi-vist-pend', dVistPend);
   sv('kpi-laudo-pend', dLaudoPend);
   sv('kpi-7dias', d7dias);
+  // v4.1 — OS fechadas no dia (laudo finalizado com data de fechamento = hoje), sobre todas as OS
+  try {
+    const fechHoje = fechadasNoDia();
+    sv('kpi-fechadas-hoje', fechHoje.length);
+    const subEl = document.getElementById('kpi-fechadas-hoje-sub');
+    if(subEl){
+      const semana = fechadasNaSemana().length;
+      subEl.textContent = `${semana} nesta semana`;
+    }
+    const cardFH = document.getElementById('kpi-fechadas-hoje')?.closest('.mini-stat');
+    if(cardFH) cardFH.title = fechHoje.length
+      ? 'Fechadas hoje: ' + fechHoje.map(o=>`${o.empresa||'—'} · ${o.numeroOS||''}`).join('\n')
+      : 'Nenhuma OS fechada hoje — clique para ver as finalizadas';
+  } catch(e){ console.error(e); }
   sv('kpi-idade-media', idadeMedia===null ? '—' : idadeMedia+' d');
   sv('kpi-ticket', 'R$ '+ticket.toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2}));
 
@@ -5967,6 +6034,7 @@ function renderLista() {
   }).join('');
   const el=document.getElementById('cnt-lista');
   if(el) el.textContent=`${d.length} registro${d.length!==1?'s':''}`;
+  try { contagemPagina('lista', d.length, { filtros:[filtroLista!=='all' ? filtroLista : '', q ? `busca: “${q}”` : ''], total: DB.length, descTotal:'cadastradas' }); } catch(e){ console.error(e); }
 }
 
 // ══════════════════════════════════════
@@ -5990,6 +6058,7 @@ function renderPreenchidas() {
       <td>${badgeDias(os)}</td>
       <td><button class="btn btn-primary btn-xs" onclick="abrirDetalhe('${idq(os.id)}')">Atualizar</button></td>
     </tr>`;}).join('') : emptyRow(12, false, '✍️', 'Nenhuma OS preenchida em andamento');
+  try { contagemPagina('preenchidas', d.length, { total: DB.filter(isAberto).length, descTotal:'em andamento' }); } catch(e){}
 }
 
 function renderVistoriadas() {
@@ -6013,6 +6082,7 @@ function renderVistoriadas() {
       <td><button class="btn btn-primary btn-xs" onclick="abrirDetalhe('${idq(os.id)}')">Atualizar</button></td>
     </tr>`;
   }).join('') : emptyRow(11, false, '🔍', 'Nenhuma OS em andamento');
+  try { contagemPagina('vistoriadas', d.length, { filtros:[`${d.filter(o=>o.vistoria==='Imóvel vistoriado').length} vistoriadas`, `${d.filter(o=>o.vistoria!=='Imóvel vistoriado').length} aguardando vistoria`] }); } catch(e){}
 }
 
 function renderSemFicha() {
@@ -6030,6 +6100,7 @@ function renderSemFicha() {
       <td>${badgeDias(os)}</td>
       <td><button class="btn btn-primary btn-xs" onclick="abrirDetalhe('${idq(os.id)}')">Atualizar</button></td>
     </tr>`;}).join('') : emptyRow(10,true,'✅','Nenhuma OS pendente de ficha de pesquisa');
+  try { contagemPagina('sem-ficha', d.length, { total: DB.filter(o=>!isAberto(o)).length, descTotal:'finalizadas' }); } catch(e){}
 }
 
 function renderSimple(mode) {
@@ -6132,6 +6203,23 @@ function renderSimple(mode) {
     }
   }
   if(q) d=d.filter(o=>[o.empresa,o.numeroOS,o.tipoServico,o.cliente,o.cidade].some(v=>(v||'').toLowerCase().includes(q)));
+
+  // v4.1 — contador no topo da aba, seguindo os filtros escolhidos
+  try {
+    if(mode==='andamento'){
+      contagemPagina('andamento', d.length, {
+        filtros:[_chipTexto('chips-and'), _optTexto('f-and-dias'), _optTexto('f-and-acao'), q ? `busca: “${q}”` : ''],
+        total: DB.filter(isAberto).length, descTotal:'em andamento', extra: fechadasHojeHTML()
+      });
+    } else if(mode==='vencendo'){
+      contagemPagina('vencendo', d.length, { filtros:[q ? `busca: “${q}”` : ''], total: DB.filter(isAberto).length, descTotal:'em andamento' });
+    } else if(mode==='finalizadas'){
+      contagemPagina('finalizadas', d.length, {
+        filtros:[_optTexto('fin-mes-filtro'), !document.getElementById('fin-mes-filtro')?.value ? _optTexto('fin-ano-filtro') : '', _optTexto('fin-emp-filtro'), q ? `busca: “${q}”` : ''],
+        total: DB.filter(o=>!isAberto(o)).length, descTotal:'finalizadas'
+      });
+    }
+  } catch(e){ console.error(e); }
 
   const tbId={andamento:'tb-and',vencendo:'tb-venc',finalizadas:'tb-fin'}[mode];
   const tb=document.getElementById(tbId);
